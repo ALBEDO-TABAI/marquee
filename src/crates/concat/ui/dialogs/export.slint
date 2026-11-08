@@ -3,6 +3,8 @@
 
 import { I18n } from "../i18n.slint";
 import { Theme } from "../theme/theme.slint";
+import { Glass, GlassKind } from "../primitives/glass.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 import { Glyph, Icon } from "../icons.slint";
 import { Button, CopyChip, DialogRow, DialogSection, Field, Progress } from "../primitives/modal.slint";
 import { NumberField } from "../primitives/number-field.slint";
@@ -17,7 +19,8 @@ import { Fmt } from "../util.slint";
 // starts. What the file will weigh is on the Export button, because that is
 // the thing the bitrate decides.
 //
-// It covers the window and slides up from the bottom edge, and its groups
+// On a desk it is a floating glass card over a frosted scrim; on a phone
+// it still covers the window and slides up from the bottom edge. Its groups
 // are laid out across the width rather than down it: three columns on a
 // laptop, two on a narrow window, and one that scrolls on a phone held
 // upright. The footer - the Export button, the progress, the result -
@@ -616,7 +619,10 @@ export component ExportDialog inherits Rectangle {
     /// How many columns the width holds. Three groups a column wide need
     /// about 330px each; under two of those the sheet is a phone's single
     /// column and scrolls.
-    property <int> columns: root.width >= 1080px ? 3 : root.width >= 720px ? 2 : 1;
+    /// A phone or a narrow window keeps the full-size sheet; a desk gets
+    /// a floating glass card over a frosted scrim, like Settings.
+    property <bool> fill: root.phone || root.width < 600px;
+    property <int> columns: sheet.width >= 980px ? 3 : sheet.width >= 680px ? 2 : 1;
 
     /// How far down the sheet is, as a share of the window: 0 up, 1 gone.
     /// A share rather than a length, so a window resized while the sheet is
@@ -630,12 +636,59 @@ export component ExportDialog inherits Rectangle {
     // the way out is seen as well as the way in.
     visible: root.data.open || root.lowered < 1;
 
+    changed data => {
+        if (root.data.open) {
+            GlassChrome.refresh();
+        }
+    }
+
+    if !root.fill && (root.data.open || root.lowered < 1): Rectangle {
+        width: 100%;
+        height: 100%;
+        Image {
+            width: 100%;
+            height: 100%;
+            source: GlassChrome.frost;
+            image-fit: cover;
+        }
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            background: Theme.overlay;
+        }
+        TouchArea {
+            clicked => {
+                if (!root.running) {
+                    root.closed();
+                }
+            }
+        }
+    }
+
     sheet := Rectangle {
-        x: 0;
-        y: root.height * root.lowered;
-        width: root.width;
-        height: root.height;
-        background: Theme.panel;
+        width: root.fill ? root.width : Math.min(1040px, root.width - 48px);
+        height: root.fill ? root.height : Math.min(760px, root.height - 48px);
+        x: (root.width - self.width) / 2;
+        y: root.fill
+            ? root.height * root.lowered
+            : (root.height - self.height) / 2 + 36px * root.lowered;
+        background: root.fill ? Theme.panel : transparent;
+        border-radius: root.fill ? 0 : Theme.r-xl;
+        border-width: root.fill ? 0 : 1px;
+        border-color: Theme.glass-edge;
+        drop-shadow-blur: root.fill ? 0 : Theme.glass-shadow-blur;
+        drop-shadow-offset-y: root.fill ? 0 : Theme.glass-shadow-y;
+        drop-shadow-color: Theme.glass-shadow;
+        clip: true;
+
+        if !root.fill: Glass {
+            width: 100%;
+            height: 100%;
+            border-radius: parent.border-radius;
+            kind: GlassKind.strong;
+            frosted: true;
+            frost: GlassChrome.frost;
+        }
 
         // Nothing under the sheet takes a press while it is up.
         TouchArea { }

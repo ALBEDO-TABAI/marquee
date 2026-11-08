@@ -9,6 +9,8 @@ import { NumberField } from "../primitives/number-field.slint";
 import { ColorPicker } from "../primitives/color-picker.slint";
 import { IconButton } from "../primitives/panel.slint";
 import { ClipField, ClipKeyData, Keyframes } from "../timeline/model.slint";
+import { Glass, GlassKind } from "../primitives/glass.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // The clip inspector's controls: a horizontal fader, the Param row that
 // repeats down every tab, a switch, a help disclosure, a note, and a search
@@ -363,10 +365,19 @@ export component HelpButton inherits Rectangle {
         Tooltip {
             Rectangle {
                 width: 260px;
-                background: Theme.raised;
+                background: transparent;
                 border-width: 1px;
-                border-color: Theme.line-strong;
+                border-color: Theme.glass-edge;
                 border-radius: Theme.r;
+                drop-shadow-blur: Theme.glass-shadow-blur;
+                drop-shadow-offset-y: Theme.glass-shadow-y;
+                drop-shadow-color: Theme.glass-shadow;
+                Glass {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: parent.border-radius;
+                    kind: GlassKind.regular;
+                }
 
                 HorizontalLayout {
                     padding: 10px;
@@ -727,9 +738,9 @@ export component SearchField inherits Rectangle {
     // A soft surface at rest, lifting under the pointer, outlined only
     // while it is being typed into: a box drawn round an empty field
     // shouted louder than anything in the list it searches.
-    background: input.has-focus || hover.has-hover ? Theme.field : Theme.raised;
+    background: input.has-focus || hover.has-hover ? Theme.field : Theme.glass;
     border-width: 1px;
-    border-color: input.has-focus ? Theme.accent : Colors.transparent;
+    border-color: input.has-focus ? Theme.accent : Theme.glass-edge;
 
     animate background, border-color { duration: 120ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -1023,7 +1034,7 @@ export component ColourField inherits HorizontalLayout {
                     y: Math.mod(cell, 3) * 8px;
                     width: 8px;
                     height: 8px;
-                    background: Math.mod(Math.floor(cell / 3) + Math.mod(cell, 3), 2) == 0 ? #c8c8c8 : #7a7a7a;
+                    background: Math.mod(Math.floor(cell / 3) + Math.mod(cell, 3), 2) == 0 ? Theme.checker-a : Theme.checker-b;
                 }
             }
             if !root.alpha: Rectangle { background: Theme.fg-dim; }
@@ -1055,7 +1066,8 @@ export component ColourField inherits HorizontalLayout {
 
             touch := TouchArea {
                 mouse-cursor: pointer;
-                clicked => { popup.show(); }
+                clicked => { GlassChrome.refresh();
+ popup.show(); }
             }
 
             popup := PopupWindow {

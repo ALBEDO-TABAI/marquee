@@ -494,7 +494,7 @@
   "settings.installerOpened": "幕次 {0} 的安装程序已打开。幕次 现在将关闭，以便安装完成。",
   "settings.language": "语言",
   "settings.light": "光",
-  "settings.lime": "青柠",
+  "settings.lime": "印记",
   "settings.lineAcrossLanesMarks": "横跨轨道、标记当前时间的那条线。可为它选择任意颜色，或点第一个圆点回到主题自带的颜色。",
   "settings.listeningOnConnected": "正在监听 {0} · 已连接 {1} 个",
   "settings.logDebug": "调试",

@@ -114,6 +114,11 @@ const SCRUB_REST: std::time::Duration = std::time::Duration::from_millis(120);
 pub struct MonitorPane {
     /// The last frame drawn.
     pub image: slint::Image,
+    /// Blurred, saturated downscale of `image` for preview glass.
+    pub frost: slint::Image,
+    /// Last CPU-decoded preview frame, used when `Image::to_rgba8` cannot
+    /// read a GPU texture back.
+    last_rgba: Option<(Vec<u8>, u32, u32)>,
     busy: bool,
     wanted: bool,
     /// Said once per project: a monitor that cannot decode says so, and
@@ -242,7 +247,11 @@ impl MonitorPane {
                 self.request(studio, Lane::Main);
             }
             MonitorMsg::Opened => self.failed = false,
-            MonitorMsg::Closed => self.image = slint::Image::default(),
+            MonitorMsg::Closed => {
+                self.image = slint::Image::default();
+                self.frost = slint::Image::default();
+                self.last_rgba = None;
+            }
         }
     }
 
@@ -263,6 +272,7 @@ impl MonitorPane {
                         .map_err(|error| format!("preview texture: {error}"))
                 }),
             Ok(Picture::Pixels(bytes, width, height, _)) => {
+                self.last_rgba = Some((bytes.clone(), width, height));
                 let buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(
                     &bytes, width, height,
                 );
@@ -272,6 +282,14 @@ impl MonitorPane {
         };
         match picture {
             Ok(image) => {
+                let from_img = crate::host::frost_from_image(&image);
+                self.frost = if from_img.size().width > 0 {
+                    from_img
+                } else if let Some((px, w, h)) = &self.last_rgba {
+                    crate::host::frost_rgba(px, *w, *h)
+                } else {
+                    slint::Image::default()
+                };
                 self.image = image;
                 self.inexact = !exact;
             }

@@ -9,7 +9,7 @@ This pass closed every “still improvable” item listed at the end of `docs/pa
 1. **`presets.list` on the agent API.** `concat-cli api` now accepts `{ "method": "presets.list", "category": "huazi"|"template"|"language", "query": "…" }` and returns `{id, name, category, language, sample, path}`. Category is inferred from the id prefix (`marquee.huazi.*`, `marquee.tt.*`, else language). Query is a case-insensitive substring of id / name / sample. Unit test: `presets_list_filters_huazi_and_search`.
 2. **Local HTTP API.** `scripts/marquee_http.py` proxies one `Session` on `127.0.0.1:8765`: `GET /health`, `GET /catalogue?kind=`, `GET /presets?category=&query=`, `POST /rpc`. Smoke on this box: health ok; 330 huazi; query `珊瑚` → 10 coral-* looks; 351 stickers; `version` → api 0.2 / concat 0.2.9.
 3. **智能包装 beyond A+B.** `marquee-pack-wide` (三镜横屏包装, 1920×1080) and `marquee-pack-vertical` (三镜竖屏包装, 1080×1920) each have 4 slots (`slot-a`/`b`/`c` + `slot-music`) plus title, caption, sticker `marquee.ch01`, analog effect, two `marquee.blurxf` transitions and music (`volume` 0.35, fadeIn 0.4, fadeOut 0.6). Host tests: `builtin_smart_packs_are_listed` expects ≥ 42 packs; `builtin_layered_pack_parses` covers the wide recipe.
-4. **Local Whisper, end-to-end.** `cargo run -p concat-speech --example transcribe` downloads `tiny.en` (~77 704 715 B) into `$XDG_DATA_HOME/app.marquee.editor/whisper-models/ggml-tiny.en.bin` (here `/tmp/marquee-xdg2/data/…`; not committed) plus Silero VAD `ggml-silero-v6.2.0.bin`. `espeak-ng` was not installable, so the public-domain whisper.cpp JFK sample was used instead of TTS. Both the wav and a muxed `speech.mp4` transcribed to the same two cues (see Captions below).
+4. **Local Whisper, end-to-end.** `cargo run -p concat-speech --example transcribe` downloads `tiny.en` (~77 704 715 B) into `$XDG_DATA_HOME/app.marquee.editor/whisper-models/ggml-tiny.en.bin` (here `$XDG_DATA_HOME/…`; not committed) plus Silero VAD `ggml-silero-v6.2.0.bin`. `espeak-ng` was not installable, so the public-domain whisper.cpp JFK sample was used instead of TTS. Both the wav and a muxed `speech.mp4` transcribed to the same two cues (see Captions below).
 5. **Inspector IA.** Video sections are now 基础 / 蒙版 / 调节 / 动画 / 变速 / 增强 (`config-pane.slint` + zh-Hans: 基本→基础, 调整→调节, 速度→变速). 基础 shows 变换/画布/混合 without the cutout stack; 蒙版 shows 画布/混合/防抖/移除背景/自动抠像; 调节 is the colour panel; 动画 is a note that keyframes live on `setClipKey`; 变速 is `SpeedPanel` (恒定 / 曲线). Recaptured on a *video* clip (not a title).
 6. **贴纸 order.** Media-pane sticker shelf defaults to packages (`sticker-shelf` 0), rail 贴纸 then 形状 — packages first, like JY.
 7. **Every `marquee.*` SKU, once.** `scripts/marquee_agent.py sku` applied 1311 / 1311 catalogue packages (`effect`/`filter`/`sticker`/`textanim`/`transition`) across overlay tracks on top of 200 short video clips (1511 clips total). `failedCount` 0. Then a 1080p30 export. 花字 / 文字模板 were listed via `presets.list` (10 coral hits) but not individually applied — those are text presets, not catalogue packages.
@@ -31,11 +31,11 @@ This pass closed every “still improvable” item listed at the end of `docs/pa
 Rerun:
 
 ```bash
-source /tmp/marquee-build.env
+source a local build env file
 export CONCAT_GPU=software
-python3 ./scripts/marquee_agent.py sku
-python3 ./scripts/marquee_agent.py audio
-python3 ./scripts/marquee_http.py --port 8765
+python3 scripts/marquee_agent.py sku
+python3 scripts/marquee_agent.py audio
+python3 scripts/marquee_http.py --port 8765
 ```
 
 ## Captions (whisper.cpp `tiny.en`)
@@ -52,11 +52,11 @@ Source: official JFK wav (public domain) copied to `docs/parity/m6-demo/captions
 Files: `docs/parity/m6-demo/captions/segments-wav.json`, `segments.json`.
 
 ```bash
-source /tmp/marquee-build.env
-export XDG_DATA_HOME=/tmp/marquee-xdg2/data
-cd ./src
+source a local build env file
+export XDG_DATA_HOME=$XDG_DATA_HOME
+cd src
 cargo run -p concat-speech --example transcribe -- \
-  ./docs/parity/m6-demo/captions/speech.mp4 tiny.en
+  docs/parity/m6-demo/captions/speech.mp4 tiny.en
 ```
 
 There is still no `captions.transcribe` RPC (whisper stays out of `concat-cli` / `concat-api` on purpose).

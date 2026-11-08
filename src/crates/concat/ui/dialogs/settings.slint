@@ -14,6 +14,7 @@ import { Select } from "../primitives/select.slint";
 import { PaneScroll } from "../workspace/pane.slint";
 import { HairlineSplitter } from "../workspace/splitter.slint";
 import { Editor } from "../editor.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // Settings: a fixed-height sheet with a column of pages down the side. The
 // model rows keep two things apart — a downloaded model is a *choice* and so
@@ -1125,7 +1126,8 @@ export component SettingsDialog inherits Modal {
                                 label: I18n.t("common.custom");
                                 chosen: Theme.accent-is-custom;
                                 blank: !Theme.accent-is-custom;
-                                clicked => { picker.show(); }
+                                clicked => { GlassChrome.refresh();
+ picker.show(); }
                             }
 
                             picker := PopupWindow {
@@ -1201,7 +1203,8 @@ export component SettingsDialog inherits Modal {
                                 label: I18n.t("common.custom");
                                 chosen: Theme.playhead-is-custom;
                                 blank: !Theme.playhead-is-custom;
-                                clicked => { playhead-picker.show(); }
+                                clicked => { GlassChrome.refresh();
+ playhead-picker.show(); }
                             }
 
                             playhead-picker := PopupWindow {

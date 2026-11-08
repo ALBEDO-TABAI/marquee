@@ -7,6 +7,7 @@ import { Glyph, Icon } from "../icons.slint";
 import { IconButton } from "../primitives/panel.slint";
 import { ThinScrollbar } from "../primitives/scrollbar.slint";
 import { TrackData, TrackSize } from "model.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // The lane switches, in a fixed column beside the lanes.
 //
@@ -64,7 +65,8 @@ component SizeMenu inherits Rectangle {
         // Lit only when the lane has been sized by hand: auto is the resting
         // state, and a button lit on every row would say nothing.
         checked: root.current != TrackSize.auto;
-        clicked => { list.show(); }
+        clicked => { GlassChrome.refresh();
+ list.show(); }
     }
 
     list := PopupWindow {
@@ -145,7 +147,8 @@ component MoreMenu inherits Rectangle {
         label: I18n.t("trackHeader.more");
         icon-size: 14px;
         idle: Theme.fg;
-        clicked => { list.show(); }
+        clicked => { GlassChrome.refresh();
+ list.show(); }
     }
 
     list := PopupWindow {

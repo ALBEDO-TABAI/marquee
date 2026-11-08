@@ -6,6 +6,8 @@ import { Theme } from "../theme/theme.slint";
 import { Glyph, Icon } from "../icons.slint";
 import { Tip } from "tooltip.slint";
 import { Select } from "select.slint";
+import { Glass, GlassKind } from "glass.slint";
+import { GlassChrome } from "glass-frost.slint";
 
 // The dialog layer this tree did not have.
 //
@@ -65,13 +67,30 @@ export component Modal inherits Rectangle {
     // A card opened comes to the front.
     changed open => {
         if (root.open) {
+            GlassChrome.refresh();
             root.raised();
         }
     }
-    // Dark rather than blurred: Slint has no backdrop filter, and a scrim that
-    // only dims is honest about that where a fake blur would not be.
+    // The sheet itself is glass. The scrim paints the captured, frosted
+    // frame underneath Theme.overlay so the editor visibly blurs back.
     background: root.floating ? Colors.transparent
-        : root.fill ? Theme.panel : Theme.overlay;
+        : root.fill ? Theme.panel : transparent;
+
+    if !root.floating && !root.fill: Rectangle {
+        width: 100%;
+        height: 100%;
+        Image {
+            width: 100%;
+            height: 100%;
+            source: GlassChrome.frost;
+            image-fit: cover;
+        }
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            background: Theme.overlay;
+        }
+    }
 
     // Declared first, so the surface and everything in it sits above and takes
     // its own presses. A click that lands here landed outside the dialog.
@@ -115,15 +134,20 @@ export component Modal inherits Rectangle {
         height: root.fill ? root.room-h : Math.min(
             root.surface-height > 0px ? root.surface-height : body.preferred-height,
             root.room-h - 24px);
-        background: Theme.panel;
+        background: root.fill ? Theme.panel : Colors.transparent;
         border-width: root.fill ? 0px : 1px;
-        border-color: Theme.line-strong;
+        border-color: Theme.glass-edge;
         border-radius: root.fill ? 0px : Theme.r-xl;
-        // Lifted off the editor it floats over, as the voiceover card is.
-        drop-shadow-blur: root.floating ? 24px : 0px;
-        drop-shadow-offset-y: root.floating ? 6px : 0px;
-        drop-shadow-color: root.floating ? #00000059 : Colors.transparent;
+        drop-shadow-blur: root.fill ? 0px : Theme.glass-shadow-blur;
+        drop-shadow-offset-y: root.fill ? 0px : Theme.glass-shadow-y;
+        drop-shadow-color: root.fill ? Colors.transparent : Theme.glass-shadow;
         clip: true;
+        if !root.fill: Glass {
+            width: 100%;
+            height: 100%;
+            border-radius: parent.border-radius;
+            kind: GlassKind.strong;
+        }
 
         // Swallows presses that land on the dialog, so they do not reach the
         // scrim underneath and dismiss it - or, floating, the lanes and the

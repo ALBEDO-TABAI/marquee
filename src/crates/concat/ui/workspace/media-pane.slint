@@ -283,7 +283,7 @@ component CategoryRow inherits Rectangle {
         width: 2px;
         height: parent.height - 8px;
         border-radius: 1px;
-        background: root.current ? Theme.accent : #00000000;
+        background: root.current ? Theme.accent : Colors.transparent;
     }
 
     HorizontalLayout {
@@ -1893,7 +1893,7 @@ export component MediaPane inherits Rectangle {
     /// That row was used.
     callback pane-removed();
 
-    property <int> tab;
+    in-out property <int> tab;
     /// The Audio page is up, or not: a drop of sound files on the window
     /// goes into the library while it is.
     changed tab => { Sounds.shown(root.tab == 8); }
@@ -1910,7 +1910,7 @@ export component MediaPane inherits Rectangle {
     property <bool> text-open: true;
     property <bool> captions-open: true;
     /// 0 = Styles, 1 = Languages, 2 = Captions
-    property <int> text-category;
+    in-out property <int> text-category;
     property <bool> stickers-open: true;
     /// 0 = sticker packages (JY order), 1 = vector shapes.
     property <int> sticker-shelf: 0;

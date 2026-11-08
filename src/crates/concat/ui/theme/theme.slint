@@ -106,22 +106,23 @@ export global Theme {
     // technical` is for timecode, the ruler, clip labels, paths, dimensions,
     // counts — anything you read as a *value* rather than as language.
     //
-    // Both are Hanken Grotesk, the one face this build bundles (app.slint).
-    // The split between the roles stays so that the two can differ again
-    // without touching a single element.
-    out property <string> font: "Hanken Grotesk";
-    out property <string> font-technical: "Hanken Grotesk";
+    // Inter is the Ready-series UI face (Poster Printer's PP Sans), bundled
+    // next to Hanken Grotesk in concat-text/fonts (OFL-1.1). Technical
+    // readouts stay Inter rather than Geist Mono — we already ship Inter
+    // TTFs; Geist Mono is not in this tree as a static TTF.
+    out property <string> font: "Inter";
+    out property <string> font-technical: "Inter";
     /// The scale. `fs` is the body size everything inherits; the two either
     /// side of it are the dense readout and the panel title. `xl` is for the
     /// few lines that are content rather than chrome — a project's name in a
     /// list — and `display` is the launch screen's heading and nothing else.
     out property <length> fs-xs: 10px;
     out property <length> fs-sm: 11px;
-    out property <length> fs: 12px;
-    out property <length> fs-lg: 13px;
-    out property <length> fs-xl: 14px;
+    out property <length> fs: 13px;
+    out property <length> fs-lg: 15px;
+    out property <length> fs-xl: 17px;
     out property <length> fs-input: 15px;
-    out property <length> fs-display: 34px;
+    out property <length> fs-display: 28px;
 
     // The weights the design actually calls for, uncompensated.
     //
@@ -135,7 +136,7 @@ export global Theme {
     // touching a colour token, and every face is bundled, so it costs nothing
     // at runtime. Reach for it rather than nudging a surface to compensate.
     out property <int> weight-body: 400;
-    out property <int> weight-title: 500;
+    out property <int> weight-title: 600;
     /// The launch screen's heading, and the wordmark in the title bar. The one
     /// weight above `title`, and the only place the type gets to be loud. Bold
     /// is bundled, so this names it exactly.
@@ -144,18 +145,19 @@ export global Theme {
     // ── shape ────────────────────────────────────────────────────────────
     //
     // radii
-    out property <length> r-xs: 3px;
-    out property <length> r-sm: 5px;
-    out property <length> r: 7px;
-    out property <length> r-lg: 12px;
+    out property <length> r-xs: 6px;
+    out property <length> r-sm: 9px;
+    out property <length> r: 12px;
+    out property <length> r-lg: 16px;
     /// The dialog sheet, and nothing smaller. A modal is the largest rounded
     /// thing in the window and wants a corner to match.
-    out property <length> r-xl: 16px;
+    out property <length> r-xl: 22px;
 
-    // metrics
+    // metrics — Ready 8pt grid (s2/s4). Control height stays 28px: a
+    // Jianying-style editor is denser than Poster Printer's 36px pills.
     out property <length> h: 28px;        // standard control height
-    out property <length> gap: 6px;
-    out property <length> pad: 14px;      // panel horizontal padding
+    out property <length> gap: 8px;
+    out property <length> pad: 16px;      // panel horizontal padding
     out property <length> label-w: 62px;
 
     // ── surfaces ─────────────────────────────────────────────────────────
@@ -296,6 +298,19 @@ export global Theme {
     // the window ground the panes float on
     out property <color> page: dark ? Dark.page : Light.page;
     out property <color> page-fg-muted: dark ? Dark.page-fg-muted : Light.page-fg-muted;
+
+    // liquid glass
+    out property <color> glass: dark ? Dark.glass : Light.glass;
+    out property <color> glass-strong: dark ? Dark.glass-strong : Light.glass-strong;
+    out property <color> glass-clear: dark ? Dark.glass-clear : Light.glass-clear;
+    out property <color> glass-edge: dark ? Dark.glass-edge : Light.glass-edge;
+    out property <color> glass-inner-hi: dark ? Dark.glass-inner-hi : Light.glass-inner-hi;
+    out property <color> glass-caustic: dark ? Dark.glass-caustic : Light.glass-caustic;
+    out property <color> glass-shadow: dark ? Dark.glass-shadow : Light.glass-shadow;
+    out property <length> glass-shadow-blur: 24px;
+    out property <length> glass-shadow-y: 8px;
+    out property <color> checker-a: dark ? Dark.checker-a : Light.checker-a;
+    out property <color> checker-b: dark ? Dark.checker-b : Light.checker-b;
 
     // ── content ──────────────────────────────────────────────────────────
     //

@@ -530,7 +530,7 @@ component Clip inherits Rectangle {
         // Picked up by a hold: it rises off the lane until it is let go.
         drop-shadow-blur: touch.lifted ? 10px : 0px;
         drop-shadow-offset-y: touch.lifted ? 3px : 0px;
-        drop-shadow-color: #00000080;
+        drop-shadow-color: Theme.glass-shadow;
     }
 
     // ── locked ───────────────────────────────────────────────────────────
@@ -723,7 +723,7 @@ component Clip inherits Rectangle {
         height: (root.volume-hover || root.volume-live) ? 2px : 1px;
         // White, not the accent: the accent is the selection's, and a
         // line in it on every sound read as every sound being selected.
-        background: Colors.white;
+        background: Theme.clip-ink;
         opacity: (root.volume-hover || root.volume-live) ? 1.0 : 0.7;
     }
 
@@ -772,13 +772,13 @@ component Clip inherits Rectangle {
         width: volume-label.preferred-width + 10px;
         height: 16px;
         border-radius: Theme.r-sm;
-        background: Colors.white;
+        background: Theme.raised;
 
         volume-label := Text {
             x: 5px;
             height: parent.height;
             text: "\{Math.round(root.shown-gain * 100)} %";
-            color: Colors.black;
+            color: Theme.fg;
             font-family: Theme.font-technical;
             font-size: Theme.fs-sm;
             vertical-alignment: center;
@@ -836,9 +836,9 @@ component Clip inherits Rectangle {
             border-radius: self.r;
             // White, as the volume line is, with a dark ring so it reads
             // over a light waveform too.
-            background: Colors.white;
+            background: Theme.clip-ink;
             border-width: 1px;
-            border-color: #00000080;
+            border-color: Theme.grip-edge;
             animate width, height { duration: 90ms; easing: ease-out; }
         }
 
@@ -894,13 +894,13 @@ component Clip inherits Rectangle {
         width: fade-label.preferred-width + 10px;
         height: 16px;
         border-radius: Theme.r-sm;
-        background: Colors.white;
+        background: Theme.raised;
 
         fade-label := Text {
             x: 5px;
             height: parent.height;
             text: fade-tip.seconds > 0 ? root.format-seconds(fade-tip.seconds) : "0s";
-            color: Colors.black;
+            color: Theme.fg;
             font-family: Theme.font-technical;
             font-size: Theme.fs-sm;
             vertical-alignment: center;
@@ -1016,14 +1016,14 @@ component Clip inherits Rectangle {
                 y: 3px;
                 width: 3px;
                 height: 1px;
-                background: #00000059;
+                background: Theme.clip-ink.with-alpha(0.35);
             }
             Rectangle {
                 x: 1px;
                 y: 7px;
                 width: 3px;
                 height: 1px;
-                background: #00000059;
+                background: Theme.clip-ink.with-alpha(0.35);
             }
         }
 
@@ -1099,14 +1099,14 @@ component Clip inherits Rectangle {
                 y: 3px;
                 width: 3px;
                 height: 1px;
-                background: #00000059;
+                background: Theme.clip-ink.with-alpha(0.35);
             }
             Rectangle {
                 x: 1px;
                 y: 7px;
                 width: 3px;
                 height: 1px;
-                background: #00000059;
+                background: Theme.clip-ink.with-alpha(0.35);
             }
         }
 
@@ -1152,8 +1152,8 @@ component Clip inherits Rectangle {
         y: -20px;
         width: dur-text.preferred-width + 12px;
         height: 18px;
-        border-radius: 4px;
-        background: #18181c;
+        border-radius: Theme.r-xs;
+        background: Theme.raised;
         border-width: 1px;
         border-color: (root.right-handle-drag || root.left-handle-drag || root.trans-btn-drag)
             ? Theme.accent
@@ -1196,7 +1196,7 @@ component Clip inherits Rectangle {
             border-radius: 3px;
             background: (root.trans-btn-hover || root.item.transition-selected)
                 ? Theme.field-hover
-                : #1e1e24;
+                : Theme.field;
             border-width: (root.trans-btn-hover || root.item.transition-selected) ? 2px : 1px;
             border-color: (root.trans-btn-hover || root.item.transition-selected)
                 ? Theme.accent

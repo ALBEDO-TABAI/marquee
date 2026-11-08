@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Jareer Abdullah and Concat contributors
+
+// Window-wide liquid-glass backdrop.
+//
+// Slint cannot blur whatever sits behind a popup. Just before a menu,
+// dropdown, tooltip, toast or modal opens, `refresh` asks Rust to snapshot
+// the last composed frame, downscale it, box-blur and saturate it, and
+// store the result here. Glass and modal scrims read `frost`.
+export global GlassChrome {
+    in-out property <image> frost;
+    /// Bumped to close any PopupWindow that is watching.
+    in-out property <int> dismiss;
+    callback refresh();
+}

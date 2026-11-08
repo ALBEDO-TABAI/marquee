@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah
 
 import { Theme } from "../theme/theme.slint";
+import { Glass, GlassKind } from "glass.slint";
+import { GlassChrome } from "glass-frost.slint";
 
 // Tooltips.
 //
@@ -73,6 +75,7 @@ export component Tip inherits Rectangle {
         running: root.active && root.text != "" && !root.spent;
         triggered => {
             root.spent = true;
+            GlassChrome.refresh();
             Tips.text = root.text;
             Tips.anchor-x = root.absolute-position.x;
             Tips.anchor-y = root.absolute-position.y;
@@ -166,12 +169,18 @@ export component TooltipLayer inherits Rectangle {
         width: root.bubble-w;
         height: root.bubble-h;
         border-radius: Theme.r-sm;
-        // Raised, not panel: this floats over panes that are themselves
-        // `panel`, and a bubble the colour of what it covers reads as a hole
-        // in it. The hairline is the strong one for the same reason.
-        background: Theme.raised;
+        background: transparent;
         border-width: 1px;
-        border-color: Theme.line-strong;
+        border-color: Theme.glass-edge;
+        drop-shadow-blur: Theme.glass-shadow-blur;
+        drop-shadow-offset-y: Theme.glass-shadow-y;
+        drop-shadow-color: Theme.glass-shadow;
+        Glass {
+            width: 100%;
+            height: 100%;
+            border-radius: parent.border-radius;
+            kind: GlassKind.regular;
+        }
 
         Text {
             x: 8px;

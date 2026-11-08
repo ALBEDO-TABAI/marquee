@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Jareer Abdullah and Concat contributors
+
+import { Theme } from "../theme/theme.slint";
+import { GlassChrome } from "glass-frost.slint";
+
+// Liquid-glass fill (Poster Printer's .lg layers, without backdrop-filter).
+//
+// Slint cannot blur whatever sits behind a rectangle. The look is built from
+// the same stack Poster Printer uses when backdrop-filter is missing:
+//   1. optional `frost` — a downscaled, blurred, saturated copy of what is
+//      underneath, painted by Rust for the preview (and empty elsewhere)
+//   2. a translucent glass tint (regular / strong / clear)
+//   3. a caustic pooled under the top edge
+//   4. a 1px specular highlight
+//   5. a hairline edge (drawn by the host as `border-color: Theme.glass-edge`)
+//
+// The host owns the corner radius, the clip and the drop shadow so a shadow
+// is not clipped away. Drop this component in as a full-size sibling behind
+// the content, not as a wrapper: `@children` in a Rectangle would pile up
+// at the origin.
+export enum GlassKind {
+    regular,
+    strong,
+    clear,
+}
+
+export component Glass inherits Rectangle {
+    in property <GlassKind> kind: GlassKind.regular;
+    /// Blurred backdrop. Ignored while `frosted` is false.
+    in property <image> frost;
+    in property <bool> frosted;
+
+    background: transparent;
+
+    property <color> wash: root.kind == GlassKind.clear ? Theme.glass-clear
+        : root.kind == GlassKind.strong ? Theme.glass-strong
+        : Theme.glass;
+
+    property <image> shown-frost: root.frost.width > 0 ? root.frost : GlassChrome.frost;
+
+    if root.frosted: Image {
+        width: 100%;
+        height: 100%;
+        source: root.shown-frost;
+        image-fit: cover;
+        opacity: 0.88;
+    }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        border-radius: parent.border-radius;
+        background: root.wash;
+    }
+
+    Rectangle {
+        width: 100%;
+        height: parent.height * 0.48;
+        y: 0;
+        border-radius: parent.border-radius;
+        background: @linear-gradient(180deg, Theme.glass-caustic 0%, Theme.glass-caustic.transparentize(100%) 100%);
+    }
+
+    Rectangle {
+        x: 10px;
+        y: 1px;
+        width: parent.width - 20px;
+        height: 1px;
+        background: Theme.glass-inner-hi;
+    }
+}

@@ -1,6 +1,6 @@
 # M9 retest — round-2 N1–N7
 
-Recorded Asia/Tokyo, 8 Nov 2026. Engine: `concat-cli` rebuilt after the M9 patches. `CONCAT_GPU=software`. Tester projects were opened read-only from `[local-tester-media]/round2/projects/` (that tree was not modified).
+Recorded Asia/Tokyo, 8 Nov 2026. Engine: `concat-cli` rebuilt after the M9 patches. `CONCAT_GPU=software`. Tester projects were opened read-only from `tester-projects/round2/projects/` (that tree was not modified).
 
 ## Exports
 

@@ -13,6 +13,8 @@ import { Glyph, Icon } from "../icons.slint";
 import { SearchField } from "controls.slint";
 import { Tip } from "../primitives/tooltip.slint";
 import { ListView } from "std-widgets.slint";
+import { Glass, GlassKind } from "../primitives/glass.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 /// The list the picker shows, searched by Rust: Slint cannot filter a model,
 /// so the query goes out and the families that match come back.
@@ -68,6 +70,7 @@ export component FontPicker inherits Rectangle {
         mouse-cursor: pointer;
         clicked => {
             FontSearch.query-changed("");
+            GlassChrome.refresh();
             list.show();
         }
     }
@@ -85,11 +88,20 @@ export component FontPicker inherits Rectangle {
         close-policy: close-on-click-outside;
 
         Rectangle {
-            background: Theme.raised;
+            background: transparent;
             border-width: 1px;
-            border-color: Theme.line-strong;
+            border-color: Theme.glass-edge;
             border-radius: Theme.r;
+            drop-shadow-blur: Theme.glass-shadow-blur;
+            drop-shadow-offset-y: Theme.glass-shadow-y;
+            drop-shadow-color: Theme.glass-shadow;
             clip: true;
+            Glass {
+                width: 100%;
+                height: 100%;
+                border-radius: parent.border-radius;
+                kind: GlassKind.regular;
+            }
 
             VerticalLayout {
                 padding: 6px;

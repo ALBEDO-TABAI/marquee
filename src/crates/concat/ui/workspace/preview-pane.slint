@@ -13,6 +13,9 @@ import { Pane, PaneHeader } from "pane.slint";
 import { PaneKind, PaneSwitcher } from "pane-switcher.slint";
 import { ClipKind, StageGuideData, StageItemData } from "../timeline/model.slint";
 import { ContextMenu, MenuMetrics, MenuRow } from "../primitives/context-menu.slint";
+import { Glass, GlassKind } from "../primitives/glass.slint";
+import { Editor } from "../editor.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // The programme monitor: a header that says what the output is, a stage on a
 // sunken viewport, and a transport tray under it in three parts — timecode on
@@ -127,6 +130,7 @@ component RatioPicker inherits Rectangle {
         mouse-cursor: pointer;
         clicked => {
             root.active = root.current;
+            GlassChrome.refresh();
             list.show();
         }
     }
@@ -141,11 +145,20 @@ component RatioPicker inherits Rectangle {
         close-policy: close-on-click-outside;
 
         Rectangle {
-            background: Theme.raised;
+            background: transparent;
             border-width: 1px;
-            border-color: Theme.line-strong;
+            border-color: Theme.glass-edge;
             border-radius: Theme.r;
+            drop-shadow-blur: Theme.glass-shadow-blur;
+            drop-shadow-offset-y: Theme.glass-shadow-y;
+            drop-shadow-color: Theme.glass-shadow;
             clip: true;
+            Glass {
+                width: 100%;
+                height: 100%;
+                border-radius: parent.border-radius;
+                kind: GlassKind.regular;
+            }
 
             VerticalLayout {
                 padding: 4px;
@@ -496,7 +509,7 @@ component MaskItem inherits Rectangle {
         viewbox-width: 1000;
         viewbox-height: 1000;
         commands: root.item.mask-path;
-        stroke: #ffffff;
+        stroke: Theme.on-scrim;
         stroke-width: 1.25px;
     }
 
@@ -761,6 +774,7 @@ export component PreviewPane inherits Rectangle {
     callback source-closed();
     /// The decoded frame. Drawn fitted to the stage when there is one.
     in property <image> frame;
+    in property <image> frost;
     /// The frame lets something show through; see `Editor.see-through`.
     in property <bool> see-through;
     /// Every picture under the playhead, for the selection drawn over the
@@ -1215,22 +1229,28 @@ export component PreviewPane inherits Rectangle {
                 }
             }
             }
-        }
+            // ── the transport, a clear glass bar over the picture ──
+            if !root.bare: Rectangle {
+                x: 10px;
+                y: parent.height - self.height - 10px;
+                width: parent.width - 20px;
+                height: 46px;
+                border-radius: Theme.r-xl;
+                background: transparent;
+                drop-shadow-blur: Theme.glass-shadow-blur;
+                drop-shadow-offset-y: Theme.glass-shadow-y;
+                drop-shadow-color: Theme.glass-shadow;
 
-        // ── the transport ────────────────────────────────────────────────
-        if !root.bare: Rectangle {
-            height: 46px;
-            background: Theme.panel;
+                Glass {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: parent.border-radius;
+                    kind: GlassKind.clear;
+                    frosted: true;
+                    frost: root.frost;
+                }
 
-            Rectangle {
-                x: 0;
-                y: 0;
-                width: parent.width;
-                height: 1px;
-                background: Theme.line;
-            }
-
-            HorizontalLayout {
+                HorizontalLayout {
                 padding-left: 10px;
                 padding-right: 10px;
                 spacing: 12px;
@@ -1340,6 +1360,7 @@ export component PreviewPane inherits Rectangle {
                         Select {
                             snug: true;
                             width: self.natural-width;
+                            summon: Editor.summon-select;
                             current: root.quality-index;
                             options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
                             details: ["1:1", "1:2", "1:4"];
@@ -1361,6 +1382,7 @@ export component PreviewPane inherits Rectangle {
                     }
                 }
             }
+        }
         }
     }
 

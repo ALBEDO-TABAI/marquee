@@ -7,6 +7,7 @@ import { Glyph, Icon } from "../icons.slint";
 import { Payload } from "../util.slint";
 import { Tip } from "../primitives/tooltip.slint";
 import { PaneScroll } from "pane.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // Which editor a seat is showing, and the control that changes it.
 //
@@ -329,7 +330,8 @@ export component PaneSwitcher inherits Rectangle {
 
             touch := TouchArea {
                 mouse-cursor: pointer;
-                clicked => { menu.show(); }
+                clicked => { GlassChrome.refresh();
+ menu.show(); }
             }
 
             Tip {
@@ -446,7 +448,8 @@ export component AddPaneButton inherits Rectangle {
 
     touch := TouchArea {
         mouse-cursor: pointer;
-        clicked => { menu.show(); }
+        clicked => { GlassChrome.refresh();
+ menu.show(); }
     }
 
     Tip {

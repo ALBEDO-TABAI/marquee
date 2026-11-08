@@ -8,6 +8,8 @@ import { IconButton } from "../primitives/panel.slint";
 import { LevelMeter } from "../primitives/level-meter.slint";
 import { TimelineTool } from "model.slint";
 import { Editor } from "../editor.slint";
+import { Glass, GlassKind } from "../primitives/glass.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // The timeline's tool tray.
 //
@@ -113,7 +115,8 @@ component AddMenu inherits Rectangle {
         glyph: Glyph.plus;
         label: I18n.t("tray.addTrack");
         icon-size: 14px;
-        clicked => { list.show(); }
+        clicked => { GlassChrome.refresh();
+ list.show(); }
     }
 
     list := PopupWindow {
@@ -124,10 +127,19 @@ component AddMenu inherits Rectangle {
         close-policy: close-on-click-outside;
 
         Rectangle {
-            background: Theme.raised;
+            background: transparent;
             border-width: 1px;
-            border-color: Theme.line-strong;
+            border-color: Theme.glass-edge;
             border-radius: Theme.r;
+            drop-shadow-blur: Theme.glass-shadow-blur;
+            drop-shadow-offset-y: Theme.glass-shadow-y;
+            drop-shadow-color: Theme.glass-shadow;
+            Glass {
+                width: 100%;
+                height: 100%;
+                border-radius: parent.border-radius;
+                kind: GlassKind.regular;
+            }
 
             VerticalLayout {
                 padding: 4px;
@@ -217,7 +229,7 @@ export component TimelineTray inherits Rectangle {
     callback meters-shown-changed(on: bool);
 
     height: 40px;
-    background: Theme.panel;
+    background: Theme.glass-strong;
 
     Rectangle {
         x: 0;

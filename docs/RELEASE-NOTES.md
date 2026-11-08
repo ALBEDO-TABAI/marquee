@@ -139,6 +139,6 @@ download marks).
 Local development history on this machine included evaluation MP4s, caches and
 absolute project paths. Those objects were **not rewritten out of the existing
 `main` branch**. The public GitHub repository is a clean export: full upstream
-Concat history through the fork point, plus one 幕次 commit that omits tester
+Concat history through the fork point, plus 幕次 commits that omit tester
 media, evaluation movies, caches, locks, `docs-eval/`, `vendor/ffmpeg`,
 downloaded Whisper bins, and machine-local paths.

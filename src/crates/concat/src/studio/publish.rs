@@ -186,8 +186,9 @@ impl Studio {
     /// The monitor's picture alone: what a frame arriving during playback
     /// changes.
     pub fn publish_frame(&self, app: &App) {
-        app.global::<Editor>()
-            .set_preview_frame(self.monitor.image.clone());
+        let editor = app.global::<Editor>();
+        editor.set_preview_frame(self.monitor.image.clone());
+        editor.set_preview_frost(self.monitor.frost.clone());
     }
 
     /// The timeline and the readouts that follow it: what runs on every

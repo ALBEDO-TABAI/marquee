@@ -494,7 +494,7 @@
   "settings.installerOpened": "The installer for 幕次 {0} is open. 幕次 closes now so it can finish.",
   "settings.language": "Language",
   "settings.light": "Light",
-  "settings.lime": "Lime",
+  "settings.lime": "Print",
   "settings.lineAcrossLanesMarks": "The line across the lanes that marks the current time. Pick any colour for it, or the first dot to go back to the theme's own.",
   "settings.listeningOnConnected": "Listening on {0} · {1} connected",
   "settings.logDebug": "Debug",

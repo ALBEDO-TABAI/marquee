@@ -2,11 +2,11 @@
 
 Recorded Asia/Tokyo, Sunday 8 Nov 2026 around 13:52–14:16 JST.
 
-This pass closed every “still open” item listed at the end of `docs/parity/MILESTONE-6.md`. Same standing constraints: AGPL fork in `.` only (leave the sibling local checkout untouched), no Jianying assets/keys/backends, no force-push, `CONCAT_GPU=software`, `DISPLAY=:11`, disk left at ~39 G free after models and the SKU movie.
+This pass closed every “still open” item listed at the end of `docs/parity/MILESTONE-6.md`. Same standing constraints: AGPL fork in `.` only (leave `the sibling closed-source tree` untouched), no Jianying assets/keys/backends, no force-push, `CONCAT_GPU=software`, `DISPLAY=:11`, disk left at ~39 G free after models and the SKU movie.
 
 ## What this milestone closed
 
-1. **`captions.transcribe` RPC.** `concat-cli api` accepts `{ "method": "captions.transcribe", "file": "…", "model": "tiny.en"|"tiny"|"base"|"base.en"|"small"|"small.en", "language": "en"|"zh"|…, "sourceStart", "window" }` and returns `[{start,end,text}, …]`. `concat-api` now depends on `concat-speech`. Default model is `tiny.en`. Multilingual `base` (~142 MiB `ggml-base.bin`) was downloaded on this box into `/tmp/marquee-xdg2/data/app.marquee.editor/whisper-models/` (not committed) and used for Chinese.
+1. **`captions.transcribe` RPC.** `concat-cli api` accepts `{ "method": "captions.transcribe", "file": "…", "model": "tiny.en"|"tiny"|"base"|"base.en"|"small"|"small.en", "language": "en"|"zh"|…, "sourceStart", "window" }` and returns `[{start,end,text}, …]`. `concat-api` now depends on `concat-speech`. Default model is `tiny.en`. Multilingual `base` (~142 MiB `ggml-base.bin`) was downloaded on this box into `$XDG_DATA_HOME/app.marquee.editor/whisper-models/` (not committed) and used for Chinese.
 2. **Chinese transcription.** gTTS produced `docs/parity/m7-demo/captions/zh-sample.wav` (“大家好，欢迎使用幕次。这是一段用来测试中文语音识别的示例。”). `captions.transcribe` with `model=base`, `language=zh` returned one cue. Recognition is usable but not perfect on TTS (`目次` for 幕次, `时别`/`势力` for 识别/示例) — expected for `base` + synthetic speech + an OOV product name.
 3. **English transcription still works** through the same RPC: JFK (`docs/parity/m6-demo/captions/jfk.wav`, `tiny.en`) → the same two cues as M6.
 4. **Native `duckAudio` command.** `{ "op": "duckAudio", "musicId", "triggerId", "amount": 0.15, "attack": 0.08, "release": 0.2 }` writes four `volume` keys on the music clip over the overlap with the trigger (attack before, release after). `scripts/marquee_agent.py audio` now uses this instead of hand-written `setClipKey`s. Export of `docs/parity/m6-demo/audio/m6-audio.mp4` succeeded (211 022 B this run).
@@ -52,16 +52,16 @@ zh (`base`):
 Rerun:
 
 ```bash
-source /tmp/marquee-build.env
+source a local build env file
 export CONCAT_GPU=software
-python3 ./scripts/marquee_agent.py presets
-python3 ./scripts/marquee_agent.py captions
-python3 ./scripts/marquee_agent.py audio
-python3 ./scripts/marquee_agent.py sku
-python3 ./scripts/marquee_http.py --token "$MARQUEE_HTTP_TOKEN" --port 8765
+python3 scripts/marquee_agent.py presets
+python3 scripts/marquee_agent.py captions
+python3 scripts/marquee_agent.py audio
+python3 scripts/marquee_agent.py sku
+python3 scripts/marquee_http.py --token "$MARQUEE_HTTP_TOKEN" --port 8765
 CONCAT_GPU=software DISPLAY=:11 \
-  ./src/target/debug/marquee \
-  --project ./docs/parity/m5-demo/smoke
+  src/target/debug/marquee \
+  --project docs/parity/m5-demo/smoke
 ```
 
 ## Tests built this pass

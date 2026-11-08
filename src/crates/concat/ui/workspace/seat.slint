@@ -93,6 +93,8 @@ export component Seat inherits Rectangle {
             pane-removable: Editor.seats.length > 1;
             pane-removed => { root.removed(); }
 
+            tab <=> Editor.library-tab;
+            text-category <=> Editor.library-text-category;
             items: Editor.media;
             count-all: Editor.media-count-all;
             count-video: Editor.media-count-video;
@@ -202,6 +204,7 @@ export component Seat inherits Rectangle {
             has-picture: Editor.has-picture;
             clip-name: Editor.preview-clip-name;
             frame: Editor.preview-frame;
+            frost: Editor.preview-frost;
             see-through: Editor.see-through && !SourcePreview.open;
             stage-items: SourcePreview.open ? [] : Editor.stage-items;
             stage-guides: Editor.stage-guides;

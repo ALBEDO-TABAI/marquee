@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah and Concat contributors
 
-// Hanken Grotesk is bundled rather than assumed: a desktop binary should look
-// the same on a machine that has never installed it. It is published as one
-// variable font, which Slint cannot load, so these are the static instances
-// at the weights the design uses - Regular for body, Medium for titles,
-// SemiBold and Bold for the headings, Italic for the one look that asks for
-// it. The files live with the title painter (concat-text/fonts), which
-// embeds the same five so a title is set in the face the interface is.
-// Licensed under the SIL Open Font License; see LICENSE-HankenGrotesk.txt.
+// Inter (Ready / Poster Printer UI face, OFL-1.1) is bundled rather than
+// assumed. Slint cannot load the variable file, so these are the static
+// instances the theme names: Regular (400), SemiBold (600), Bold (700),
+// Italic. Hanken Grotesk stays imported so existing title presets that
+// name it still resolve. See concat-text/fonts/LICENSE-Inter.txt.
 import { I18n } from "i18n.slint";
+import "../../concat-text/fonts/Inter-Regular.ttf";
+import "../../concat-text/fonts/Inter-SemiBold.ttf";
+import "../../concat-text/fonts/Inter-Bold.ttf";
+import "../../concat-text/fonts/Inter-Italic.ttf";
 import "../../concat-text/fonts/HankenGrotesk-Regular.ttf";
 import "../../concat-text/fonts/HankenGrotesk-Medium.ttf";
 import "../../concat-text/fonts/HankenGrotesk-SemiBold.ttf";
@@ -78,7 +79,8 @@ import {
 } from "inspector/clip-inspector.slint";
 import { ParamFormat } from "inspector/controls.slint";
 import { ToastData, ToastLayer } from "primitives/toast.slint";
-import { TooltipLayer } from "primitives/tooltip.slint";
+import { GlassChrome } from "primitives/glass-frost.slint";
+import { Tips, TooltipLayer } from "primitives/tooltip.slint";
 import { FontSearch } from "inspector/font-picker.slint";
 import { Meters } from "timeline/vu-meter.slint";
 import { Workspace } from "workspace/workspace.slint";
@@ -117,6 +119,8 @@ export {
     Focus,
     Payload,
     Theme,
+    GlassChrome,
+    Tips,
     Bezier,
     Editor,
     I18n,

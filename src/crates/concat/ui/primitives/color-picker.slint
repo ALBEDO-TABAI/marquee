@@ -184,7 +184,7 @@ export component ColorPicker inherits VerticalLayout {
             y: Math.mod(cell, 2) * 6px;
             width: 8px;
             height: 6px;
-            background: Math.mod(cell + Math.floor(cell / 2), 2) == 0 ? #c8c8c8 : #7a7a7a;
+            background: Math.mod(cell + Math.floor(cell / 2), 2) == 0 ? Theme.checker-a : Theme.checker-b;
         }
         Rectangle {
             background: @linear-gradient(90deg,
@@ -231,7 +231,7 @@ export component ColorPicker inherits VerticalLayout {
                 y: Math.mod(cell, 4) * 7px;
                 width: 8px;
                 height: 7px;
-                background: Math.mod(cell + Math.floor(cell / 4), 2) == 0 ? #c8c8c8 : #7a7a7a;
+                background: Math.mod(cell + Math.floor(cell / 4), 2) == 0 ? Theme.checker-a : Theme.checker-b;
             }
             Rectangle { background: root.value; }
         }

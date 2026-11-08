@@ -11,6 +11,7 @@ import { AvatarData } from "../primitives/avatar.slint";
 import { Rail } from "../inspector/controls.slint";
 import { Wave } from "../primitives/wave.slint";
 import { Fmt } from "../util.slint";
+import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // Text to speech: what the tray's Speak tool and File › Text to speech open.
 //
@@ -148,7 +149,8 @@ component SamplePicker inherits Rectangle {
 
     trigger := TouchArea {
         mouse-cursor: pointer;
-        clicked => { list.show(); }
+        clicked => { GlassChrome.refresh();
+ list.show(); }
     }
 
     list := PopupWindow {

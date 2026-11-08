@@ -41,7 +41,7 @@ preview cards stay undrawn, export previews mention llvmpipe.
 | JY chrome tokens | title 30 / `#141414`, tabs 58 / `#2A2A2A`, surface `#222222`, accent `#01B9C6`, seat gap 7, dock ratios aimed at rail 96 / library 710 / preview 1248 / inspector 474 / timeline 558 on a 2560×1320 frame. |
 | Default locale | `zh-Hans` |
 | FFmpeg | 8.1.3 dev + shared libs via `FFMPEG_DIR` |
-| Binary | `./src/target/debug/marquee` (local only, not shipped) |
+| Binary | `src/target/debug/marquee` (local only, not shipped) |
 
 ## Not in this milestone
 

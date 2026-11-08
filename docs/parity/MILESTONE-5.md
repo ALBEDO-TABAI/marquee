@@ -35,11 +35,11 @@ Applied catalogue ids (first `marquee.*` of each kind on this checkout): `marque
 Rerun:
 
 ```bash
-source /tmp/marquee-build.env
+source a local build env file
 export CONCAT_GPU=software
-python3 ./scripts/marquee_agent.py          # both phases
-python3 ./scripts/marquee_agent.py smoke
-python3 ./scripts/marquee_agent.py stress   # merges into metrics.json
+python3 scripts/marquee_agent.py          # both phases
+python3 scripts/marquee_agent.py smoke
+python3 scripts/marquee_agent.py stress   # merges into metrics.json
 ```
 
 ## Panel self-audit (window, stress project, DISPLAY=:11)

@@ -91,4 +91,4 @@ Chrome held. Rail picked up a little from the 52px header, 120px tiles and selec
 - Startup failure dialog title and Windows `ProductName` / `FileDescription` say 幕次.
 - Upstream GitHub URLs and SPDX “Concat contributors” lines left as attribution.
 
-No Jianying assets, no backend calls, AGPL notices untouched, the sibling local checkout untouched, no push.
+No Jianying assets, no backend calls, AGPL notices untouched, `the sibling closed-source tree` untouched, no push.

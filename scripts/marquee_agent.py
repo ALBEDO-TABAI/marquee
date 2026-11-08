@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "src/target/debug/concat-cli"
 FFMPEG = ROOT / "vendor/ffmpeg/bin/ffmpeg"
 PRESETS = ROOT / "src/crates/concat/text-presets"
-ENV_FILE = Path("/tmp/marquee-build.env")
+ENV_FILE = Path("a local build env file")
 M5 = ROOT / "docs/parity/m5-demo"
 M6 = ROOT / "docs/parity/m6-demo"
 M7 = ROOT / "docs/parity/m7-demo"
@@ -36,7 +36,7 @@ M7 = ROOT / "docs/parity/m7-demo"
 
 def load_build_env() -> dict[str, str]:
     env = os.environ.copy()
-    if ENV_FILE.exists():
+    if ENV_FILE is not None and ENV_FILE.exists():
         for line in ENV_FILE.read_text().splitlines():
             if line.startswith("export "):
                 key, value = line[len("export ") :].split("=", 1)

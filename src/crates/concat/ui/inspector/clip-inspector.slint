@@ -2245,15 +2245,15 @@ component Comparison inherits Rectangle {
         x: root.px + 6px; y: root.py + 6px;
         width: before-text.preferred-width + 10px; height: 18px;
         border-radius: 4px;
-        background: #000000a0;
-        before-text := Text { text: root.before-label; color: #ffffff; font-size: Theme.fs-sm; }
+        background: Theme.scrim;
+        before-text := Text { text: root.before-label; color: Theme.on-scrim; font-size: Theme.fs-sm; }
     }
     Rectangle {
         x: root.px + root.pw - self.width - 6px; y: root.py + 6px;
         width: after-text.preferred-width + 10px; height: 18px;
         border-radius: 4px;
-        background: #000000a0;
-        after-text := Text { text: root.after-label; color: #ffffff; font-size: Theme.fs-sm; }
+        background: Theme.scrim;
+        after-text := Text { text: root.after-label; color: Theme.on-scrim; font-size: Theme.fs-sm; }
     }
 
     TouchArea {

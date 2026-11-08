@@ -1449,8 +1449,11 @@ component EmptyProjects inherits Rectangle {
 
     border-radius: Theme.r-lg;
     border-width: 1px;
-    border-color: Theme.line;
-    background: Theme.launch-panel;
+    border-color: Theme.glass-edge;
+    background: Theme.glass-strong;
+    drop-shadow-blur: Theme.glass-shadow-blur;
+    drop-shadow-offset-y: Theme.glass-shadow-y;
+    drop-shadow-color: Theme.glass-shadow;
     height: body.preferred-height;
 
     body := VerticalLayout {
@@ -1834,9 +1837,12 @@ component WideHome inherits Rectangle {
                 height: side-body.preferred-height;
                 visible: root.aside;
                 border-radius: Theme.r-lg;
-                background: Theme.launch-panel;
+                background: Theme.glass-strong;
                 border-width: 1px;
-                border-color: Theme.line;
+                border-color: Theme.glass-edge;
+                drop-shadow-blur: Theme.glass-shadow-blur;
+                drop-shadow-offset-y: Theme.glass-shadow-y;
+                drop-shadow-color: Theme.glass-shadow;
 
                 side-body := VerticalLayout {
                     padding: 8px;
@@ -2057,9 +2063,12 @@ component NarrowHome inherits Rectangle {
             // rows on it, hairlines between.
             Rectangle {
                 border-radius: Theme.r-lg;
-                background: Theme.launch-panel;
+                background: Theme.glass-strong;
                 border-width: 1px;
-                border-color: Theme.line;
+                border-color: Theme.glass-edge;
+                drop-shadow-blur: Theme.glass-shadow-blur;
+                drop-shadow-offset-y: Theme.glass-shadow-y;
+                drop-shadow-color: Theme.glass-shadow;
                 height: list.preferred-height;
 
                 list := VerticalLayout {

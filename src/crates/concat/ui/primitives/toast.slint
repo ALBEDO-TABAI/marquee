@@ -4,6 +4,8 @@
 import { Theme } from "../theme/theme.slint";
 import { Glyph, Icon } from "../icons.slint";
 import { CopyChip } from "modal.slint";
+import { Glass, GlassKind } from "glass.slint";
+import { GlassChrome } from "glass-frost.slint";
 
 // The bottom-right notice.
 //
@@ -41,6 +43,7 @@ export component ToastLayer inherits Rectangle {
     /// not a struct comparison.
     property <int> token: root.data.token;
     changed token => {
+        GlassChrome.refresh();
         root.shown = false;
         root.raising = true;
     }
@@ -95,13 +98,18 @@ export component ToastLayer inherits Rectangle {
         // 12px by 8px of padding around a 16px line.
         height: 32px;
         border-radius: Theme.r-lg;
-        // Elevated and ringed, because it floats over panes that are
-        // themselves `panel` — the same reason the tooltip and the menus are.
-        // Slint has no drop shadow, so the hairline does the lifting alone and
-        // is the strong one for it.
-        background: Theme.raised;
+        background: transparent;
         border-width: 1px;
-        border-color: Theme.line-strong;
+        border-color: Theme.glass-edge;
+        drop-shadow-blur: Theme.glass-shadow-blur;
+        drop-shadow-offset-y: Theme.glass-shadow-y;
+        drop-shadow-color: Theme.glass-shadow;
+        Glass {
+            width: 100%;
+            height: 100%;
+            border-radius: parent.border-radius;
+            kind: GlassKind.regular;
+        }
         opacity: root.shown ? 1.0 : 0.0;
         // Never up before there is something to say. Also what keeps the very
         // first frame of the window from carrying an empty box.

@@ -98,9 +98,9 @@ component PhoneMediaGrid inherits Rectangle {
         width: 24px;
         height: 24px;
         border-radius: 12px;
-        background: entry.pick > 0 ? Theme.accent : #00000059;
+        background: entry.pick > 0 ? Theme.accent : Theme.scrim;
         border-width: entry.pick > 0 ? 0px : 1.5px;
-        border-color: #ffffffd9;
+        border-color: Theme.on-scrim;
 
         if entry.pick > 0: Text {
             text: entry.pick;
@@ -873,7 +873,7 @@ export component PhoneEditor inherits Rectangle {
                 border-radius: Theme.r;
                 background: add-touch.pressed ? Theme.accent-hover : Theme.accent;
                 drop-shadow-blur: 8px;
-                drop-shadow-color: #00000066;
+                drop-shadow-color: Theme.glass-shadow;
 
                 Icon {
                     x: (parent.width - self.width) / 2;

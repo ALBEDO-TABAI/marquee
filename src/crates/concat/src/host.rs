@@ -22,6 +22,8 @@ use concat_host::preview::Monitor;
 use concat_host::{AppDirs, media};
 use concat_speech::{Speech, Transcriber};
 
+use slint::ComponentHandle;
+
 use crate::gpu::Gpu;
 use crate::studio::{Models, Studio};
 use crate::ui::App;
@@ -455,6 +457,94 @@ pub fn image_of(frame: &concat_core::frame::Frame) -> slint::Image {
         frame.height(),
     );
     slint::Image::from_rgba8(buffer)
+}
+
+/// Snapshot the window's last composed frame and frost it for glass popups.
+pub fn capture_window_frost(app: &App) -> slint::Image {
+    match app.window().take_snapshot() {
+        Ok(buf) => frost_rgba(buf.as_bytes(), buf.width(), buf.height()),
+        Err(error) => {
+            log::debug!("glass frost snapshot: {error}");
+            slint::Image::default()
+        }
+    }
+}
+
+/// A downscaled, box-blurred, slightly saturated copy of a frame, used as
+/// the fake backdrop under preview glass (Slint has no backdrop-filter).
+pub fn frost_from_image(image: &slint::Image) -> slint::Image {
+    let Some(buf) = image.to_rgba8() else {
+        return slint::Image::default();
+    };
+    frost_rgba(buf.as_bytes(), buf.width(), buf.height())
+}
+
+pub fn frost_rgba(pixels: &[u8], width: u32, height: u32) -> slint::Image {
+    if width == 0 || height == 0 || pixels.len() < (width * height * 4) as usize {
+        return slint::Image::default();
+    }
+    let max_side = 80u32;
+    let scale = (max_side as f32 / width.max(height) as f32).min(1.0);
+    let tw = ((width as f32 * scale).round() as u32).max(1);
+    let th = ((height as f32 * scale).round() as u32).max(1);
+    let mut small = vec![0u8; (tw * th * 4) as usize];
+    for y in 0..th {
+        let sy = y * height / th;
+        for x in 0..tw {
+            let sx = x * width / tw;
+            let si = ((sy * width + sx) * 4) as usize;
+            let di = ((y * tw + x) * 4) as usize;
+            small[di..di + 4].copy_from_slice(&pixels[si..si + 4]);
+        }
+    }
+    box_blur_rgba(&mut small, tw, th, 2);
+    box_blur_rgba(&mut small, tw, th, 2);
+    saturate_rgba(&mut small, 1.85);
+    slint::Image::from_rgba8(slint::SharedPixelBuffer::clone_from_slice(
+        &small, tw, th,
+    ))
+}
+
+fn box_blur_rgba(px: &mut [u8], w: u32, h: u32, radius: i32) {
+    let src = px.to_vec();
+    let w = w as i32;
+    let h = h as i32;
+    let r = radius.max(1);
+    for y in 0..h {
+        for x in 0..w {
+            let mut acc = [0u32; 4];
+            let mut n = 0u32;
+            for dy in -r..=r {
+                let yy = (y + dy).clamp(0, h - 1) as u32;
+                for dx in -r..=r {
+                    let xx = (x + dx).clamp(0, w - 1) as u32;
+                    let i = ((yy * w as u32 + xx) * 4) as usize;
+                    acc[0] += src[i] as u32;
+                    acc[1] += src[i + 1] as u32;
+                    acc[2] += src[i + 2] as u32;
+                    acc[3] += src[i + 3] as u32;
+                    n += 1;
+                }
+            }
+            let o = ((y as u32 * w as u32 + x as u32) * 4) as usize;
+            px[o] = (acc[0] / n) as u8;
+            px[o + 1] = (acc[1] / n) as u8;
+            px[o + 2] = (acc[2] / n) as u8;
+            px[o + 3] = (acc[3] / n) as u8;
+        }
+    }
+}
+
+fn saturate_rgba(px: &mut [u8], amount: f32) {
+    for pix in px.chunks_exact_mut(4) {
+        let r = pix[0] as f32;
+        let g = pix[1] as f32;
+        let b = pix[2] as f32;
+        let y = 0.299 * r + 0.587 * g + 0.114 * b;
+        pix[0] = (y + (r - y) * amount).clamp(0.0, 255.0) as u8;
+        pix[1] = (y + (g - y) * amount).clamp(0.0, 255.0) as u8;
+        pix[2] = (y + (b - y) * amount).clamp(0.0, 255.0) as u8;
+    }
 }
 
 /// The picture at `path`, if it can be read, as a Slint image. A file that
