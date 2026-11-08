@@ -1,0 +1,15 @@
+id = "marquee.huazi.comic-stack"
+name = "芒果·叠影"
+language = "Chinese"
+order = 257
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE14A"
+strokeWidth = 0.0023
+strokeColor = "#111111"
+shadow = true

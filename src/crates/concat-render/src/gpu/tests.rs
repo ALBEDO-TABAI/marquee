@@ -6,6 +6,7 @@
 //! and says so.
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use concat_core::frame::Frame;
@@ -1728,7 +1729,7 @@ fn treated(
     gpu.used.values_mut().for_each(|used| *used = 0);
     gpu.composites += 1;
     let source = written(gpu, size, picture);
-    let drawn = gpu.run_passes(size.0, size.1, source, passes, 0.0, 0.0);
+    let drawn = gpu.run_passes(size.0, size.1, source, passes, 0.0, 0.0, 0.0);
     let out = read_floats(gpu, size, drawn);
     gpu.retire();
     out
@@ -2487,5 +2488,81 @@ fn a_background_is_wiped_with_its_picture() {
         frame.pixel(47, 20),
         Some([0, 0, 0, 255]),
         "the edge is the picture's"
+    );
+}
+
+fn chroma_score(frame: &Frame) -> u8 {
+    let mut worst = 0u8;
+    let w = frame.width();
+    let h = frame.height();
+    for y in 0..h {
+        for x in 0..w {
+            let Some([r, g, b, _]) = frame.pixel(x, y) else { continue };
+            worst = worst.max(r.abs_diff(g)).max(b.abs_diff(g));
+        }
+    }
+    worst
+}
+
+/// A mid-grey card with a high-contrast vertical edge: monochrome grain
+/// must not open a chroma fringe, while a named RGB-split control must.
+#[test]
+fn grain_on_a_gray_card_does_not_fringe() {
+    let Some(mut gpu) = gpu() else { return };
+    let width = 64u32;
+    let height = 48u32;
+    let mut card = Frame::transparent(width, height);
+    for y in 0..height {
+        for x in 0..width {
+            let value = if x >= width / 2 { 230 } else { 90 };
+            card.set_pixel(x, y, [value, value, value, 255]);
+        }
+    }
+    let packages = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../concat-effects/packages");
+    let grain = std::fs::read_to_string(packages.join("marquee.grain45/effect.wgsl"))
+        .expect("grain45 shader");
+    let split = std::fs::read_to_string(packages.join("marquee.rgbsplit45/effect.wgsl"))
+        .expect("rgbsplit45 shader");
+    let mut grain_layer = layer(card.clone());
+    grain_layer.effects = vec![package(
+        "marquee.grain45",
+        &grain,
+        r#"[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+"#,
+        &[("amount", 45.0)],
+        1.0,
+    )];
+    let grained = gpu.render(&plan(width, height, vec![grain_layer]));
+    let grain_chroma = chroma_score(&grained);
+    assert!(
+        grain_chroma <= 6,
+        "grain45 opened chroma on a grey card: max |ch| = {grain_chroma}"
+    );
+
+    let mut split_layer = layer(card);
+    split_layer.effects = vec![package(
+        "marquee.rgbsplit45",
+        &split,
+        r#"[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+"#,
+        &[("amount", 45.0)],
+        1.0,
+    )];
+    let split_out = gpu.render(&plan(width, height, vec![split_layer]));
+    let split_chroma = chroma_score(&split_out);
+    assert!(
+        split_chroma >= 12,
+        "rgbsplit45 control should fringe a grey+edge card, got {split_chroma}"
     );
 }

@@ -72,6 +72,10 @@ struct Frame {
     /// stack, a synthesized ground - carry zero here always, which reads
     /// as "just started" forever; a look that only loops is unaffected.
     clip_time: f32,
+    /// How many seconds this clip lasts on the timeline. Zero when the
+    /// pass has no clip of its own (a treatment, a probe). An exit look
+    /// times itself against the remaining `clip_duration - clip_time`.
+    clip_duration: f32,
 }
 
 @group(0) @binding(0) var source: texture_2d<f32>;
@@ -83,8 +87,8 @@ struct Frame {
 @group(3) @binding(0) var reveal_texture: texture_2d<f32>;
 @group(3) @binding(1) var reveal_sampler: sampler;
 
-/// A title's per-word reveal order at `uv`, 0..1 - the word painted there,
-/// 0 for the first and 1 for the last, and 0 wherever no word was. A
+/// A title's per-glyph reveal order at `uv`, 0..1 - the character painted
+/// there, 0 for the first and 1 for the last, and 0 wherever no glyph was. A
 /// pass over anything but a title reads the identity map here, which is
 /// 0 everywhere: `reveal_order(uv) <= progress` is then always true, so a
 /// package built on it is a no-op off a title with no special casing.
@@ -823,7 +827,11 @@ const EFFECT_FRAGMENT_DISPLAY: &str = r#"
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     let base = textureSample(source, source_sampler, in.uv);
     let treated = effect(in.uv);
-    let light = vec4<f32>(from_display(treated.rgb), treated.a);
+    // A fully transparent treated pixel must stay transparent black.
+    // from_display(0,0,0) on a=0 produced chroma that fringed the
+    // layer underneath after premul composite (marquee.tainfade).
+    let rgb = select(from_display(treated.rgb), vec3<f32>(0.0), treated.a < 0.0005);
+    let light = vec4<f32>(rgb, treated.a);
     return held(mix(base, light, clamp(frame.intensity, 0.0, 1.0)));
 }
 "#;
@@ -835,7 +843,8 @@ const EFFECT_FRAGMENT_LOG: &str = r#"
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     let base = textureSample(source, source_sampler, in.uv);
     let treated = effect(in.uv);
-    let light = vec4<f32>(from_log(treated.rgb), treated.a);
+    let rgb = select(from_log(treated.rgb), vec3<f32>(0.0), treated.a < 0.0005);
+    let light = vec4<f32>(rgb, treated.a);
     return held(mix(base, light, clamp(frame.intensity, 0.0, 1.0)));
 }
 "#;

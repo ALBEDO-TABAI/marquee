@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.showa"
+name = "昭和"
+kind = "filter"
+category = "风格"
+order = 448
+description = "Original 昭和 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

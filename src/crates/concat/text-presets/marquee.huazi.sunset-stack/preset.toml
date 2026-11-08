@@ -1,0 +1,15 @@
+id = "marquee.huazi.sunset-stack"
+name = "暮橙·叠影"
+language = "Chinese"
+order = 307
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE0C2"
+strokeWidth = 0.0023
+strokeColor = "#C2410C"
+shadow = true

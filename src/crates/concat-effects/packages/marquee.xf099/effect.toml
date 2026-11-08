@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf099"
+name = "RGB 分离"
+kind = "transition"
+category = "故障"
+order = 1699
+description = "Browsable transition SKU on the 故障 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf104"
+name = "贴纸弹出"
+kind = "transition"
+category = "表情"
+order = 1704
+description = "Browsable transition SKU on the 表情 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

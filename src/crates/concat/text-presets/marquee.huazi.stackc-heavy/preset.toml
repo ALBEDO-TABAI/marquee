@@ -1,0 +1,15 @@
+id = "marquee.huazi.stackc-heavy"
+name = "叠彩·厚描"
+language = "Chinese"
+order = 262
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFFFFF"
+strokeWidth = 0.01265
+strokeColor = "#FF3B5C"
+shadow = false

@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.cartoonxf"
+name = "漫画框切"
+kind = "transition"
+category = "表情"
+order = 517
+description = "Original 漫画框切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

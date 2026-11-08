@@ -1709,7 +1709,7 @@ impl WgpuCompositor {
             // whatever stack sits beneath it - so `clip_time` falls back
             // to the timeline's own clock, exactly what a package read
             // before this existed.
-            let treated = self.run_passes(width, height, below, &treatment.effects, seconds, 0.0);
+            let treated = self.run_passes(width, height, below, &treatment.effects, seconds, 0.0, 0.0);
             ground = Some(if strength >= 1.0 {
                 treated
             } else {
@@ -1763,6 +1763,7 @@ impl WgpuCompositor {
                 layer.flip_h,
                 layer.flip_v,
             );
+            let clip_duration = layer.clip_duration.as_f64() as f32;
             let treated = self.run_passes(
                 geometry.fitted.0,
                 geometry.fitted.1,
@@ -1770,6 +1771,7 @@ impl WgpuCompositor {
                 &layer.effects,
                 seconds,
                 clip_start,
+                clip_duration,
             );
             (
                 geometry.fitted,
@@ -1780,6 +1782,7 @@ impl WgpuCompositor {
         } else {
             let mut index = self.upload(source);
             if !layer.effects.is_empty() {
+                let clip_duration = layer.clip_duration.as_f64() as f32;
                 index = self.run_passes(
                     source.width(),
                     source.height(),
@@ -1787,6 +1790,7 @@ impl WgpuCompositor {
                     &layer.effects,
                     seconds,
                     clip_start,
+                    clip_duration,
                 );
             }
             (
@@ -2069,7 +2073,7 @@ impl WgpuCompositor {
         self.used.values_mut().for_each(|used| *used = 0);
         self.composites += 1;
         let source = self.filled(side, colour);
-        let drawn = self.run_passes(side, side, source, passes, seconds, seconds);
+        let drawn = self.run_passes(side, side, source, passes, seconds, seconds, 0.0);
         self.middle_of(side, drawn)
     }
 
@@ -3357,6 +3361,7 @@ impl WgpuCompositor {
         passes: &[ShaderPass],
         time: f32,
         clip_start: f32,
+        clip_duration: f32,
     ) -> usize {
         let mut current = source;
         let mut turns: [Option<usize>; 2] = [None, None];
@@ -3385,7 +3390,7 @@ impl WgpuCompositor {
                     (width, height),
                     (current, target),
                     pass,
-                    [time, time - clip_start],
+                    [time, time - clip_start, clip_duration],
                     (lut_id, reveal_id),
                     &mut spare,
                 );
@@ -3402,7 +3407,7 @@ impl WgpuCompositor {
                 time,
                 pass.intensity,
                 time - clip_start,
-                0.0,
+                clip_duration,
             ];
             let frame_bytes: Vec<u8> = frame_block.iter().flat_map(|v| v.to_le_bytes()).collect();
             self.queue.write_buffer(&shader.frame, 0, &frame_bytes);
@@ -3464,7 +3469,7 @@ impl WgpuCompositor {
         (width, height): (u32, u32),
         (layer, into): (usize, usize),
         pass: &ShaderPass,
-        [time, clip_time]: [f32; 2],
+        [time, clip_time, clip_duration]: [f32; 3],
         (lut_id, reveal_id): (u64, u64),
         spare: &mut HashMap<(u32, u32), Vec<usize>>,
     ) {
@@ -3490,7 +3495,7 @@ impl WgpuCompositor {
             time,
             pass.intensity,
             clip_time,
-            0.0,
+            clip_duration,
         ];
         let frame_bytes: Vec<u8> = frame_block.iter().flat_map(|v| v.to_le_bytes()).collect();
         self.queue.write_buffer(&shader.frame, 0, &frame_bytes);

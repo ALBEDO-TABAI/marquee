@@ -197,6 +197,7 @@ impl Studio {
                 effect_id: plan.media.clone(),
                 name: plan.label.clone(),
                 sound: plan.kind == ClipKind::SoundLayer,
+                scale: None,
             })
         } else if let Some(media_ids) = self.dragged_selection(&plan.media) {
             // A card dragged out of a selection in the bin brings the whole
@@ -214,6 +215,7 @@ impl Studio {
                 track_id,
                 start: f64::from(plan.start),
                 ripple: true,
+                placement: None,
             })
         };
         if let Some(id) = created {
@@ -263,6 +265,7 @@ impl Studio {
                 effect_id: plan.media.clone(),
                 name: plan.label.clone(),
                 sound: plan.kind == ClipKind::SoundLayer,
+                scale: None,
             })
         } else {
             self.apply(Command::AddClipAtFirstFree {

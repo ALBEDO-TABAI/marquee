@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf006"
+name = "暖色漏光"
+kind = "transition"
+category = "热门"
+order = 1606
+description = "Browsable transition SKU on the 热门 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

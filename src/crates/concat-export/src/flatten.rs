@@ -288,19 +288,172 @@ pub fn export_base(clip: &concat_project::model::Clip, property: KeyProperty) ->
     }
 }
 
-/// The keys the engine plays: the clip's own, property by property.
+/// The keys the engine plays: the clip's own, property by property, plus
+/// any JY-style 入场/出场/组合 recipes that do not collide with a user key.
 pub fn export_keys(clip: &concat_project::model::Clip) -> Vec<ExportKey> {
     let mut out = Vec::new();
+    let mut keyed = Vec::new();
     for property in KeyProperty::ALL {
         if !clip.is_keyed(property) {
             continue;
         }
+        keyed.push(property);
         out.extend(clip.keys_on(property).map(|key| ExportKey {
             property: property.name().to_owned(),
             at: key.at,
             value: key.value,
             ease: key.ease.sane().0,
         }));
+    }
+    out.extend(motion_keys(clip, &keyed));
+    out
+}
+
+fn ease_out() -> [f64; 4] {
+    [0.0, 0.0, 0.58, 1.0]
+}
+fn ease_in() -> [f64; 4] {
+    [0.42, 0.0, 1.0, 1.0]
+}
+fn ease_in_out() -> [f64; 4] {
+    [0.42, 0.0, 0.58, 1.0]
+}
+
+fn push_key(
+    out: &mut Vec<ExportKey>,
+    blocked: &[KeyProperty],
+    property: KeyProperty,
+    at: f64,
+    value: f64,
+    ease: [f64; 4],
+) {
+    if blocked.iter().any(|p| *p == property) {
+        return;
+    }
+    out.push(ExportKey {
+        property: property.name().to_owned(),
+        at: at.clamp(0.0, 1.0),
+        value,
+        ease,
+    });
+}
+
+/// Turn `clip.anim` into relative keys the engine already knows how to play.
+fn motion_keys(
+    clip: &concat_project::model::Clip,
+    blocked: &[KeyProperty],
+) -> Vec<ExportKey> {
+    let anim = &clip.anim;
+    if anim.is_idle() || clip.duration <= 1e-6 {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    let intro_span = (anim.intro_secs / clip.duration).clamp(0.0, 0.45);
+    let outro_span = (anim.outro_secs / clip.duration).clamp(0.0, 0.45);
+    let recipe = |name: &str, at0: f64, at1: f64, intro: bool| {
+        // intro: from offset toward rest; outro: from rest toward offset
+        let (from, to, ease) = if intro {
+            (1.0, 0.0, ease_out())
+        } else {
+            (0.0, 1.0, ease_in())
+        };
+        match name {
+            "fade" => vec![
+                (KeyProperty::Opacity, at0, if intro { 0.0 } else { 1.0 }, ease),
+                (KeyProperty::Opacity, at1, if intro { 1.0 } else { 0.0 }, ease),
+            ],
+            "slideUp" => {
+                let y0 = if intro { 0.22 } else { 0.0 };
+                let y1 = if intro { 0.0 } else { -0.22 };
+                vec![
+                    (KeyProperty::OffsetY, at0, y0, ease),
+                    (KeyProperty::OffsetY, at1, y1, ease),
+                    (KeyProperty::Opacity, at0, if intro { 0.0 } else { 1.0 }, ease),
+                    (KeyProperty::Opacity, at1, if intro { 1.0 } else { 0.0 }, ease),
+                ]
+            }
+            "slideDown" => {
+                let y0 = if intro { -0.22 } else { 0.0 };
+                let y1 = if intro { 0.0 } else { 0.22 };
+                vec![
+                    (KeyProperty::OffsetY, at0, y0, ease),
+                    (KeyProperty::OffsetY, at1, y1, ease),
+                    (KeyProperty::Opacity, at0, if intro { 0.0 } else { 1.0 }, ease),
+                    (KeyProperty::Opacity, at1, if intro { 1.0 } else { 0.0 }, ease),
+                ]
+            }
+            "slideLeft" => {
+                let x0 = if intro { 0.22 } else { 0.0 };
+                let x1 = if intro { 0.0 } else { -0.22 };
+                vec![
+                    (KeyProperty::OffsetX, at0, x0, ease),
+                    (KeyProperty::OffsetX, at1, x1, ease),
+                    (KeyProperty::Opacity, at0, if intro { 0.0 } else { 1.0 }, ease),
+                    (KeyProperty::Opacity, at1, if intro { 1.0 } else { 0.0 }, ease),
+                ]
+            }
+            "slideRight" => {
+                let x0 = if intro { -0.22 } else { 0.0 };
+                let x1 = if intro { 0.0 } else { 0.22 };
+                vec![
+                    (KeyProperty::OffsetX, at0, x0, ease),
+                    (KeyProperty::OffsetX, at1, x1, ease),
+                    (KeyProperty::Opacity, at0, if intro { 0.0 } else { 1.0 }, ease),
+                    (KeyProperty::Opacity, at1, if intro { 1.0 } else { 0.0 }, ease),
+                ]
+            }
+            "zoomIn" => {
+                let s0 = if intro { 0.55 } else { 1.0 };
+                let s1 = if intro { 1.0 } else { 0.55 };
+                vec![
+                    (KeyProperty::Scale, at0, s0, ease),
+                    (KeyProperty::Scale, at1, s1, ease),
+                    (KeyProperty::Opacity, at0, if intro { 0.0 } else { 1.0 }, ease),
+                    (KeyProperty::Opacity, at1, if intro { 1.0 } else { 0.0 }, ease),
+                ]
+            }
+            _ => {
+                let _ = (from, to);
+                Vec::new()
+            }
+        }
+    };
+    if !anim.intro.is_empty() && intro_span > 1e-4 {
+        for (prop, at, value, ease) in recipe(&anim.intro, 0.0, intro_span, true) {
+            push_key(&mut out, blocked, prop, at, value, ease);
+        }
+    }
+    if !anim.outro.is_empty() && outro_span > 1e-4 {
+        for (prop, at, value, ease) in recipe(&anim.outro, 1.0 - outro_span, 1.0, false) {
+            push_key(&mut out, blocked, prop, at, value, ease);
+        }
+    }
+    if !anim.combo.is_empty() {
+        let hold0 = intro_span;
+        let hold1 = (1.0 - outro_span).max(hold0 + 0.05);
+        let period = (anim.combo_secs / clip.duration).clamp(0.08, 0.5);
+        let mut t = hold0;
+        let mut i = 0;
+        while t <= hold1 + 1e-6 && i < 24 {
+            let u = ((t - hold0) / period).fract();
+            match anim.combo.as_str() {
+                "pulse" => {
+                    let s = 1.0 + 0.06 * (2.0 * std::f64::consts::PI * u).sin().abs();
+                    push_key(&mut out, blocked, KeyProperty::Scale, t, s, ease_in_out());
+                }
+                "breathe" => {
+                    let o = 0.82 + 0.18 * (0.5 + 0.5 * (2.0 * std::f64::consts::PI * u).cos());
+                    push_key(&mut out, blocked, KeyProperty::Opacity, t, o, ease_in_out());
+                }
+                "float" => {
+                    let y = 0.03 * (2.0 * std::f64::consts::PI * u).sin();
+                    push_key(&mut out, blocked, KeyProperty::OffsetY, t, y, ease_in_out());
+                }
+                _ => {}
+            }
+            t += period / 2.0;
+            i += 1;
+        }
     }
     out
 }
@@ -355,6 +508,7 @@ mod tests {
                 track_id,
                 start: 1.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds clip")
             .created_id
@@ -493,6 +647,45 @@ mod tests {
             .expect("adds title");
         let flat = flatten_timeline(editor.project(), None);
         assert_eq!(flat.len(), 1, "the text clip does not flatten");
+    }
+
+    #[test]
+    fn mask_keys_alone_reach_the_engine() {
+        use concat_core::time::Rational;
+        use concat_project::model::KeyEase;
+        let (mut editor, _, clip_id) = project_with_clip();
+        assert!(
+            editor
+                .project()
+                .active()
+                .clip(&clip_id)
+                .unwrap()
+                .mask
+                .is_none()
+        );
+        for (at, value) in [(0.0, -0.2), (1.0, 0.2)] {
+            editor
+                .apply(Command::SetClipKey {
+                    clip_id: clip_id.clone(),
+                    property: KeyProperty::MaskX,
+                    at,
+                    value,
+                    ease: KeyEase::LINEAR,
+                })
+                .expect("keys");
+        }
+        let flat = flatten_timeline(editor.project(), None);
+        let mask = flat[0].mask.expect("auto-enabled mask rides along");
+        assert!(flat[0].animation.iter().any(|key| key.property == "maskX"));
+        let mut clip = concat_core::timeline::Clip::new(
+            concat_core::timeline::MediaRef::new("a.mp4"),
+            Rational::ZERO,
+            Rational::from_int(10),
+        );
+        clip.mask = Some(mask.engine());
+        clip.animation = crate::resolve::animation_of(&flat[0].animation);
+        let start = clip.mask_at(Rational::ZERO).expect("a mask");
+        assert!((start.x + 0.2).abs() < 1e-12);
     }
 
     #[test]

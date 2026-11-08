@@ -1,0 +1,15 @@
+id = "marquee.huazi.ink-plain"
+name = "墨韵·净色"
+language = "Chinese"
+order = 340
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F8F5F0"
+strokeWidth = 0.0
+strokeColor = "#1A1A1A"
+shadow = false

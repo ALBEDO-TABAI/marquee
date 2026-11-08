@@ -1,0 +1,15 @@
+id = "marquee.huazi.stackc-bevel"
+name = "叠彩·斜切"
+language = "Chinese"
+order = 269
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFFFFF"
+strokeWidth = 0.0069
+strokeColor = "#FF3B5C"
+shadow = true

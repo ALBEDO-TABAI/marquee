@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.blurxf"
+name = "模糊叠化"
+kind = "transition"
+category = "模糊"
+order = 510
+description = "Original 模糊叠化 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

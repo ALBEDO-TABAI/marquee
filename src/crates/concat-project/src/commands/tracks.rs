@@ -34,6 +34,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -51,6 +53,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -71,6 +75,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 

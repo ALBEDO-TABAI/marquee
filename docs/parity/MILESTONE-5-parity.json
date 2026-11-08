@@ -1,0 +1,43 @@
+{
+  "library": {
+    "before_vs_500": 90.56,
+    "after_vs_500": 83.35,
+    "after_bad": 44977,
+    "total": 270144
+  },
+  "inspector": {
+    "before_vs_500": 95.39,
+    "after_vs_500": 94.46,
+    "after_bad": 12822,
+    "total": 231552
+  },
+  "timeline": {
+    "before_vs_500": 84.54,
+    "after_vs_500": 75.3,
+    "after_bad": 141015,
+    "total": 570860
+  },
+  "tabstrip": {
+    "before_vs_500": 86.9,
+    "after_vs_500": 86.31,
+    "after_bad": 3504,
+    "total": 25604
+  },
+  "full_vs_500_media": {
+    "before_m4": 74.57,
+    "after_m5": 72.73,
+    "after_bad": 518335,
+    "total": 1900800
+  },
+  "full_vs_500_inspector": {
+    "after": 71.06,
+    "after_bad": 549998,
+    "total": 1900800
+  },
+  "full_vs_301_media": {
+    "after": 70.22,
+    "after_bad": 565998,
+    "total": 1900800
+  },
+  "note": "Threshold 0.15 max-channel/255 on frames scaled to 1920x990 after dropping the 41px XFCE panel. Unmasked full-frame scores are content-dominated (JY color bars + empty timeline vs \u5e55\u6b21 stress preview + 217 clips). M2 stored masked chrome scores (~96.6%) are not reproduced here; region rows are the closer chrome comparison."
+}

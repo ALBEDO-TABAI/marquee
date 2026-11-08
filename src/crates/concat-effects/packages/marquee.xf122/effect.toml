@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf122"
+name = "口播种切"
+kind = "transition"
+category = "最新"
+order = 1722
+description = "Browsable transition SKU on the 最新 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

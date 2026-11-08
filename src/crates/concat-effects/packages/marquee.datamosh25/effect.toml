@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.datamosh25"
+name = "数据马赛克 25"
+kind = "effect"
+category = "潮酷"
+order = 2596
+description = "Original 数据马赛克 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 25
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

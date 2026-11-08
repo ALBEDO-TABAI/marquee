@@ -1,0 +1,15 @@
+id = "marquee.huazi.silver-outline"
+name = "银箔·描边"
+language = "Chinese"
+order = 351
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F1F5F9"
+strokeWidth = 0.00805
+strokeColor = "#475569"
+shadow = false

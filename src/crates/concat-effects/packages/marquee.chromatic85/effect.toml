@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.chromatic85"
+name = "色散 85"
+kind = "effect"
+category = "潮酷"
+order = 2563
+description = "Original 色散 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

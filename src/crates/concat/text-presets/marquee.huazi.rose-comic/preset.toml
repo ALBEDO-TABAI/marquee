@@ -1,0 +1,15 @@
+id = "marquee.huazi.rose-comic"
+name = "蔷薇·漫画"
+language = "Chinese"
+order = 325
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#FFE4EC"
+strokeWidth = 0.0092
+strokeColor = "#BE123C"
+shadow = false

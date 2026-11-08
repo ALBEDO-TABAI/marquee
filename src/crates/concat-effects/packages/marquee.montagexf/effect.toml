@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.montagexf"
+name = "硬切"
+kind = "transition"
+category = "拍摄"
+order = 519
+description = "Original 硬切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

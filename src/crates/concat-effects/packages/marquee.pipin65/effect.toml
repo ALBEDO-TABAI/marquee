@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.pipin65"
+name = "画中画 65"
+kind = "effect"
+category = "多屏"
+order = 2806
+description = "Original 画中画 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 65
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

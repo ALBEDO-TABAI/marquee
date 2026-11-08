@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.splitxf"
+name = "分割"
+kind = "transition"
+category = "分割"
+order = 512
+description = "Original 分割 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

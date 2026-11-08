@@ -1,0 +1,15 @@
+id = "marquee.huazi.rose-soft"
+name = "蔷薇·柔光"
+language = "Chinese"
+order = 324
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE4EC"
+strokeWidth = 0.00345
+strokeColor = "#BE123C"
+shadow = true

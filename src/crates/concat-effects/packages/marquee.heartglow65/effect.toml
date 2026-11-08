@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.heartglow65"
+name = "心形辉光 65"
+kind = "effect"
+category = "爱心"
+order = 2698
+description = "Original 心形辉光 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 65
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

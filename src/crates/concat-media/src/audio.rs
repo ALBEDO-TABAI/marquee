@@ -26,6 +26,21 @@ use ffmpeg_the_third::util::frame::audio::Audio;
 use crate::error::{Error, Result};
 use crate::ffi;
 
+/// Export loudness target: −14 LUFS integrated, true peak ≤ −1 dBTP.
+/// Used as the measure-pass filter (`print_format=json` is appended) and as
+/// the skeleton of the linear second pass (measured_* and offset filled in).
+pub const LOUDNORM_FILTER: &str = "loudnorm=I=-14:TP=-1.5:LRA=11:linear=true";
+
+/// Extra LU added to the second-pass `offset` so integrated lands nearer
+/// −14.0 after the limiter and a subsequent AAC encode (which measured
+/// about 0.35–0.4 LU quieter on the 3-min film).
+pub const LOUDNORM_I_COMPENSATION: f64 = 0.35;
+
+/// Linear ceiling of −1.2 dBTP (`10 ** (-1.2/20)`), applied after the
+/// measured loudnorm. Leaves ~0.2 dB for AAC true-peak overshoot so the
+/// muxed file stays ≤ −1.0 dBTP while integrated can sit closer to −14.
+pub const ALIMITER_FILTER: &str = "alimiter=limit=0.8709635899560808:level=disabled";
+
 /// The rate everything is mixed at.
 pub const MIX_RATE: u32 = 48_000;
 
@@ -610,6 +625,18 @@ pub fn mix_to_file_with(
     duration: f64,
     destination: &Path,
 ) -> Result<()> {
+    mix_to_file_with_opts(clips, buses, duration, destination, false)
+}
+
+/// [`mix_to_file_with`] with an optional loudnorm on the summed mix
+/// (`I=-14`, `TP=-1.0`, `LRA=11`) before the sample format conversion.
+pub fn mix_to_file_with_opts(
+    clips: &[AudioClip],
+    buses: &[AudioBus],
+    duration: f64,
+    destination: &Path,
+    normalize: bool,
+) -> Result<()> {
     let extension = destination
         .extension()
         .map(|extension| extension.to_string_lossy().to_ascii_lowercase());
@@ -625,7 +652,11 @@ pub fn mix_to_file_with(
         {
             validate_chain(chain)?;
         }
-        return android_aac::mix(clips, buses, duration, destination);
+        android_aac::mix(clips, buses, duration, destination)?;
+        if normalize {
+            apply_two_pass_loudnorm(destination, duration)?;
+        }
+        return Ok(());
     }
     let (codec_name, mix_format) = if wav {
         (
@@ -743,6 +774,7 @@ pub fn mix_to_file_with(
         mix_format.name(),
         Some(frame_size),
         destination,
+        false,
         |mixed| {
             encoder
                 .send_frame(mixed)
@@ -759,7 +791,159 @@ pub fn mix_to_file_with(
     drain(&mut encoder, &mut output)?;
     output
         .write_trailer()
-        .map_err(|error| ffi::fail("write trailer", destination, error))
+        .map_err(|error| ffi::fail("write trailer", destination, error))?;
+    if normalize {
+        apply_two_pass_loudnorm(destination, duration)?;
+    }
+    Ok(())
+}
+
+
+/// Two-pass EBU R128: measure the mixed file, then apply a linear loudnorm
+/// with those measurements, a small integrated-loudness compensation, an
+/// alimiter ceiling of −1.2 dBTP, and a resample/trim back to the mix rate
+/// and timeline duration (loudnorm can upsample; AAC can pad a frame).
+fn apply_two_pass_loudnorm(path: &Path, duration: f64) -> Result<()> {
+    let measured = measure_loudnorm(path)?;
+    let filter = loudnorm_apply_filter(&measured);
+    let ext = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("m4a");
+    let tmp = path.with_file_name(format!(
+        "{}.loudnorm-tmp.{ext}",
+        path.file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("mix")
+    ));
+    let codec: &[&str] = match ext.to_ascii_lowercase().as_str() {
+        "wav" => &["-c:a", "pcm_s16le"],
+        "webm" | "opus" | "ogg" | "mka" => &["-c:a", "libopus", "-b:a", "192k"],
+        _ => &["-c:a", "aac", "-b:a", "192k"],
+    };
+    let mut args = vec![
+        "-hide_banner".into(),
+        "-nostdin".into(),
+        "-y".into(),
+        "-i".into(),
+        path.display().to_string(),
+        "-af".into(),
+        filter,
+    ];
+    args.extend(codec.iter().map(|part| (*part).to_string()));
+    args.push("-ar".into());
+    args.push(MIX_RATE.to_string());
+    if duration.is_finite() && duration > 0.0 {
+        args.push("-t".into());
+        args.push(format!("{duration:.6}"));
+    }
+    args.push(tmp.display().to_string());
+    let output = std::process::Command::new("ffmpeg")
+        .args(&args)
+        .output()
+        .map_err(|error| Error::Ffi {
+            operation: "loudnorm apply",
+            path: path.to_path_buf(),
+            detail: error.to_string(),
+        })?;
+    if !output.status.success() {
+        let _ = std::fs::remove_file(&tmp);
+        let detail = String::from_utf8_lossy(&output.stderr).into_owned();
+        return Err(Error::Ffi {
+            operation: "loudnorm apply",
+            path: path.to_path_buf(),
+            detail,
+        });
+    }
+    if let Err(error) = std::fs::rename(&tmp, path) {
+        std::fs::copy(&tmp, path).map_err(|copy_error| Error::Io {
+            path: path.to_path_buf(),
+            source: copy_error,
+        })?;
+        let _ = std::fs::remove_file(&tmp);
+        let _ = error;
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+struct LoudnormMeasurement {
+    input_i: f64,
+    input_tp: f64,
+    input_lra: f64,
+    input_thresh: f64,
+    target_offset: f64,
+}
+
+fn loudnorm_apply_filter(measured: &LoudnormMeasurement) -> String {
+    format!(
+        "{LOUDNORM_FILTER}:measured_I={:.4}:measured_LRA={:.4}:measured_TP={:.4}:measured_thresh={:.4}:offset={:.4},{ALIMITER_FILTER},aresample={MIX_RATE}",
+        measured.input_i,
+        measured.input_lra,
+        measured.input_tp,
+        measured.input_thresh,
+        measured.target_offset + LOUDNORM_I_COMPENSATION,
+    )
+}
+
+fn measure_loudnorm(path: &Path) -> Result<LoudnormMeasurement> {
+    let output = std::process::Command::new("ffmpeg")
+        .args([
+            "-hide_banner",
+            "-nostdin",
+            "-nostats",
+            "-i",
+        ])
+        .arg(path)
+        .args([
+            "-af",
+            "loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json",
+            "-f",
+            "null",
+            "-",
+        ])
+        .output()
+        .map_err(|error| Error::Ffi {
+            operation: "loudnorm measure",
+            path: path.to_path_buf(),
+            detail: error.to_string(),
+        })?;
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
+    parse_loudnorm_measurement(&text).ok_or_else(|| Error::Ffi {
+        operation: "loudnorm measure",
+        path: path.to_path_buf(),
+        detail: format!("no loudnorm JSON in ffmpeg output: {text}"),
+    })
+}
+
+fn parse_loudnorm_measurement(text: &str) -> Option<LoudnormMeasurement> {
+    let start = text.rfind('{')?;
+    let body = &text[start..];
+    let end = body.find('}')?;
+    let json = &body[..=end];
+    Some(LoudnormMeasurement {
+        input_i: json_number(json, "input_i")?,
+        input_tp: json_number(json, "input_tp")?,
+        input_lra: json_number(json, "input_lra")?,
+        input_thresh: json_number(json, "input_thresh")?,
+        target_offset: json_number(json, "target_offset").unwrap_or(0.0),
+    })
+}
+
+fn json_number(json: &str, key: &str) -> Option<f64> {
+    let needle = format!("\"{key}\"");
+    let rest = json.split(&needle).nth(1)?;
+    let after = rest.split(':').nth(1)?;
+    let token = after
+        .trim()
+        .trim_start_matches('"')
+        .split(|ch: char| ch == '"' || ch == ',' || ch.is_whitespace())
+        .next()?;
+    token.parse().ok()
 }
 
 /// The mix of the timeline's `[from, to)` - every clip inside it, cut at
@@ -793,6 +977,7 @@ pub fn mix_pcm(
         "s16",
         None,
         Path::new("the mix"),
+        false,
         |mixed| {
             // Packed: one plane, two channels of two bytes a sample. The
             // plane can be padded past the samples, so it is cut to them.
@@ -814,6 +999,7 @@ fn run_mix(
     format: &str,
     frame_size: Option<u32>,
     destination: &Path,
+    normalize: bool,
     mut take: impl FnMut(&Audio) -> Result<()>,
 ) -> Result<()> {
     let (from, to) = window;
@@ -931,8 +1117,13 @@ fn run_mix(
 
     // The plan's `[out]` lands on the reader's own format before the sink.
     let graph_spec = mix_graph_from(&members, &heard, from, buses)?;
+    let loud = if normalize {
+        format!("{LOUDNORM_FILTER},")
+    } else {
+        String::new()
+    };
     let spec = format!(
-        "{graph_spec};[out]aformat=sample_fmts={format}:sample_rates={MIX_RATE}:channel_layouts=stereo[sink]"
+        "{graph_spec};[out]{loud}aformat=sample_fmts={format}:sample_rates={MIX_RATE}:channel_layouts=stereo[sink]"
     );
     let mut parser = graph
         .input("sink", 0)
@@ -2046,5 +2237,60 @@ mod tests {
         ] {
             assert!(validate_chain(good).is_ok(), "{good:?} should be fine");
         }
+    }
+}
+
+#[cfg(test)]
+mod loudnorm_tests {
+    use super::{
+        loudnorm_apply_filter, parse_loudnorm_measurement, ALIMITER_FILTER, LOUDNORM_FILTER,
+        LOUDNORM_I_COMPENSATION, MIX_RATE,
+    };
+
+    #[test]
+    fn loudnorm_targets_broadcast_dialogue() {
+        assert!(LOUDNORM_FILTER.contains("I=-14"), "{LOUDNORM_FILTER}");
+        assert!(LOUDNORM_FILTER.contains("TP=-1.5"), "{LOUDNORM_FILTER}");
+        assert!(ALIMITER_FILTER.contains("alimiter="), "{ALIMITER_FILTER}");
+        assert!(ALIMITER_FILTER.contains("0.8709635899560808"), "{ALIMITER_FILTER}");
+        assert!((LOUDNORM_I_COMPENSATION - 0.35).abs() < 1e-9);
+    }
+
+    #[test]
+    fn loudnorm_apply_resamples_to_the_mix_rate_and_compensates_integrated() {
+        let filter = loudnorm_apply_filter(&super::LoudnormMeasurement {
+            input_i: -16.0,
+            input_tp: -1.8,
+            input_lra: 11.0,
+            input_thresh: -26.0,
+            target_offset: 0.1,
+        });
+        assert!(filter.contains(&format!("aresample={MIX_RATE}")), "{filter}");
+        assert!(filter.contains("offset=0.4500"), "{filter}");
+    }
+
+    #[test]
+    fn parses_ffmpeg_loudnorm_json() {
+        let blob = r#"
+[Parsed_loudnorm_0 @ 0x0]
+{
+	"input_i" : "-22.35",
+	"input_tp" : "-6.12",
+	"input_lra" : "5.40",
+	"input_thresh" : "-32.80",
+	"output_i" : "-14.01",
+	"output_tp" : "-1.50",
+	"output_lra" : "5.40",
+	"output_thresh" : "-24.12",
+	"normalization_type" : "dynamic",
+	"target_offset" : "0.01"
+}
+"#;
+        let measured = parse_loudnorm_measurement(blob).expect("json");
+        assert!((measured.input_i - -22.35).abs() < 1e-9);
+        assert!((measured.input_tp - -6.12).abs() < 1e-9);
+        assert!((measured.input_lra - 5.40).abs() < 1e-9);
+        assert!((measured.input_thresh - -32.80).abs() < 1e-9);
+        assert!((measured.target_offset - 0.01).abs() < 1e-9);
     }
 }

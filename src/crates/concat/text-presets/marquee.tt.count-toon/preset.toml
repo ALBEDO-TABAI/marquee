@@ -1,0 +1,20 @@
+id = "marquee.tt.count-toon"
+name = "卡通·倒计时"
+language = "Chinese"
+order = 988
+sample = "文字"
+
+[style]
+content = "倒计时"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11111
+color = "#FFE14A"
+strokeWidth = 0.00694
+strokeColor = "#111111"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.004
+shadow = false

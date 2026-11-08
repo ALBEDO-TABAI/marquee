@@ -1,0 +1,15 @@
+id = "marquee.huazi.mint-comic"
+name = "薄荷·漫画"
+language = "Chinese"
+order = 285
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#D8FFE8"
+strokeWidth = 0.0092
+strokeColor = "#1A8F6A"
+shadow = false

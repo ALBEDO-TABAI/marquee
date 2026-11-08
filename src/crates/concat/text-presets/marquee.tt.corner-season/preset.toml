@@ -1,0 +1,20 @@
+id = "marquee.tt.corner-season"
+name = "季节·角标"
+language = "Chinese"
+order = 877
+sample = "文字"
+
+[style]
+content = "角标"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#ECFCCB"
+strokeWidth = 0.00278
+strokeColor = "#3F6212"
+align = "left"
+background = "#C2410C"
+backgroundPaddingX = 0.01389
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

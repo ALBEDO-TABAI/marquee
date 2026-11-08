@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.neongrade"
+name = "霓虹城"
+kind = "effect"
+category = "潮酷"
+order = 380
+description = "Original 霓虹城 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

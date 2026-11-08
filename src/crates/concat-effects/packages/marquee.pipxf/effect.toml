@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.pipxf"
+name = "画中画切入"
+kind = "transition"
+category = "分割"
+order = 523
+description = "Original 画中画切入 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

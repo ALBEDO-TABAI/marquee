@@ -1,0 +1,15 @@
+id = "marquee.huazi.steel-emboss"
+name = "钢青·浮雕"
+language = "Chinese"
+order = 506
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#E8EEF4"
+strokeWidth = 0.0023
+strokeColor = "#5A6B7A"
+shadow = false

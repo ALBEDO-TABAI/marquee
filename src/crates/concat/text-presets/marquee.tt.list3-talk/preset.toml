@@ -1,0 +1,20 @@
+id = "marquee.tt.list3-talk"
+name = "口播·三行列表"
+language = "Chinese"
+order = 966
+sample = "文字"
+
+[style]
+content = "三行列表"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04167
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#01B9C6"
+align = "left"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.001
+shadow = false

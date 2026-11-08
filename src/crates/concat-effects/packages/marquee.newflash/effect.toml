@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.newflash"
+name = "新潮闪切"
+kind = "transition"
+category = "最新"
+order = 526
+description = "Original 新潮闪切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

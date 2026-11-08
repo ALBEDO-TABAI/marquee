@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.travelxf"
+name = "地图推近"
+kind = "transition"
+category = "旅行"
+order = 525
+description = "Original 地图推近 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

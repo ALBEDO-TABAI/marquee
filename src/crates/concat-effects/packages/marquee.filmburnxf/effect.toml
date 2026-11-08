@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.filmburnxf"
+name = "胶片灼烧"
+kind = "transition"
+category = "拍摄"
+order = 516
+description = "Original 胶片灼烧 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

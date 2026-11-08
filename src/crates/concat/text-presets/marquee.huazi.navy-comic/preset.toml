@@ -1,0 +1,15 @@
+id = "marquee.huazi.navy-comic"
+name = "夜蓝·漫画"
+language = "Chinese"
+order = 315
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#DBEAFE"
+strokeWidth = 0.0092
+strokeColor = "#1E3A8A"
+shadow = false

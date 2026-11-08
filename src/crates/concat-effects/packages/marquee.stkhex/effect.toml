@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.stkhex"
+name = "六边贴"
+kind = "sticker"
+category = "涂鸦"
+order = 705
+description = "Original parametric sticker: 六边贴."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 80
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

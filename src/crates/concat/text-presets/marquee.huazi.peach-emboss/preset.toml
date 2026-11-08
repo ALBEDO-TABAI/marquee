@@ -1,0 +1,15 @@
+id = "marquee.huazi.peach-emboss"
+name = "蜜桃·浮雕"
+language = "Chinese"
+order = 436
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFF0E6"
+strokeWidth = 0.0023
+strokeColor = "#F09A6A"
+shadow = false

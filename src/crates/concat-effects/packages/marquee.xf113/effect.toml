@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf113"
+name = "菱形关闭"
+kind = "transition"
+category = "综艺"
+order = 1713
+description = "Browsable transition SKU on the 综艺 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

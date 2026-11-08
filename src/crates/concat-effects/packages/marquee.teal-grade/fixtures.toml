@@ -1,0 +1,20 @@
+# Colours in the working space: linear light, 1.0 the white of an SDR
+# picture. 青调 is drawn in the display encoding, then taken back
+# into light. The centre sample is enough: the look does not read neighbours.
+
+[[probe]]
+name = "default"
+input = [0.3, 0.2, 0.12, 1]
+expect = [0.27999, 0.20489, 0.132, 1]
+
+[[probe]]
+name = "minimum"
+at = "min"
+input = [0.3, 0.2, 0.12, 1]
+expect = [0.3, 0.2, 0.12, 1]
+
+[[probe]]
+name = "maximum"
+at = "max"
+input = [0.3, 0.2, 0.12, 1]
+expect = [0.20889, 0.22485, 0.18587, 1]

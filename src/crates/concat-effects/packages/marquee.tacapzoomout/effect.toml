@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.tacapzoomout"
+name = "字幕·缩小入"
+kind = "textanim"
+category = "字幕动画"
+order = 655
+description = "Caption motion: 缩小入."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

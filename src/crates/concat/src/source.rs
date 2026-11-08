@@ -56,6 +56,7 @@ fn scratch(project: &Project, media_id: &str) -> Option<Project> {
             track_id,
             start: 0.0,
             ripple: false,
+            placement: None,
         },
     )
     .ok()?;

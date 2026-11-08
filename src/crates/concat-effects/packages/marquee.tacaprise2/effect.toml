@@ -1,0 +1,24 @@
+format = 2
+
+[effect]
+id = "marquee.tacaprise2"
+name = "字幕上浮"
+kind = "textanim"
+category = "字幕动画"
+order = 1221
+description = "Per-glyph caption/rise text motion."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 55
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"
+

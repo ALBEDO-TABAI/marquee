@@ -384,7 +384,7 @@ export component PresetStack inherits VerticalLayout {
                 /// Folded to its header: a long chain stays scannable, and
                 /// what is dialled in stays put.
                 property <bool> open: true;
-                padding-bottom: self.hidden ? 0px : 8px;
+                padding-bottom: self.hidden ? 0px : 6px;
 
                 if !self.hidden: Rectangle {
                     border-radius: Theme.r;
@@ -1307,6 +1307,8 @@ export component VideoPanel inherits VerticalLayout {
     /// Whether the Mask section is here: the phone gives the mask a tool
     /// and a sheet of its own instead.
     in property <bool> mask-section: true;
+    /// Transform / crop / stabilize: off when the inspector's 蒙版 tab is showing.
+    in property <bool> transform-section: true;
 
     callback set(field: ClipField, value: float);
     /// A control gesture finished: the accumulated change becomes one command.
@@ -1439,7 +1441,7 @@ export component VideoPanel inherits VerticalLayout {
     init => { root.seed(); }
     changed selected => { root.seed(); }
 
-    Section {
+    if root.transform-section: Section {
         first: true;
         transform := SectionHeader {
             title: I18n.t("clipInspector.transform");
@@ -1702,7 +1704,7 @@ export component VideoPanel inherits VerticalLayout {
     // monitor over it - and chroma key drops a colour. A key is the chroma
     // package on the chain, which is why its knobs read from the chain's
     // own rows. One at a time: ticking a block unticks the others.
-    if !root.figure: Section {
+    if !root.figure && root.mask-section: Section {
         cutout := SectionHeader {
             title: I18n.t("clipInspector.removeBackground");
             collapsible: true;

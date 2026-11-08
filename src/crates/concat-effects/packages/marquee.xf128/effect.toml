@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf128"
+name = "智能匹配切"
+kind = "transition"
+category = "AI"
+order = 1728
+description = "Browsable transition SKU on the AI rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

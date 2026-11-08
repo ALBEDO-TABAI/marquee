@@ -1,0 +1,15 @@
+id = "marquee.huazi.grape-comic"
+name = "葡萄·漫画"
+language = "Chinese"
+order = 295
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#F3E8FF"
+strokeWidth = 0.0092
+strokeColor = "#6B2FA0"
+shadow = false

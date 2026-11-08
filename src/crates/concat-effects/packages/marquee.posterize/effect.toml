@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.posterize"
+name = "色调分离"
+kind = "effect"
+category = "潮酷"
+order = 312
+description = "Original 色调分离 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

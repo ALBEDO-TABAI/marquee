@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.foodsteam"
+name = "蒸汽"
+kind = "filter"
+category = "美食"
+order = 427
+description = "Original 蒸汽 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

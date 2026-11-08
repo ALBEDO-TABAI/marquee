@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf026"
+name = "胶片叠化"
+kind = "transition"
+category = "叠化"
+order = 1626
+description = "Browsable transition SKU on the 叠化 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

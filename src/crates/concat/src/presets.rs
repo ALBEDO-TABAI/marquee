@@ -373,6 +373,53 @@ mod tests {
         }
     }
 
+    #[test]
+    fn marquee_huazi_ports_are_present() {
+        let presets = builtin();
+        let n = presets
+            .iter()
+            .filter(|preset| preset.id.starts_with("marquee.huazi."))
+            .count();
+        assert!(n >= 322, "花字 {n}");
+        let sample = presets
+            .iter()
+            .find(|preset| preset.id == "marquee.huazi.cyan-outline")
+            .expect("cyan outline");
+        assert_eq!(sample.name, "青焰·描边");
+        assert_eq!(sample.language, "Chinese");
+        assert_eq!(sample.style.color, "#E8FFFC");
+        assert!(
+            presets.iter().any(|preset| preset.id == "marquee.huazi.coral-outline"),
+            "m4 coral outline"
+        );
+    }
+
+    #[test]
+    fn marquee_text_templates_are_present() {
+        let presets = builtin();
+        let n = presets
+            .iter()
+            .filter(|preset| preset.id.starts_with("marquee.tt."))
+            .count();
+        assert!(n >= 233, "文字模板 {n}");
+        let sample = presets
+            .iter()
+            .find(|preset| preset.id == "marquee.tt.name-new")
+            .expect("lower third");
+        assert_eq!(sample.name, "最新·人名条");
+        assert_eq!(sample.language, "Chinese");
+        let hook = presets
+            .iter()
+            .find(|preset| preset.id == "marquee.tt.hook-hot")
+            .expect("hook layout");
+        assert_eq!(hook.name, "热门·金句");
+        let badge = presets
+            .iter()
+            .find(|preset| preset.id == "marquee.tt.badge-min")
+            .expect("badge layout");
+        assert_eq!(badge.name, "简约·标签");
+    }
+
     /// A file under text-presets/ that does not parse would be skipped
     /// without a word, and its card would simply be missing.
     #[test]

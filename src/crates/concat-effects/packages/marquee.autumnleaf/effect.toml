@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.autumnleaf"
+name = "落叶"
+kind = "filter"
+category = "秋日"
+order = 481
+description = "Original 落叶 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

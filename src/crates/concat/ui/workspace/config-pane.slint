@@ -6,6 +6,7 @@ import { Theme, SegmentedControl } from "../primitives/primitives.slint";
 import { SectionTabs } from "../primitives/section-tabs.slint";
 import { Glyph } from "../icons.slint";
 import { Select } from "../primitives/select.slint";
+import { NumberField } from "../primitives/number-field.slint";
 import { Pane, PaneBody, PaneScroll } from "pane.slint";
 import { PaneKind, PaneSwitcher } from "pane-switcher.slint";
 import { EffectData } from "../demo/effects-panel.slint";
@@ -21,6 +22,8 @@ import {
 } from "../inspector/grading.slint";
 import { TextPanel } from "../inspector/text-panel.slint";
 import { ShapePanel } from "../inspector/shape-panel.slint";
+import { Section, SectionHeader } from "../primitives/panel.slint";
+import { HelpButton, Note } from "../inspector/controls.slint";
 import {
     ClipField, ClipKind, ClipTextField, SelectedClipData, SelectedTransitionData,
 } from "../timeline/model.slint";
@@ -339,7 +342,7 @@ export component ConfigPane inherits Rectangle {
 
     /// The sections of the current tab, as the dropdown lists them.
     property <[string]> sections: root.heading == "Video"
-            ? (root.is-shape ? ["Shape", "Basic"] : ["Basic", "Enhance", "Adjust"])
+            ? (root.is-shape ? ["Shape", "Basic"] : ["Basic", "Mask", "Adjust", "Animation", "Speed", "Enhance"])
         // Audio's chain library is a page of its own, beside the level,
         // fades and treatments rather than under them, the way Video's
         // Adjust sits beside its Basic. Named apart from Video's "Basic"
@@ -356,7 +359,7 @@ export component ConfigPane inherits Rectangle {
     /// what makes it better, its colour's knobs; its level and its sound's
     /// chain; a layer's own strength, then its colour and its chain.
     property <[Glyph]> section-icons: root.heading == "Video"
-            ? (root.is-shape ? [Glyph.shapes, Glyph.move] : [Glyph.move, Glyph.wand, Glyph.sliders])
+            ? (root.is-shape ? [Glyph.shapes, Glyph.move] : [Glyph.move, Glyph.filter, Glyph.sliders, Glyph.sparkle, Glyph.film, Glyph.wand])
         : root.heading == "Audio"
             ? (root.selected.batch-volume ? [Glyph.volume]
                 : root.is-sound-layer ? [Glyph.filter, Glyph.waveform]
@@ -367,7 +370,7 @@ export component ConfigPane inherits Rectangle {
     /// The sections as the dropdown shows them; see `tabs-shown`.
     property <[string]> sections-shown: root.heading == "Video"
             ? (root.is-shape ? [I18n.t("shapePanel.shape"), I18n.t("configPane.basic")]
-                : [I18n.t("configPane.basic"), I18n.t("common.enhance"), I18n.t("common.adjust")])
+                : [I18n.t("configPane.basic"), I18n.t("mask.title"), I18n.t("common.adjust"), I18n.t("configPane.animation"), I18n.t("common.speed"), I18n.t("common.enhance")])
         : root.heading == "Audio"
             ? (root.selected.batch-volume ? [I18n.t("configPane.basic")]
                 : root.is-sound-layer ? [I18n.t("common.layer"), I18n.t("configPane.audioEffects")]
@@ -421,8 +424,13 @@ export component ConfigPane inherits Rectangle {
         else if (root.jump-tab == "Effects") { root.tab = root.tabs.length - 1; }
         // Enhance sits second in the Video tab for a video and a still
         // alike, and Audio effects second in the Audio tab.
-        root.pick-section(root.jump-section == "Enhance" || root.jump-section == "AudioEffects"
-            ? 1 : 0);
+        root.pick-section(root.jump-section == "AudioEffects" ? 1
+            : root.jump-section == "Enhance" ? 5
+            : root.jump-section == "Adjust" ? 2
+            : root.jump-section == "Mask" ? 1
+            : root.jump-section == "Animation" ? 3
+            : root.jump-section == "Speed" ? 4
+            : 0);
     }
     changed jump-token => { root.jump(); }
     init => {
@@ -722,6 +730,7 @@ export component ConfigPane inherits Rectangle {
                 if root.showing == "Basic": VerticalLayout {
                     VideoPanel {
                         selected: root.selected;
+                        mask-section: false;
                         applied: root.applied-visual;
                         params: root.visual-params;
                         colours: root.visual-colours;
@@ -748,13 +757,134 @@ export component ConfigPane inherits Rectangle {
                         cutout-subject(index) => { root.cutout-subject(index); }
                         cutout-clear => { root.cutout-clear(); }
                     }
+                }
 
-                    if !root.is-image && !root.is-shape: SpeedPanel {
-                        first: false;
+                if root.showing == "Mask": VerticalLayout {
+                    VideoPanel {
                         selected: root.selected;
+                        transform-section: false;
+                        applied: root.applied-visual;
+                        params: root.visual-params;
+                        colours: root.visual-colours;
+                        choices: root.visual-choices;
+                        brush-tool: root.brush-tool;
+                        brush-size: root.brush-size;
+                        painting: root.painting;
                         set(field, value) => { root.clip-set(field, value); }
                         commit => { root.clip-commit(); }
+                        chain-add(id) => { root.chain-add(false, id); }
+                        chain-remove(index) => { root.chain-remove(false, index); }
+                        chain-set-param(index, key, value) => {
+                            root.chain-set-param(false, index, key, value);
+                        }
+                        chain-set-colour(index, key, value) => {
+                            root.chain-set-colour(index, key, value);
+                        }
+                        chain-pick-colour(index, key) => { root.chain-pick-colour(index, key); }
+                        chain-auto-colour(index, key) => { root.chain-auto-colour(index, key); }
+                        cutout-mode(mode) => { root.cutout-mode(mode); }
+                        cutout-tool(index) => { root.cutout-tool(index); }
+                        cutout-size(size) => { root.cutout-size(size); }
+                        cutout-painting(on) => { root.cutout-painting(on); }
+                        cutout-subject(index) => { root.cutout-subject(index); }
+                        cutout-clear => { root.cutout-clear(); }
                     }
+                }
+
+                if root.showing == "Animation": VerticalLayout {
+                    Section {
+                        first: true;
+                        SectionHeader {
+                            title: I18n.t("configPane.animation");
+                            HelpButton {
+                                text: I18n.t("configPane.animationHelp");
+                            }
+                        }
+                        VerticalLayout {
+                            spacing: 10px;
+                            padding-left: 14px;
+                            padding-right: 14px;
+                            padding-bottom: 12px;
+
+                            Text { text: I18n.t("anim.intro"); color: Theme.fg-muted; font-size: Theme.fs-sm; }
+                            Select {
+                                options: [
+                                    I18n.t("anim.none"), I18n.t("anim.fade"), I18n.t("anim.slideUp"),
+                                    I18n.t("anim.slideDown"), I18n.t("anim.slideLeft"), I18n.t("anim.slideRight"),
+                                    I18n.t("anim.zoomIn"),
+                                ];
+                                current: root.selected.anim-intro;
+                                changed(index) => {
+                                    root.clip-set(ClipField.anim-intro, index);
+                                    root.clip-commit();
+                                }
+                            }
+                            Text { text: I18n.t("anim.duration"); color: Theme.fg-dim; font-size: Theme.fs-sm; }
+                            NumberField {
+                                value: root.selected.anim-intro-secs;
+                                minimum: 0.05;
+                                maximum: 8;
+                                step: 0.05;
+                                precision: 2;
+                                suffix: " s";
+                                changed(v) => { root.clip-set(ClipField.anim-intro-secs, v); root.clip-commit(); }
+                            }
+
+                            Text { text: I18n.t("anim.outro"); color: Theme.fg-muted; font-size: Theme.fs-sm; }
+                            Select {
+                                options: [
+                                    I18n.t("anim.none"), I18n.t("anim.fade"), I18n.t("anim.slideUp"),
+                                    I18n.t("anim.slideDown"), I18n.t("anim.slideLeft"), I18n.t("anim.slideRight"),
+                                    I18n.t("anim.zoomIn"),
+                                ];
+                                current: root.selected.anim-outro;
+                                changed(index) => {
+                                    root.clip-set(ClipField.anim-outro, index);
+                                    root.clip-commit();
+                                }
+                            }
+                            Text { text: I18n.t("anim.duration"); color: Theme.fg-dim; font-size: Theme.fs-sm; }
+                            NumberField {
+                                value: root.selected.anim-outro-secs;
+                                minimum: 0.05;
+                                maximum: 8;
+                                step: 0.05;
+                                precision: 2;
+                                suffix: " s";
+                                changed(v) => { root.clip-set(ClipField.anim-outro-secs, v); root.clip-commit(); }
+                            }
+
+                            Text { text: I18n.t("anim.combo"); color: Theme.fg-muted; font-size: Theme.fs-sm; }
+                            Select {
+                                options: [
+                                    I18n.t("anim.none"), I18n.t("anim.pulse"),
+                                    I18n.t("anim.breathe"), I18n.t("anim.float"),
+                                ];
+                                current: root.selected.anim-combo;
+                                changed(index) => {
+                                    root.clip-set(ClipField.anim-combo, index);
+                                    root.clip-commit();
+                                }
+                            }
+                            Text { text: I18n.t("anim.duration"); color: Theme.fg-dim; font-size: Theme.fs-sm; }
+                            NumberField {
+                                value: root.selected.anim-combo-secs;
+                                minimum: 0.2;
+                                maximum: 8;
+                                step: 0.05;
+                                precision: 2;
+                                suffix: " s";
+                                changed(v) => { root.clip-set(ClipField.anim-combo-secs, v); root.clip-commit(); }
+                            }
+                        }
+                    }
+                }
+
+                if root.showing == "Speed": SpeedPanel {
+                    first: true;
+                    selected: root.selected;
+                    set(field, value) => { root.clip-set(field, value); }
+                    commit => { root.clip-commit(); }
                 }
 
                 if root.showing == "Enhance": EnhancePanel {

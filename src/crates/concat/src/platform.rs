@@ -569,13 +569,13 @@ pub fn select_backend(
 pub fn report_startup_failure(error: &str) {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
-        let mut description = format!("Concat could not start.\n\n{error}");
+        let mut description = format!("幕次 could not start.\n\n{error}");
         if let Some(path) = concat_host::logs::current() {
             description.push_str(&format!("\n\nLog: {}", path.display()));
         }
         rfd::MessageDialog::new()
             .set_level(rfd::MessageLevel::Error)
-            .set_title("Concat")
+            .set_title("幕次")
             .set_description(description)
             .set_buttons(rfd::MessageButtons::Ok)
             .show();
@@ -742,7 +742,7 @@ pub fn pick_folder(title: &str, start: &str) -> Option<PathBuf> {
 
 /// Where a folder dialog asked to start at `start` can open: `start`
 /// itself, or the nearest folder above it that exists. A new project's
-/// default, `<Desktop>/Concat`, is not made until the first project is, and
+/// default, `<Desktop>/幕次`, is not made until the first project is, and
 /// GNOME's chooser (Nautilus, behind the portal) fails on a folder that is
 /// not there, where GTK's quietly opens elsewhere.
 /// https://github.com/jub0t/Concat/issues/331
@@ -855,7 +855,7 @@ pub fn install_file_picker(picker: FilePicker) {
 /// [`install_export_publisher`].
 #[cfg(any(target_os = "android", target_os = "ios"))]
 pub struct ExportPublisher {
-    /// Where the files go, as the phone names it: "Movies/Concat".
+    /// Where the files go, as the phone names it: "Movies/幕次".
     pub folder: String,
     /// Moves the file there and answers with its path under the phone's
     /// storage, or with why it could not, leaving the file where it was.
@@ -863,7 +863,7 @@ pub struct ExportPublisher {
     pub publish: Box<dyn Fn(&std::path::Path) -> Result<String, String> + Send + Sync>,
     /// The same for a small file that is not a video - a subtitle file -
     /// with its MIME type: moved to where the phone's file manager shows
-    /// it (Android's Download/Concat, the iPhone's Files), never over
+    /// it (Android's Download/幕次, the iPhone's Files), never over
     /// another file, and answered with where, as the person would look
     /// for it.
     pub publish_document:
@@ -950,7 +950,7 @@ pub fn microphone_allowed() -> bool {
 }
 
 /// Where a finished export ends up on this device when that is not the
-/// folder the export writes into: a phone's "Movies/Concat". None on a
+/// folder the export writes into: a phone's "Movies/幕次". None on a
 /// desktop, and on a phone too old to be asked, where the file stays where
 /// the sheet says.
 pub fn published_folder() -> Option<&'static str> {
@@ -1155,7 +1155,7 @@ mod tests {
     fn a_folder_dialog_starts_at_a_folder_that_exists() {
         let root = std::env::temp_dir().join(format!("concat-pick-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
-        let missing = root.join("Concat");
+        let missing = root.join("幕次");
         assert_eq!(
             existing_folder(&missing.to_string_lossy()),
             Some(root.as_path())

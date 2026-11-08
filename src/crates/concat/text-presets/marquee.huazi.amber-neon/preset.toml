@@ -1,0 +1,15 @@
+id = "marquee.huazi.amber-neon"
+name = "琥珀·霓虹"
+language = "Chinese"
+order = 363
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FEF3C7"
+strokeWidth = 0.0046
+strokeColor = "#92400E"
+shadow = true

@@ -79,8 +79,8 @@ export global Dark {
     // separating a pane from the ground; without one the value step has to do
     // all of it, and a darker ladder leaves the panes reading as holes in the
     // window rather than as surfaces on it.
-    out property <color> panel: #212123;
-    out property <color> raised: #2b2b2e;
+    out property <color> panel: #222222;
+    out property <color> raised: #2A2A2A;
     out property <color> well: #19191b;
     out property <color> field: #323235;
     out property <color> field-hover: #3b3b3e;
@@ -136,7 +136,7 @@ export global Dark {
     // The same order as `light.slint` and as `accent-names` in theme.slint,
     // which is where each one's name lives.
     out property <[Accent]> accents: [
-        { accent: #cbf53f, hover: #d9ff63, soft: #cbf53f33, on: #15220a },   // lime
+        { accent: #01B9C6, hover: #22d4e0, soft: #01B9C633, on: #042428 },   // teal (幕次 / 剪映 11.7)
         { accent: #5fb8ff, hover: #82c9ff, soft: #5fb8ff33, on: #061c33 },   // sky
         { accent: #b394ff, hover: #c6b0ff, soft: #b394ff33, on: #1d0f3d },   // violet
         { accent: #ff6fa3, hover: #ff8fb8, soft: #ff6fa333, on: #38091c },   // rose
@@ -308,6 +308,6 @@ export global Dark {
 
     // window ground the panes float on — a shade under the darkest panel so
     // the gutters read as gaps and not as seams
-    out property <color> page: #151517;
+    out property <color> page: #141414;
     out property <color> page-fg-muted: #a1a1a6;
 }

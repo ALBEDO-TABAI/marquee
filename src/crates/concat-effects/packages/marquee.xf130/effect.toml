@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf130"
+name = "地图推近"
+kind = "transition"
+category = "旅行"
+order = 1730
+description = "Browsable transition SKU on the 旅行 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.greenish"
+name = "青苔"
+kind = "filter"
+category = "风景"
+order = 411
+description = "Original 青苔 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

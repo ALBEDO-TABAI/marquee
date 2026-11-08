@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf071"
+name = "画中画切入"
+kind = "transition"
+category = "分割"
+order = 1671
+description = "Browsable transition SKU on the 分割 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

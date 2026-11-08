@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.taoutrotate"
+name = "旋出出场"
+kind = "textanim"
+category = "出场"
+order = 632
+description = "Text out: 旋出."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 50
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

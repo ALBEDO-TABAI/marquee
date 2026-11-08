@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.flarexf"
+name = "光斑切"
+kind = "transition"
+category = "光效"
+order = 515
+description = "Original 光斑切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

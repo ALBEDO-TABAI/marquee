@@ -1,0 +1,20 @@
+id = "marquee.tt.stat-season"
+name = "季节·数据卡"
+language = "Chinese"
+order = 997
+sample = "文字"
+
+[style]
+content = "数据卡"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.05
+color = "#ECFCCB"
+strokeWidth = 0.00278
+strokeColor = "#3F6212"
+align = "left"
+background = "#1E3A8A"
+backgroundPaddingX = 0.01944
+backgroundPaddingY = 0.01944
+tracking = 0.0
+shadow = false

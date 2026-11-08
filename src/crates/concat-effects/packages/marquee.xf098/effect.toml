@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf098"
+name = "匹配剪辑"
+kind = "transition"
+category = "拍摄"
+order = 1698
+description = "Browsable transition SKU on the 拍摄 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

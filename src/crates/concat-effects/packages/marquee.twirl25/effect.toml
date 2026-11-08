@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.twirl25"
+name = "扭转 25"
+kind = "effect"
+category = "扭曲"
+order = 2928
+description = "Original 扭转 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 25
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

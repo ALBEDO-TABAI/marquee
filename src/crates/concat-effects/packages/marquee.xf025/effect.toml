@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf025"
+name = "闪白"
+kind = "transition"
+category = "叠化"
+order = 1625
+description = "Browsable transition SKU on the 叠化 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

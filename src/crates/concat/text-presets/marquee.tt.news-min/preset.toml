@@ -1,0 +1,20 @@
+id = "marquee.tt.news-min"
+name = "简约·资讯条"
+language = "Chinese"
+order = 871
+sample = "文字"
+
+[style]
+content = "资讯条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#00000000"
+align = "left"
+background = "#FFFFFF14"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

@@ -1,0 +1,15 @@
+id = "marquee.huazi.grape-heavy"
+name = "葡萄·厚描"
+language = "Chinese"
+order = 292
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F3E8FF"
+strokeWidth = 0.01265
+strokeColor = "#6B2FA0"
+shadow = false

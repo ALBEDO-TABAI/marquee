@@ -1,0 +1,15 @@
+id = "marquee.huazi.coral-stack"
+name = "珊瑚·叠影"
+language = "Chinese"
+order = 427
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE8E0"
+strokeWidth = 0.0023
+strokeColor = "#E06B56"
+shadow = true

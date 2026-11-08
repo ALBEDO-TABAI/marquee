@@ -1,0 +1,15 @@
+id = "marquee.huazi.dusk-emboss"
+name = "暮色·浮雕"
+language = "Chinese"
+order = 526
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE8F0"
+strokeWidth = 0.0023
+strokeColor = "#C45A7A"
+shadow = false

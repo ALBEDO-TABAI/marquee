@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.flashxf"
+name = "闪光切"
+kind = "transition"
+category = "光效"
+order = 514
+description = "Original 闪光切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

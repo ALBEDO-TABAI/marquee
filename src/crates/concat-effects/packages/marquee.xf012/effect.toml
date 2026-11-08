@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf012"
+name = "基础右擦"
+kind = "transition"
+category = "基础"
+order = 1612
+description = "Browsable transition SKU on the 基础 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

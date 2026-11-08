@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.goldenhr"
+name = "黄金时刻"
+kind = "filter"
+category = "户外"
+order = 446
+description = "Original 黄金时刻 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

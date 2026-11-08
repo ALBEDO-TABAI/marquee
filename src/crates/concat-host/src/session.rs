@@ -12,7 +12,7 @@
 //! disk is written by exactly one code path.
 
 use concat_project::model::VideoSettings;
-use concat_project::{Command, DocumentSettings, Editor, Project};
+use concat_project::{Command, DocumentSettings, Editor, Outcome, PlacedClip, Project};
 use serde::Serialize;
 
 use crate::projects;
@@ -48,6 +48,12 @@ pub struct EditorView {
     /// The id a creating command minted, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_id: Option<String>,
+    /// Clips this command placed, with the lane and span they actually occupy.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub placed: Vec<PlacedClip>,
+    /// Why a clip did not keep the asked lane or time.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
 }
 
 /// The session's settings, as the window shows them.
@@ -222,10 +228,10 @@ impl Session {
 
     /// The current state without changing anything.
     pub fn view(&self) -> EditorView {
-        self.view_with(None)
+        self.view_from(&Outcome::default())
     }
 
-    fn view_with(&self, created_id: Option<String>) -> EditorView {
+    fn view_from(&self, outcome: &Outcome) -> EditorView {
         let settings = self.settings();
         EditorView {
             project: self.editor.project().clone(),
@@ -238,7 +244,9 @@ impl Session {
                 rate_num: settings.rate_num,
                 rate_den: settings.rate_den,
             },
-            created_id,
+            created_id: outcome.created_id.clone(),
+            placed: outcome.placed.clone(),
+            warnings: outcome.warnings.clone(),
         }
     }
 
@@ -259,7 +267,7 @@ impl Session {
             .editor
             .apply_within(gesture, command)
             .map_err(|error| error.to_string())?;
-        Ok(self.view_with(outcome.created_id))
+        Ok(self.view_from(&outcome))
     }
 
     /// Ends the gesture in progress: the next command naming it starts a

@@ -1,0 +1,20 @@
+id = "marquee.tt.hotword-ai"
+name = "AI·热词"
+language = "Chinese"
+order = 941
+sample = "文字"
+
+[style]
+content = "热词"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.07222
+color = "#DBEAFE"
+strokeWidth = 0.00278
+strokeColor = "#1E3A8A"
+align = "center"
+background = "#FF3B5C"
+backgroundPaddingX = 0.01389
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

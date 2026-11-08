@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.spinblur"
+name = "旋转模糊"
+kind = "effect"
+category = "动感"
+order = 362
+description = "Original 旋转模糊 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

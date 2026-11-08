@@ -1,0 +1,15 @@
+id = "marquee.huazi.rose-emboss"
+name = "蔷薇·浮雕"
+language = "Chinese"
+order = 326
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE4EC"
+strokeWidth = 0.0023
+strokeColor = "#BE123C"
+shadow = false

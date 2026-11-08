@@ -243,6 +243,10 @@ pub struct PlannedLayer {
     /// so a one-shot look can size itself to however long the clip has
     /// been on screen instead of the timeline's absolute clock.
     pub clip_start: Rational,
+    /// How long this clip lasts on the timeline. A shader reads it as
+    /// `frame.clip_duration` so an exit animation can fire in the last
+    /// window of the clip instead of guessing.
+    pub clip_duration: Rational,
     /// The track the layer sits on, bottom-most zero: every layer on a
     /// lower track is under it, and a treatment names the track it sits
     /// above.
@@ -310,6 +314,7 @@ impl PlannedLayer {
         PlannedLayer {
             clip,
             clip_start: Rational::ZERO,
+            clip_duration: Rational::ONE,
             track: 0,
             media: PathBuf::new(),
             source_time: Rational::ZERO,
@@ -838,6 +843,7 @@ pub fn plan_frame(timeline: &Timeline, time: Rational) -> FramePlan {
         layers.push(PlannedLayer {
             clip: clip_id,
             clip_start: clip.start,
+            clip_duration: clip.duration,
             track,
             media: clip.media.path.clone(),
             source_time,

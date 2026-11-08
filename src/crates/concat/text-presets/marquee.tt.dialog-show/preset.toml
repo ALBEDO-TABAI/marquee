@@ -1,0 +1,20 @@
+id = "marquee.tt.dialog-show"
+name = "综艺·对话条"
+language = "Chinese"
+order = 946
+sample = "文字"
+
+[style]
+content = "对话条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#FFE14A"
+strokeWidth = 0.00556
+strokeColor = "#111111"
+align = "left"
+background = "#0000008c"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

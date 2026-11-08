@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.bwred"
+name = "红滤黑白"
+kind = "filter"
+category = "黑白"
+order = 474
+description = "Original 红滤黑白 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

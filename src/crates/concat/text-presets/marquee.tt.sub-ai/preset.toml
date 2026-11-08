@@ -1,0 +1,20 @@
+id = "marquee.tt.sub-ai"
+name = "AI·字幕条"
+language = "Chinese"
+order = 905
+sample = "文字"
+
+[style]
+content = "字幕条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.05
+color = "#DBEAFE"
+strokeWidth = 0.00278
+strokeColor = "#1E3A8A"
+align = "center"
+background = "#0000009e"
+backgroundPaddingX = 0.02222
+backgroundPaddingY = 0.02222
+tracking = 0.0
+shadow = false

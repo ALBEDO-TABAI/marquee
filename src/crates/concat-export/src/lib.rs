@@ -488,6 +488,10 @@ fn unity() -> f64 {
     1.0
 }
 
+fn default_normalize() -> bool {
+    true
+}
+
 /// Everything a full export needs: the destination, the output format, and
 /// the flattened clip list.
 #[derive(Clone, Deserialize)]
@@ -540,6 +544,10 @@ pub struct ExportRequest {
     /// say.
     #[serde(default)]
     pub hdr: bool,
+    /// Apply loudnorm (I=−14, TP=−1 dBTP) on the mixed soundtrack. On when
+    /// a request does not say (`true` via `default_normalize`).
+    #[serde(default = "default_normalize")]
+    pub normalize: bool,
     /// Original timeline origin when rendering a selection moved to zero.
     /// Preserves the global video frame grid and shader clock; audio, clip
     /// clocks and keyframe fractions keep their local timing.
@@ -1194,8 +1202,14 @@ pub fn render_on(
             reporter.emit(0, total_frames, "mixing audio");
             let mix: Vec<AudioClip> = sound.iter().flat_map(|clip| audio_pieces(clip)).collect();
             let buses = audio_buses(&resolved);
-            audio::mix_to_file_with(&mix, &buses, timeline_end.as_f64(), &mixed)
-                .map_err(|error| error.to_string())?;
+            audio::mix_to_file_with_opts(
+                &mix,
+                &buses,
+                timeline_end.as_f64(),
+                &mixed,
+                request.normalize,
+            )
+            .map_err(|error| error.to_string())?;
 
             reporter.cancelled()?;
             reporter.emit(total_frames, total_frames, "muxing");
@@ -1975,7 +1989,12 @@ fn render_picture(
                 && let Some(mut plan) = unsent.take()
             {
                 plan.treatments = live_treatments(&treatments, time);
-                if in_flight.len() >= IN_FLIGHT {
+                let in_flight_cap = if plan.layers.len() > LAYER_STREAM {
+                    1
+                } else {
+                    IN_FLIGHT
+                };
+                if in_flight.len() >= in_flight_cap {
                     drawn.extend(device.collect(&mut in_flight)?);
                 }
                 if device.clock().submit(&plan) {
@@ -2413,7 +2432,43 @@ fn composite_treated(
         return combine_transition(compositor, plan, span, &planned)
             .unwrap_or_else(|| dissolve_transition(compositor, plan, span, &planned));
     }
+    if plan.layers.len() > LAYER_STREAM {
+        return stream_layers(compositor, plan, planned);
+    }
     compositor.render(&with_treatments(plan, planned))
+}
+
+/// Composite `plan.layers` in waves so a thousand overlapping effects never
+/// all sit in one GPU/CPU pass. Each wave's result becomes the next wave's
+/// bottom picture.
+fn stream_layers(
+    compositor: &mut dyn Compositor,
+    plan: &FramePlan,
+    planned: Vec<PlannedTreatment>,
+) -> Frame {
+    let mut acc: Option<Frame> = None;
+    let total = plan.layers.len();
+    let mut start = 0;
+    while start < total {
+        let end = (start + LAYER_STREAM).min(total);
+        let last = end == total;
+        let mut stacked = Vec::with_capacity(LAYER_STREAM + 1);
+        if let Some(prev) = acc.take() {
+            stacked.push(PlannedLayer::picture(plan.layers[0].clip, Arc::new(prev)));
+        }
+        stacked.extend(plan.layers[start..end].iter().cloned());
+        let mut sub = plan.clone();
+        sub.layers = stacked;
+        sub.treatments.clear();
+        let frame = if last {
+            compositor.render(&with_treatments(&sub, planned.clone()))
+        } else {
+            compositor.render(&sub)
+        };
+        acc = Some(frame);
+        start = end;
+    }
+    acc.unwrap_or_else(|| compositor.render(&with_treatments(plan, planned)))
 }
 
 /// The treatments live at `time`, in track order, as a plan carries them.
@@ -2447,8 +2502,14 @@ fn with_treatments(
 
 /// How many frames an export keeps on their way back from the device: the
 /// one being drawn and the one being read back while the next frame's
-/// footage is decoded.
+/// footage is decoded. Raising this to 6 on software (llvmpipe) *slowed*
+/// a 180 s 1080p export from ~225 s (~24 fps) to ~300 s (~18 fps); leave
+/// the overlap at two until a hardware GPU measurement says otherwise.
 const IN_FLIGHT: usize = 2;
+/// How many picture layers one compositor pass holds. A SKU stress cut can
+/// stack a thousand overlapping effects; drawing them in waves of this
+/// many keeps peak RSS near a handful of output-sized buffers.
+const LAYER_STREAM: usize = 24;
 
 /// The export's device and what it takes to keep one: the compositor, the
 /// shader clock's offset, and what a device lost under the export needs to
@@ -3057,6 +3118,7 @@ pub fn preview_plan(
         color_range: concat_media::ColorRange::Limited,
         color_space,
         hdr: false,
+        normalize: false,
         effect_time_offset: 0.0,
         canvas,
         clips: Vec::new(),
@@ -4023,6 +4085,7 @@ mod tests {
                 track_id,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds the footage");
         let plain = flatten::flatten_timeline(editor.project(), None);
@@ -4034,6 +4097,7 @@ mod tests {
                 effect_id: "concat.adjust".into(),
                 name: "Adjustment".into(),
                 sound: false,
+                scale: None,
             })
             .expect("adds the layer")
             .created_id
@@ -4220,6 +4284,7 @@ mod tests {
             color_range: concat_media::ColorRange::Limited,
             color_space: ColorSpace::Sdr,
             hdr: false,
+            normalize: false,
             effect_time_offset: 0.0,
             clips: vec![footage],
         };
@@ -4302,6 +4367,7 @@ mod tests {
             color_range: concat_media::ColorRange::Limited,
             color_space: ColorSpace::Sdr,
             hdr: false,
+            normalize: false,
             effect_time_offset: 0.0,
             clips: vec![footage],
         };
@@ -4405,6 +4471,7 @@ mod tests {
             color_range: concat_media::ColorRange::Limited,
             color_space: ColorSpace::Sdr,
             hdr: false,
+            normalize: false,
             effect_time_offset: 0.0,
             clips: vec![footage.clone(), sound.clone()],
         };
@@ -4770,6 +4837,7 @@ mod tests {
             color_range: concat_media::ColorRange::Limited,
             color_space: ColorSpace::Sdr,
             hdr: false,
+            normalize: false,
             effect_time_offset: 0.0,
             clips: vec![picture, sound],
         };

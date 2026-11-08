@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.matchasky"
+name = "抹茶天空"
+kind = "filter"
+category = "风景"
+order = 452
+description = "Original 抹茶天空 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

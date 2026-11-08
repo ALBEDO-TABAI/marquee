@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.lightleakxf"
+name = "漏光过渡"
+kind = "transition"
+category = "光效"
+order = 508
+description = "Original 漏光过渡 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

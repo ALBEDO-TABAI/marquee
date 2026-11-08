@@ -1,0 +1,24 @@
+format = 2
+
+[effect]
+id = "marquee.sk573"
+name = "六边·白·弹跳"
+kind = "sticker"
+category = "运动"
+order = 991
+description = "Original parametric sticker SKU (SDF art, no third-party IP)."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"
+

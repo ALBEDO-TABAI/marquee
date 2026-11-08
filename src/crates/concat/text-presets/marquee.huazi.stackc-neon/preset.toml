@@ -1,0 +1,15 @@
+id = "marquee.huazi.stackc-neon"
+name = "叠彩·霓虹"
+language = "Chinese"
+order = 263
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFFFFF"
+strokeWidth = 0.0046
+strokeColor = "#FF3B5C"
+shadow = true

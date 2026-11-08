@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.storm"
+name = "暴风雨"
+kind = "filter"
+category = "户外"
+order = 445
+description = "Original 暴风雨 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

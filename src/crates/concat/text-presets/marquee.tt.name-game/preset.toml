@@ -1,0 +1,20 @@
+id = "marquee.tt.name-game"
+name = "游戏·人名条"
+language = "Chinese"
+order = 818
+sample = "文字"
+
+[style]
+content = "人名条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04722
+color = "#F3E8FF"
+strokeWidth = 0.00417
+strokeColor = "#6B2FA0"
+align = "left"
+background = "#01B9C6"
+backgroundPaddingX = 0.01944
+backgroundPaddingY = 0.01944
+tracking = 0.0
+shadow = false

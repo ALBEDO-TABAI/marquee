@@ -1546,4 +1546,79 @@ mod tests {
             "an option that merely ends in the word"
         );
     }
+
+    #[test]
+    fn marquee_stickers_are_concrete_skus() {
+        let n = Catalogue::builtin()
+            .of_kind(Kind::Sticker)
+            .count();
+        assert!(n >= 300, "stickers {n}");
+    }
+
+    #[test]
+    fn marquee_textanims_animate_glyphs_and_cover_the_rails() {
+        let catalogue = Catalogue::builtin();
+        let n = catalogue.of_kind(Kind::Textanim).count();
+        assert!(n >= 120, "textanims {n}");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("packages");
+        let mut checked = 0usize;
+        for package in catalogue.of_kind(Kind::Textanim) {
+            let shader = std::fs::read_to_string(root.join(package.id()).join("effect.wgsl"))
+                .unwrap_or_else(|e| panic!("{}: {e}", package.id()));
+            assert!(
+                shader.contains("reveal_order"),
+                "{} does not read reveal_order",
+                package.id()
+            );
+            checked += 1;
+        }
+        assert_eq!(checked, n);
+        for rail in ["入场", "出场", "循环", "字幕动画", "组合"] {
+            assert!(
+                catalogue.of_kind(Kind::Textanim).any(|p| p.category() == rail),
+                "missing textanim rail {rail}"
+            );
+        }
+    }
+
+    #[test]
+    fn marquee_transitions_cover_jy_rails() {
+        let catalogue = Catalogue::builtin();
+        let marquee: Vec<_> = catalogue
+            .of_kind(Kind::Transition)
+            .filter(|p| p.id().starts_with("marquee."))
+            .collect();
+        assert!(marquee.len() >= 110, "marquee transitions {}", marquee.len());
+        let rails = [
+            "热门", "最新", "基础", "叠化", "滑动", "缩放", "旋转", "模糊", "光效",
+            "故障", "分割", "运镜", "拍摄", "旅行", "自然", "综艺", "表情", "AI", "扭曲",
+        ];
+        for rail in rails {
+            assert!(
+                marquee.iter().any(|p| p.category() == rail || p.matches_category(rail)),
+                "missing transition rail {rail}"
+            );
+        }
+    }
+
+    #[test]
+    fn marquee_effects_expose_intensity_variants() {
+        let catalogue = Catalogue::builtin();
+        let ids: Vec<_> = catalogue
+            .of_kind(Kind::Effect)
+            .filter(|p| p.id().starts_with("marquee."))
+            .map(|p| p.id().to_owned())
+            .collect();
+        let variants = ids
+            .iter()
+            .filter(|id| id.ends_with("25") || id.ends_with("45") || id.ends_with("65") || id.ends_with("85"))
+            .count();
+        assert!(variants >= 400, "intensity variant packages {variants}");
+        assert!(
+            ids.iter().any(|id| id == "marquee.grain25")
+                && ids.iter().any(|id| id == "marquee.grain85"),
+            "grain intensity variants missing"
+        );
+    }
+
 }

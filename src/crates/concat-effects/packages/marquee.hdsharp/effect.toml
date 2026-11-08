@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.hdsharp"
+name = "超清锐"
+kind = "filter"
+category = "高清"
+order = 488
+description = "Original 超清锐 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

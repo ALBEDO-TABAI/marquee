@@ -1,0 +1,20 @@
+id = "marquee.tt.chapter-game"
+name = "游戏·章节卡"
+language = "Chinese"
+order = 830
+sample = "文字"
+
+[style]
+content = "章节卡"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.06667
+color = "#F3E8FF"
+strokeWidth = 0.00417
+strokeColor = "#6B2FA0"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.006
+shadow = false

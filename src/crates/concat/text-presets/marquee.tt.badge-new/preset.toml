@@ -1,0 +1,20 @@
+id = "marquee.tt.badge-new"
+name = "最新·标签"
+language = "Chinese"
+order = 913
+sample = "文字"
+
+[style]
+content = "标签"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#E8FFFC"
+strokeWidth = 0.00278
+strokeColor = "#01B9C6"
+align = "right"
+background = "#C2410C"
+backgroundPaddingX = 0.02222
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

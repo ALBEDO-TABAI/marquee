@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.embers65"
+name = "火星 65"
+kind = "effect"
+category = "氛围"
+order = 2622
+description = "Original 火星 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 65
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

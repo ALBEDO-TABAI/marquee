@@ -1,0 +1,15 @@
+id = "marquee.huazi.peach-comic"
+name = "蜜桃·漫画"
+language = "Chinese"
+order = 435
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#FFF0E6"
+strokeWidth = 0.0092
+strokeColor = "#F09A6A"
+shadow = false

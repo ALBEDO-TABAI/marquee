@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.moodbloom"
+name = "bloom 叠化"
+kind = "transition"
+category = "自然"
+order = 522
+description = "Original bloom 叠化 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

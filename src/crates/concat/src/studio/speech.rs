@@ -236,6 +236,84 @@ impl Studio {
         self.notify(&tf("studio.importedLutsFindThem", &[&imported]), false);
     }
 
+    pub fn use_template(&mut self, path: String) {
+        let Some((project_path, candidates)) = self.session.as_ref().map(|session| {
+            (
+                std::path::PathBuf::from(session.path()),
+                session
+                    .project()
+                    .media
+                    .iter()
+                    .filter(|item| !item.placeholder && !item.path.is_empty())
+                    .map(|item| (item.kind, item.path.clone()))
+                    .collect::<Vec<_>>(),
+            )
+        }) else {
+            return;
+        };
+        let packs = templates::list(&self.host.dirs.config);
+        let Some(info) = packs.iter().find(|item| item.path == path) else {
+            self.notify(&t("mediaPane.noTemplatesYetMark"), true);
+            return;
+        };
+
+        let mut taken = vec![false; candidates.len()];
+        let mut fills = Vec::new();
+        for slot in &info.slots {
+            let found = candidates.iter().enumerate().find(|(index, (kind, _))| {
+                !taken[*index] && *kind == slot.kind
+            });
+            let Some((index, (_, file))) = found else {
+                self.notify(
+                    &tf(
+                        "studio.templateNeedsMedia",
+                        &[&info.slots.len().to_string(), &candidates.len().to_string()],
+                    ),
+                    true,
+                );
+                return;
+            };
+            taken[index] = true;
+            match media::probe(file) {
+                Ok(probed) => fills.push(templates::SlotFill {
+                    media_id: slot.media_id.clone(),
+                    item: probed.to_new_media(),
+                }),
+                Err(error) => {
+                    self.notify(&error, true);
+                    return;
+                }
+            }
+        }
+
+        let location = project_path
+            .parent()
+            .map(|parent| parent.to_path_buf())
+            .unwrap_or_else(|| self.host.dirs.data.join("projects"));
+        if let Err(error) = std::fs::create_dir_all(&location) {
+            self.notify(&error.to_string(), true);
+            return;
+        }
+        let mut name = info.name.clone();
+        let mut n = 2;
+        while location.join(&name).exists() {
+            name = format!("{} {n}", info.name);
+            n += 1;
+        }
+
+        match templates::instantiate(&path, &location.to_string_lossy(), &name, fills) {
+            Ok(made) => {
+                let shown = made.name.clone();
+                if let Err(error) = self.open_project(made) {
+                    self.notify(&error, true);
+                } else {
+                    self.notify(&tf("studio.openedTemplate", &[&shown]), false);
+                }
+            }
+            Err(error) => self.notify(&error, true),
+        }
+    }
+
     pub fn save_template(&mut self) {
         let Some(session) = self.session.as_ref() else {
             return;

@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.glitchxf"
+name = "RGB 撕裂"
+kind = "transition"
+category = "故障"
+order = 507
+description = "Original RGB 撕裂 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

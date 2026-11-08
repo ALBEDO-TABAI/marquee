@@ -1,0 +1,15 @@
+id = "marquee.huazi.white-comic"
+name = "素白·漫画"
+language = "Chinese"
+order = 405
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#FFFFFF"
+strokeWidth = 0.0092
+strokeColor = "#111111"
+shadow = false

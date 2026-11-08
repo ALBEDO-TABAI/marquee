@@ -1,0 +1,20 @@
+id = "marquee.tt.corner-min"
+name = "简约·角标"
+language = "Chinese"
+order = 883
+sample = "文字"
+
+[style]
+content = "角标"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#00000000"
+align = "left"
+background = "#FFFFFF14"
+backgroundPaddingX = 0.01389
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

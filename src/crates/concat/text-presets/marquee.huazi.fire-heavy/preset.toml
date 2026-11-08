@@ -1,0 +1,15 @@
+id = "marquee.huazi.fire-heavy"
+name = "赤焰·厚描"
+language = "Chinese"
+order = 382
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FEE2E2"
+strokeWidth = 0.01265
+strokeColor = "#991B1B"
+shadow = false

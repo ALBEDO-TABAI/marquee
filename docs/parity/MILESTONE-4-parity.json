@@ -1,0 +1,39 @@
+{
+  "before_stored": {
+    "vs_500_now": {
+      "masked_match_pct": 96.61,
+      "mismatched": 64388,
+      "pixels": 1900800
+    },
+    "vs_301_now": {
+      "masked_match_pct": 97.41,
+      "mismatched": 49218,
+      "pixels": 1900800
+    }
+  },
+  "before_same_mask": {
+    "vs_500_now": {
+      "masked_match_pct": 91.3,
+      "mismatched": 51416,
+      "pixels": 591100
+    },
+    "vs_301_now": {
+      "masked_match_pct": 94.02,
+      "mismatched": 35331,
+      "pixels": 591100
+    }
+  },
+  "after": {
+    "vs_500_now": {
+      "masked_match_pct": 91.27,
+      "mismatched": 51619,
+      "pixels": 591100
+    },
+    "vs_301_now": {
+      "masked_match_pct": 93.94,
+      "mismatched": 35819,
+      "pixels": 591100
+    }
+  },
+  "notes": "threshold 0.15 max-channel, frames 1920x990, mask: library well / preview / timeline / clock"
+}

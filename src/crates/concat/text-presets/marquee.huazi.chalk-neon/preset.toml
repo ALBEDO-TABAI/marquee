@@ -1,0 +1,15 @@
+id = "marquee.huazi.chalk-neon"
+name = "粉笔·霓虹"
+language = "Chinese"
+order = 273
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F4F1EA"
+strokeWidth = 0.0046
+strokeColor = "#000000"
+shadow = true

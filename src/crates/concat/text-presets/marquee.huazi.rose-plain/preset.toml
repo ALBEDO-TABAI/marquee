@@ -1,0 +1,15 @@
+id = "marquee.huazi.rose-plain"
+name = "蔷薇·净色"
+language = "Chinese"
+order = 320
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE4EC"
+strokeWidth = 0.0
+strokeColor = "#BE123C"
+shadow = false

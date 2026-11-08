@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.taoutfade"
+name = "渐隐出场"
+kind = "textanim"
+category = "出场"
+order = 625
+description = "Text out: 渐隐."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 50
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

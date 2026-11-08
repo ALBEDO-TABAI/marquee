@@ -1,0 +1,15 @@
+id = "marquee.huazi.aqua-emboss"
+name = "水色·浮雕"
+language = "Chinese"
+order = 376
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#CFFAFE"
+strokeWidth = 0.0023
+strokeColor = "#0E7490"
+shadow = false

@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf129"
+name = "车票擦除"
+kind = "transition"
+category = "旅行"
+order = 1729
+description = "Browsable transition SKU on the 旅行 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

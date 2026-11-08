@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.edge65"
+name = "描边提取 65"
+kind = "effect"
+category = "漫画"
+order = 2618
+description = "Original 描边提取 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 65
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

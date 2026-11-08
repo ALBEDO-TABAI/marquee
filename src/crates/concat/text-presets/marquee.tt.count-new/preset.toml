@@ -1,0 +1,20 @@
+id = "marquee.tt.count-new"
+name = "最新·倒计时"
+language = "Chinese"
+order = 981
+sample = "文字"
+
+[style]
+content = "倒计时"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11111
+color = "#E8FFFC"
+strokeWidth = 0.00278
+strokeColor = "#01B9C6"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.004
+shadow = false

@@ -167,14 +167,26 @@ fn bundle_file(assets: &Path, id: &str, source: &str) -> Result<String, String> 
 ///
 /// A folder that does not parse is skipped rather than sinking the whole
 /// gallery - the same grace the recents list extends to vanished projects.
-pub fn list(config: &Path) -> Vec<TemplateInfo> {
-    let Ok(entries) = std::fs::read_dir(templates_dir(config)) else {
+fn list_from(dir: &Path) -> Vec<TemplateInfo> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
-    let mut templates: Vec<TemplateInfo> = entries
+    entries
         .filter_map(|entry| entry.ok())
         .filter_map(|entry| read_info(&entry.path()).ok())
-        .collect();
+        .collect()
+}
+
+/// Built-in 智能包装 recipes shipped beside this crate.
+pub fn builtin_smart_packs_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("smart-packs")
+}
+
+/// Every template in the library, user-saved and the built-in 智能包装
+/// recipes, in name order.
+pub fn list(config: &Path) -> Vec<TemplateInfo> {
+    let mut templates = list_from(&templates_dir(config));
+    templates.extend(list_from(&builtin_smart_packs_dir()));
     templates.sort_by(|left, right| left.name.cmp(&right.name));
     templates
 }
@@ -538,7 +550,7 @@ mod tests {
             "and the file really is in the bundle"
         );
 
-        assert_eq!(list(&config).len(), 1, "the library sees it");
+        assert!(list(&config).iter().any(|item| item.name == "Beat Intro"), "the library sees it");
 
         // And it instantiates: the asset lands in the project, absolute.
         let location = scratch.join("projects");
@@ -620,5 +632,116 @@ mod tests {
         assert_eq!(c1["sourceStart"], 0.0);
 
         let _ = std::fs::remove_dir_all(&scratch);
+    }
+
+    #[test]
+    fn builtin_smart_packs_are_listed() {
+        let dir = builtin_smart_packs_dir();
+        assert!(dir.is_dir(), "{}", dir.display());
+        let packs = list_from(&dir);
+        assert!(packs.len() >= 42, "marquee 智能包装 recipes, got {}", packs.len());
+        assert!(packs.iter().any(|item| item.name.contains("口播")));
+        assert!(packs.iter().find(|item| item.name == "口播配方").unwrap().slots.len() >= 3);
+        assert!(
+            packs.iter().all(|item| item.slots.len() >= 3),
+            "every 智能包装 should be layered (video slots + music)"
+        );
+        let wide = packs.iter().find(|item| item.name == "三镜横屏包装").expect("wide pack");
+        assert_eq!(wide.slots.len(), 4, "3 picture slots + music");
+        assert_eq!(wide.width, 1920);
+        let tall = packs.iter().find(|item| item.name == "三镜竖屏包装").expect("vertical pack");
+        assert_eq!(tall.width, 1080);
+        assert_eq!(tall.height, 1920);
+    }
+
+    #[test]
+    fn builtin_layered_pack_parses() {
+        let manifest = builtin_smart_packs_dir().join("marquee-pack-wide").join(MANIFEST);
+        let document: Value = serde_json::from_slice(&std::fs::read(&manifest).expect("manifest"))
+            .expect("json");
+        assert!(
+            concat_project::from_document(&document).is_some(),
+            "三镜横屏包装 must open as a project"
+        );
+    }
+
+    #[test]
+    fn sticker_layers_are_not_full_frame() {
+        for entry in std::fs::read_dir(builtin_smart_packs_dir()).unwrap() {
+            let path = entry.unwrap().path().join(MANIFEST);
+            if !path.is_file() {
+                continue;
+            }
+            let document: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            let Some(clips) = document.get("clips").and_then(|c| c.as_array()) else {
+                continue;
+            };
+            for clip in clips {
+                if clip.get("id").and_then(|v| v.as_str()) == Some("c-sticker") {
+                    let scale = clip.get("scale").and_then(|v| v.as_f64()).unwrap_or(1.0);
+                    assert!(
+                        scale <= 0.35,
+                        "{} sticker scale {scale} should be JY-sized",
+                        path.display()
+                    );
+                }
+                if clip.get("id").and_then(|v| v.as_str()) == Some("c-title") {
+                    let size = clip
+                        .pointer("/text/fontSize")
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(0.1);
+                    assert!(
+                        size <= 0.07,
+                        "{} title fontSize {size} should not dominate the frame",
+                        path.display()
+                    );
+                    let color = clip
+                        .pointer("/text/color")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    assert!(
+                        !is_cyan_hex(color),
+                        "{} title color {color} is too cyan",
+                        path.display()
+                    );
+                }
+                if clip.get("id").and_then(|v| v.as_str()) == Some("c-sticker") {
+                    let fx = clip
+                        .pointer("/videoEffects/0/id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    assert_ne!(fx, "marquee.ch01", "{} still uses the cyan chat slab", path.display());
+                    let scale = clip.get("scale").and_then(|v| v.as_f64()).unwrap_or(1.0);
+                    assert!(
+                        (0.16..=0.24).contains(&scale),
+                        "{} sticker scale {scale} should match JY default (~0.20)",
+                        path.display()
+                    );
+                }
+            }
+        }
+    }
+
+    fn is_cyan_hex(color: &str) -> bool {
+        let hex = color.trim().trim_start_matches('#');
+        if hex.len() < 6 {
+            return false;
+        }
+        let parse = |i| u8::from_str_radix(&hex[i..i + 2], 16).ok();
+        match (parse(0), parse(2), parse(4)) {
+            (Some(r), Some(g), Some(b)) => b > r.saturating_add(20) && g > r.saturating_add(10),
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn builtin_talk_pack_parses() {
+        let manifest = builtin_smart_packs_dir().join("marquee-talk").join(MANIFEST);
+        let document: Value = serde_json::from_slice(&std::fs::read(&manifest).expect("manifest"))
+            .expect("json");
+        assert!(
+            concat_project::from_document(&document).is_some(),
+            "口播配方 must open as a project so the gallery can instantiate it"
+        );
     }
 }

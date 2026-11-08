@@ -1,0 +1,15 @@
+id = "marquee.huazi.violet-comic"
+name = "菫青·漫画"
+language = "Chinese"
+order = 495
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#F3E8FF"
+strokeWidth = 0.0092
+strokeColor = "#7A4EC4"
+shadow = false

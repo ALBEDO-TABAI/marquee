@@ -1,0 +1,20 @@
+id = "marquee.tt.badge-show"
+name = "综艺·标签"
+language = "Chinese"
+order = 914
+sample = "文字"
+
+[style]
+content = "标签"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#FFE14A"
+strokeWidth = 0.00556
+strokeColor = "#111111"
+align = "right"
+background = "#C2410C"
+backgroundPaddingX = 0.02222
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

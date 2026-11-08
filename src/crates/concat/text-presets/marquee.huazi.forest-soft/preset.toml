@@ -1,0 +1,15 @@
+id = "marquee.huazi.forest-soft"
+name = "林深·柔光"
+language = "Chinese"
+order = 474
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#E8FFE8"
+strokeWidth = 0.00345
+strokeColor = "#2F6B3A"
+shadow = true

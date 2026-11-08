@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.filmxf"
+name = "胶片叠化"
+kind = "transition"
+category = "叠化"
+order = 502
+description = "Original 胶片叠化 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

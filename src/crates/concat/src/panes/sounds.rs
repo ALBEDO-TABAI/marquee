@@ -574,6 +574,7 @@ impl Studio {
                 track_id,
                 start,
                 ripple: true,
+                placement: None,
             }),
             None => self.apply(Command::AddClipAtFirstFree { media_id, start }),
         };

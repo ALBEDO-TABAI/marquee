@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.saturate"
+name = "过饱和"
+kind = "effect"
+category = "基础"
+order = 310
+description = "Original 过饱和 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

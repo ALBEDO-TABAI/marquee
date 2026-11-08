@@ -1,0 +1,20 @@
+id = "marquee.tt.badge-season"
+name = "季节·标签"
+language = "Chinese"
+order = 917
+sample = "文字"
+
+[style]
+content = "标签"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#ECFCCB"
+strokeWidth = 0.00278
+strokeColor = "#3F6212"
+align = "right"
+background = "#C2410C"
+backgroundPaddingX = 0.02222
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

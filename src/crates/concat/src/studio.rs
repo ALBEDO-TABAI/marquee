@@ -38,7 +38,7 @@ use concat_host::{
     templates,
 };
 use concat_media::{Pyramid, jpeg};
-use concat_project::commands::{ClipMove, ClipPatch, TrackFlag, TrimEdge};
+use concat_project::commands::{ClipMove, ClipPatch, TextField, TrackFlag, TrimEdge};
 use concat_project::model::{
     self, AppliedFilter, Clip, Project, TextAlign, TextStyle, Timeline, Track, Transition,
 };
@@ -741,6 +741,8 @@ pub struct Models {
     pub catalogue_luts: Rc<VecModel<CatalogueEntryData>>,
     pub catalogue_audio: Rc<VecModel<CatalogueEntryData>>,
     pub catalogue_transitions: Rc<VecModel<CatalogueEntryData>>,
+    pub catalogue_stickers: Rc<VecModel<CatalogueEntryData>>,
+    pub catalogue_textanims: Rc<VecModel<CatalogueEntryData>>,
     pub effect_groups: Rc<VecModel<SharedString>>,
     pub filter_groups: Rc<VecModel<SharedString>>,
     pub audio_groups: Rc<VecModel<SharedString>>,
@@ -823,6 +825,10 @@ pub struct Models {
     pub style_presets: Rc<VecModel<TextPresetData>>,
     /// The rest, by the writing they are for, for its Languages shelf.
     pub language_presets: Rc<VecModel<TextPresetData>>,
+    /// 文字模板 shelf (marquee.tt.*).
+    pub template_presets: Rc<VecModel<TextPresetData>>,
+    /// 智能包装 gallery cards.
+    pub project_templates: Rc<VecModel<TemplateCardData>>,
     /// The families a title can be set in; see `Studio::font_families`.
     pub font_families: Rc<VecModel<SharedString>>,
     /// Those of them the font picker's search lets through.
@@ -845,6 +851,8 @@ impl Models {
             catalogue_luts: Rc::new(VecModel::default()),
             catalogue_audio: Rc::new(VecModel::default()),
             catalogue_transitions: Rc::new(VecModel::default()),
+            catalogue_stickers: Rc::new(VecModel::default()),
+            catalogue_textanims: Rc::new(VecModel::default()),
             effect_groups: Rc::new(VecModel::default()),
             filter_groups: Rc::new(VecModel::default()),
             audio_groups: Rc::new(VecModel::default()),
@@ -899,6 +907,8 @@ impl Models {
             text_presets: Rc::new(VecModel::default()),
             style_presets: Rc::new(VecModel::default()),
             language_presets: Rc::new(VecModel::default()),
+            template_presets: Rc::new(VecModel::default()),
+            project_templates: Rc::new(VecModel::default()),
             font_families: Rc::new(VecModel::default()),
             font_matches: Rc::new(VecModel::default()),
         }
@@ -1453,6 +1463,16 @@ fn package_art(
                 .folder
                 .as_deref()
                 .and_then(|folder| image_at(&folder.join("preview.png")))
+                .or_else(|| {
+                    // Compiled-in packages have no folder; still pick up a
+                    // CPU-rendered preview.png from this checkout so shelves
+                    // show art when CONCAT_GPU=software skips shader cards.
+                    let sidecar = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("../concat-effects/packages")
+                        .join(id)
+                        .join("preview.png");
+                    image_at(&sidecar)
+                })
                 .or_else(|| image_at(card_paths.get(id)?))
                 .or_else(|| bundled_card(id))
                 .unwrap_or_default()
@@ -1893,6 +1913,7 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
             None => Command::SetClipSpeed {
                 clip_id: id.to_owned(),
                 ripple: magnetic,
+                clear_curve: false,
                 speed: after.speed,
             },
         });
@@ -1900,6 +1921,7 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
         commands.push(Command::SetClipSpeed {
             clip_id: id.to_owned(),
             ripple: magnetic,
+                clear_curve: false,
             speed: after.speed,
         });
     }
@@ -1915,6 +1937,9 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
     }
     if after.fade_out != before.fade_out {
         patch.fade_out = Some(after.fade_out);
+    }
+    if after.anim != before.anim {
+        patch.anim = Some(after.anim.clone());
     }
     if after.opacity != before.opacity {
         patch.opacity = Some(after.opacity);
@@ -1951,7 +1976,10 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
     }
     commands.extend(key_commands(id, before, after));
     if after.text != before.text {
-        patch.text = Some(after.text.clone());
+        patch.text = Some(match after.text.clone() {
+            None => TextField::Clear,
+            Some(style) => TextField::Style(Box::new(style)),
+        });
     }
     if after.video_effects != before.video_effects {
         patch.video_effects = Some(after.video_effects.clone());
@@ -2002,6 +2030,29 @@ fn key_commands(clip_id: &str, before: &Clip, after: &Clip) -> Vec<Command> {
     commands
 }
 
+
+fn localized_adjust_label(key: &str, fallback: &str) -> slint::SharedString {
+    let named = format!("adjust.{key}");
+    let translated = crate::i18n::t(&named);
+    if translated == named {
+        fallback.into()
+    } else {
+        slint::SharedString::from(translated)
+    }
+}
+
+fn localized_adjust_group(group: &str) -> slint::SharedString {
+    let key = match group {
+        "Color" => "adjust.group.color",
+        "Lightness" => "adjust.group.lightness",
+        "Effects" => "adjust.group.effects",
+        "Wheels" => "adjust.group.wheels",
+        "Curves" => "adjust.group.curves",
+        _ => return group.into(),
+    };
+    slint::SharedString::from(crate::i18n::t(key))
+}
+
 /// The colour panel's rows: the adjust package's parameters, at the values
 /// the clip's chain holds or at the defaults when the clip carries none.
 /// Every one can be keyed; `at` is the playhead's place in the clip, `0..=1`,
@@ -2043,8 +2094,8 @@ fn adjust_rows(chain: &[AppliedFilter], at: Option<f64>) -> Vec<AppliedParamData
             AppliedParamData {
                 entry: -1,
                 key: param.key.as_str().into(),
-                label: param.label.as_str().into(),
-                group: param.group.as_str().into(),
+                label: localized_adjust_label(&param.key, &param.label),
+                group: localized_adjust_group(&param.group),
                 unit: param.unit.as_str().into(),
                 min: param.min as f32,
                 max: param.max as f32,
@@ -2317,8 +2368,8 @@ fn grading_rows(
                 wheels.push(WheelData {
                     entry,
                     key: param.key.as_str().into(),
-                    label: param.label.as_str().into(),
-                    group: param.group.as_str().into(),
+                    label: localized_adjust_label(&param.key, &param.label),
+                    group: localized_adjust_group(&param.group),
                     x: value(&x, 0.0) as f32,
                     y: value(&y, 0.0) as f32,
                     master: value(&m, param.default) as f32,
@@ -2345,8 +2396,8 @@ fn grading_rows(
                     CurveData {
                         entry,
                         key: param.key.as_str().into(),
-                        label: param.label.as_str().into(),
-                        group: param.group.as_str().into(),
+                        label: localized_adjust_label(&param.key, &param.label),
+                        group: localized_adjust_group(&param.group),
                         points: ModelRc::default(),
                         path: grading::curve_path(params, &param.key).into(),
                     },
@@ -2547,6 +2598,7 @@ fn copy_commands(source: &Clip, placed: &Clip, track_id: &str, start: f64) -> Ve
         commands.push(Command::SetClipSpeed {
             clip_id: created.clone(),
             ripple: false,
+                clear_curve: false,
             speed: source.speed,
         });
     }
@@ -2680,7 +2732,7 @@ impl Studio {
         }
         // The words first, so everything published from here on is in
         // the remembered language.
-        i18n::select(prefs.locale.as_deref().unwrap_or(i18n::ENGLISH), &host.dirs);
+        i18n::select(prefs.locale.as_deref().unwrap_or("zh-Hans"), &host.dirs);
         let languages = i18n::languages(&host.dirs);
         let recents = projects::recents(&host.dirs.config);
         let text_presets = presets::all(&host.dirs);
@@ -3097,6 +3149,7 @@ mod tests {
                 track_id: track_id.clone(),
                 start,
                 ripple: false,
+                placement: None,
             };
             let whole = apply(&mut editor, add(0.0)).expect("clip");
             apply(
@@ -3104,6 +3157,7 @@ mod tests {
                 Command::SetClipSpeed {
                     clip_id: whole.clone(),
                     ripple: false,
+                clear_curve: false,
                     speed,
                 },
             );
@@ -3524,6 +3578,7 @@ mod tests {
                     track_id: track_id.clone(),
                     start,
                     ripple: false,
+                    placement: None,
                 })
                 .expect("adds")
                 .created_id

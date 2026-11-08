@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf082"
+name = "冲镜"
+kind = "transition"
+category = "缩放"
+order = 1682
+description = "Browsable transition SKU on the 缩放 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

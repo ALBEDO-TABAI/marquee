@@ -1,0 +1,20 @@
+id = "marquee.tt.chapter-talk"
+name = "口播·章节卡"
+language = "Chinese"
+order = 834
+sample = "文字"
+
+[style]
+content = "章节卡"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.06667
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#01B9C6"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.006
+shadow = false

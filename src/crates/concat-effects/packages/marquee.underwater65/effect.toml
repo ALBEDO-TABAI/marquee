@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.underwater65"
+name = "水下 65"
+kind = "effect"
+category = "自然"
+order = 2934
+description = "Original 水下 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 65
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

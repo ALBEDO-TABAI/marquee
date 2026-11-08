@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.trix"
+name = "三角X"
+kind = "filter"
+category = "黑白"
+order = 421
+description = "Original 三角X grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

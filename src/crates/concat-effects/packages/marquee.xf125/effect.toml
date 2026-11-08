@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf125"
+name = "雾面过渡"
+kind = "transition"
+category = "自然"
+order = 1725
+description = "Browsable transition SKU on the 自然 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

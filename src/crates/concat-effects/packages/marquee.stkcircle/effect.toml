@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.stkcircle"
+name = "圆形贴"
+kind = "sticker"
+category = "涂鸦"
+order = 700
+description = "Original parametric sticker: 圆形贴."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 80
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

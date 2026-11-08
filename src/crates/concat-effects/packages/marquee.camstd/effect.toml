@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.camstd"
+name = "相机标准"
+kind = "filter"
+category = "相机"
+order = 485
+description = "Original 相机标准 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

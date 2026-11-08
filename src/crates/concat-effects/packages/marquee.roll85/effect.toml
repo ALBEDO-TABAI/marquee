@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.roll85"
+name = "滚动 85"
+kind = "effect"
+category = "相机"
+order = 2843
+description = "Original 滚动 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

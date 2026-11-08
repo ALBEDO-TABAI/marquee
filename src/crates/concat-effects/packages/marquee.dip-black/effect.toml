@@ -1,0 +1,15 @@
+format = 2
+
+[effect]
+id = "marquee.dip-black"
+name = "浸黑"
+kind = "transition"
+category = "Basic"
+order = 220
+aliases = ["dip-black"]
+description = "The outgoing shot falls to black, then the incoming shot rises out of it."
+
+[transition]
+entry = "effect.wgsl"
+xfade = "fadeblack"
+fallback = "cross-fade"

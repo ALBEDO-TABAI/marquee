@@ -1,0 +1,20 @@
+id = "marquee.tt.huazititle-ai"
+name = "AI·花字标题"
+language = "Chinese"
+order = 1013
+sample = "文字"
+
+[style]
+content = "花字标题"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.08889
+color = "#DBEAFE"
+strokeWidth = 0.00278
+strokeColor = "#1E3A8A"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.005
+shadow = false

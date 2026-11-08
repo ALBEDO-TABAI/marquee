@@ -1,0 +1,15 @@
+id = "marquee.huazi.fire-stack"
+name = "赤焰·叠影"
+language = "Chinese"
+order = 387
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FEE2E2"
+strokeWidth = 0.0023
+strokeColor = "#991B1B"
+shadow = true

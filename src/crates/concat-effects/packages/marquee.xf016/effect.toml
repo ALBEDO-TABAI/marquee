@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf016"
+name = "模糊叠化 30"
+kind = "transition"
+category = "模糊"
+order = 1616
+description = "Browsable transition SKU on the 模糊 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

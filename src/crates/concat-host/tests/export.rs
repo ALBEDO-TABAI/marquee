@@ -587,6 +587,7 @@ impl Studio {
             bitrate_kbps: 0,
             color_range: self.range,
             hdr: false,
+            normalize: false,
         };
         let titles = self
             .titles
@@ -737,6 +738,7 @@ fn an_export_draws_on_a_lent_compositor() {
         bitrate_kbps: 0,
         color_range: concat_media::ColorRange::Limited,
         hdr: false,
+        normalize: false,
     };
     let request = export::request(&studio.session, &spec, Vec::new());
     let written = export::run_on(
@@ -1305,6 +1307,7 @@ fn an_hlg_timeline_exports_as_hdr_or_sdr() {
             bitrate_kbps: 0,
             color_range: concat_media::ColorRange::Limited,
             hdr,
+            normalize: false,
         };
         let request = export::request(&studio.session, &spec, Vec::new());
         export::run(&request, &AtomicBool::new(false), |_| {})
@@ -1503,6 +1506,7 @@ fn every_edit_still_exports() {
     studio.apply(Command::SetClipSpeed {
         clip_id: tail.clone(),
         ripple: false,
+                clear_curve: false,
         speed: 2.0,
     });
     let exported = studio.export("double speed");
@@ -1524,6 +1528,7 @@ fn every_edit_still_exports() {
     studio.apply(Command::SetClipSpeed {
         clip_id: tail.clone(),
         ripple: false,
+                clear_curve: false,
         speed: 0.5,
     });
     let exported = studio.export("half speed");
@@ -1760,6 +1765,7 @@ fn every_edit_still_exports() {
             effect_id: "concat.glow".to_owned(),
             name: "Glow".to_owned(),
             sound: false,
+            scale: None,
         });
         let exported = studio.export("layer");
         exported.expect_length(end);
@@ -1804,12 +1810,14 @@ fn every_edit_still_exports() {
         track_id: sound_track.clone(),
         start: 17.0,
         ripple: false,
+        placement: None,
     });
     studio.apply(Command::AddClip {
         media_id: wav,
         track_id: sound_track.clone(),
         start: 23.0,
         ripple: false,
+        placement: None,
     });
     let end = studio.end();
     let exported = studio.export("sound only clips");
@@ -1977,6 +1985,7 @@ fn the_edges_export_too() {
     studio.apply(Command::SetClipSpeed {
         clip_id: clip.clone(),
         ripple: false,
+                clear_curve: false,
         speed: 0.125,
     });
     let start = studio.clip(&clip).start;
@@ -2094,6 +2103,7 @@ fn an_export_decodes_on_the_hardware_when_preferred() {
     studio.apply(Command::SetClipSpeed {
         clip_id: clip.clone(),
         ripple: false,
+                clear_curve: false,
         speed: 2.0,
     });
     let start = studio.clip(&clip).start;
@@ -2143,6 +2153,7 @@ fn a_sound_layer_treats_the_mix_for_its_span_alone() {
             track_id: lane.clone(),
             start: 0.0,
             ripple: false,
+            placement: None,
         });
     }
     let plain = studio.export("no layer");
@@ -2156,6 +2167,7 @@ fn a_sound_layer_treats_the_mix_for_its_span_alone() {
             effect_id: "concat.underwater".to_owned(),
             name: "Underwater".to_owned(),
             sound: true,
+            scale: None,
         })
         .expect("a layer has an id");
     let treated = studio.export("sound layer");

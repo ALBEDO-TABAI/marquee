@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.velvia"
+name = "维尔维亚"
+kind = "filter"
+category = "风景"
+order = 422
+description = "Original 维尔维亚 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

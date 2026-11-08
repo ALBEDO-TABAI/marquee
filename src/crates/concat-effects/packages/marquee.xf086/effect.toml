@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf086"
+name = "慢旋"
+kind = "transition"
+category = "旋转"
+order = 1686
+description = "Browsable transition SKU on the 旋转 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

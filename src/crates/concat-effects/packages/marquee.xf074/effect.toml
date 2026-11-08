@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf074"
+name = "拉远"
+kind = "transition"
+category = "运镜"
+order = 1674
+description = "Browsable transition SKU on the 运镜 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

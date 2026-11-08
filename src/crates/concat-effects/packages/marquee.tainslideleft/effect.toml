@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.tainslideleft"
+name = "左滑入入场"
+kind = "textanim"
+category = "入场"
+order = 603
+description = "Text in: 左滑入."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 50
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

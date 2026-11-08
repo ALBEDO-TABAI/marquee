@@ -1,0 +1,24 @@
+format = 2
+
+[effect]
+id = "marquee.taoutrtl"
+name = "从右退场"
+kind = "textanim"
+category = "出场"
+order = 1208
+description = "Per-glyph out/typewriter text motion."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 55
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"
+

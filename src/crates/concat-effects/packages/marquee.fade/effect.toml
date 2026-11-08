@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.fade"
+name = "褪色"
+kind = "filter"
+category = "基础"
+order = 402
+description = "Original 褪色 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

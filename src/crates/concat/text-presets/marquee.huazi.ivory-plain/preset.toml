@@ -1,0 +1,15 @@
+id = "marquee.huazi.ivory-plain"
+name = "象牙·净色"
+language = "Chinese"
+order = 480
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFFEF5"
+strokeWidth = 0.0
+strokeColor = "#C4B896"
+shadow = false

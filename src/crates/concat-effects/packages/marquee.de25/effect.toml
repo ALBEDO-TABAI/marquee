@@ -1,0 +1,24 @@
+format = 2
+
+[effect]
+id = "marquee.de25"
+name = "背景装饰 25"
+kind = "sticker"
+category = "面具"
+order = 1136
+description = "Original parametric frame/sticker SKU."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 88
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"
+

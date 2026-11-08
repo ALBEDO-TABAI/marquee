@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.dipwhite"
+name = "闪白"
+kind = "transition"
+category = "叠化"
+order = 500
+description = "Original 闪白 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.foodwarm"
+name = "食暖"
+kind = "filter"
+category = "美食"
+order = 424
+description = "Original 食暖 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

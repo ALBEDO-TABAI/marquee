@@ -1,0 +1,12 @@
+{
+  "vs_500_now": {
+    "masked_match_pct": 96.61,
+    "mismatched": 64388,
+    "pixels": 1900800
+  },
+  "vs_301_now": {
+    "masked_match_pct": 97.41,
+    "mismatched": 49218,
+    "pixels": 1900800
+  }
+}

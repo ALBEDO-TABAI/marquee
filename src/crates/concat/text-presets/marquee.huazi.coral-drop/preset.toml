@@ -1,0 +1,15 @@
+id = "marquee.huazi.coral-drop"
+name = "珊瑚·长影"
+language = "Chinese"
+order = 428
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE8E0"
+strokeWidth = 0.00575
+strokeColor = "#E06B56"
+shadow = true

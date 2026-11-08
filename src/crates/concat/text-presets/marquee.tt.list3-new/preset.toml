@@ -1,0 +1,20 @@
+id = "marquee.tt.list3-new"
+name = "最新·三行列表"
+language = "Chinese"
+order = 957
+sample = "文字"
+
+[style]
+content = "三行列表"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04167
+color = "#E8FFFC"
+strokeWidth = 0.00278
+strokeColor = "#01B9C6"
+align = "left"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.001
+shadow = false

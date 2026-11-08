@@ -24,13 +24,12 @@ use std::path::{Path, PathBuf};
 /// The app identifier, which is also the folder name everywhere. Every
 /// release so far has used it; a phone treats a new one as another app,
 /// so it changes only with a domain of the project's own behind it.
-pub const IDENTIFIER: &str = "app.concat.editor";
+pub const IDENTIFIER: &str = "app.marquee.editor";
 
-/// The identifier builds of `main` used between 2026-10-26 and
-/// 2026-11-04, never released. Those builds moved the folder to it and
-/// left a link at the old name, which [`IDENTIFIER`] now finds again;
-/// [`adopt`] moves the folder back where there is no link.
-const FORMER_IDENTIFIER: &str = "org.standalones.concat";
+/// Earlier identifiers this fork (and Concat before it) wrote settings
+/// under. [`adopt`] moves the first existing folder onto [`IDENTIFIER`].
+const FORMER_IDENTIFIERS: &[&str] = &["app.concat.editor", "org.standalones.concat"];
+const FORMER_IDENTIFIER: &str = "app.concat.editor";
 
 /// The app's own directories on this machine.
 #[derive(Clone, Debug)]
@@ -80,10 +79,7 @@ impl AppDirs {
                 Some(path) => path,
                 None => home()?.join(".config"),
             };
-            let data_base = match base("XDG_DATA_HOME") {
-                Some(path) => path,
-                None => home()?.join(".local").join("share"),
-            };
+            let data_base = xdg_data_home(&home()?, base("XDG_DATA_HOME").as_deref());
             let dirs = AppDirs {
                 config: config_base.join(IDENTIFIER),
                 data: data_base.join(IDENTIFIER),
@@ -171,20 +167,23 @@ fn adopt(folder: &Path) {
     if name != IDENTIFIER || folder.exists() {
         return;
     }
-    let former = parent.join(FORMER_IDENTIFIER);
-    if !former.is_dir() || former.is_symlink() {
+    for former_name in FORMER_IDENTIFIERS {
+        let former = parent.join(former_name);
+        if !former.is_dir() || former.is_symlink() {
+            continue;
+        }
+        if let Err(error) = std::fs::rename(&former, folder) {
+            log::warn!(
+                "could not move {} to {}: {error}",
+                former.display(),
+                folder.display()
+            );
+            return;
+        }
+        if let Err(error) = link(folder, &former) {
+            log::warn!("could not leave a link at {}: {error}", former.display());
+        }
         return;
-    }
-    if let Err(error) = std::fs::rename(&former, folder) {
-        log::warn!(
-            "could not move {} to {}: {error}",
-            former.display(),
-            folder.display()
-        );
-        return;
-    }
-    if let Err(error) = link(folder, &former) {
-        log::warn!("could not leave a link at {}: {error}", former.display());
     }
 }
 
@@ -244,6 +243,17 @@ fn convention(os: &str) -> Convention {
     }
 }
 
+/// XDG data home: `$XDG_DATA_HOME` when it is an absolute path, otherwise
+/// `~/.local/share`. The app directory is this joined with [`IDENTIFIER`],
+/// so the default model path is
+/// `~/.local/share/app.marquee.editor/whisper-models/`.
+pub fn xdg_data_home(home: &Path, xdg_data_home: Option<&Path>) -> PathBuf {
+    match xdg_data_home {
+        Some(path) if path.is_absolute() => path.to_path_buf(),
+        _ => home.join(".local").join("share"),
+    }
+}
+
 /// Apple's directories under `home`. A Mac keeps both in one folder in
 /// `Application Support`. An iPhone keeps the settings there and the rest -
 /// models, caches, logs, every one of them made again or downloaded again
@@ -281,6 +291,23 @@ fn home() -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn linux_default_data_dir_is_local_share_app_id() {
+        let home = Path::new("/home/bai");
+        assert_eq!(
+            xdg_data_home(home, None).join(IDENTIFIER),
+            Path::new("/home/bai/.local/share/app.marquee.editor")
+        );
+        assert_eq!(
+            xdg_data_home(home, Some(Path::new("/tmp/xdg-data"))).join(IDENTIFIER),
+            Path::new("/tmp/xdg-data/app.marquee.editor")
+        );
+        assert_eq!(
+            xdg_data_home(home, Some(Path::new("relative/data"))).join(IDENTIFIER),
+            Path::new("/home/bai/.local/share/app.marquee.editor")
+        );
+    }
 
     #[test]
     fn the_directories_are_named_by_the_identifier() {

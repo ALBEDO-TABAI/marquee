@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.thermal45"
+name = "热成像 45"
+kind = "effect"
+category = "暗调"
+order = 2921
+description = "Original 热成像 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

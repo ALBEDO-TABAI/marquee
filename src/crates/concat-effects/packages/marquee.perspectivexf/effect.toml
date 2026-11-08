@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.perspectivexf"
+name = "立方翻转"
+kind = "transition"
+category = "扭曲"
+order = 518
+description = "Original 立方翻转 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

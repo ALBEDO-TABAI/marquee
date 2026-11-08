@@ -1,0 +1,15 @@
+id = "marquee.huazi.ice-bevel"
+name = "冰刻·斜切"
+language = "Chinese"
+order = 239
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#E8F6FF"
+strokeWidth = 0.0069
+strokeColor = "#4AA3D9"
+shadow = true

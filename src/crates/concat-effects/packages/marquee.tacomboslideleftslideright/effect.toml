@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.tacomboslideleftslideright"
+name = "左右对滑"
+kind = "textanim"
+category = "组合"
+order = 665
+description = "Text combo: 左右对滑."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 50
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

@@ -1,0 +1,15 @@
+id = "marquee.huazi.peach-soft"
+name = "蜜桃·柔光"
+language = "Chinese"
+order = 434
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFF0E6"
+strokeWidth = 0.00345
+strokeColor = "#F09A6A"
+shadow = true

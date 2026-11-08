@@ -854,7 +854,10 @@ impl Studio {
                 commands.push(Command::UpdateClip {
                     clip_id: id,
                     patch: ClipPatch {
-                        text: Some(after.text.clone()),
+                        text: Some(match after.text.clone() {
+                            None => TextField::Clear,
+                            Some(style) => TextField::Style(Box::new(style)),
+                        }),
                         ..Default::default()
                     },
                 });

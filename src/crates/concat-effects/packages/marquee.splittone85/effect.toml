@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.splittone85"
+name = "分离调色 85"
+kind = "effect"
+category = "电影"
+order = 2903
+description = "Original 分离调色 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

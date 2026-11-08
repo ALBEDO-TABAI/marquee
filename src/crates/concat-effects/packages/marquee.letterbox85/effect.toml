@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.letterbox85"
+name = "宽银幕 85"
+kind = "effect"
+category = "边框"
+order = 2739
+description = "Original 宽银幕 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

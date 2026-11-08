@@ -1,0 +1,20 @@
+id = "marquee.tt.dual-toon"
+name = "卡通·双行标题"
+language = "Chinese"
+order = 892
+sample = "文字"
+
+[style]
+content = "双行标题"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.06111
+color = "#FFE14A"
+strokeWidth = 0.00694
+strokeColor = "#111111"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.004
+shadow = false

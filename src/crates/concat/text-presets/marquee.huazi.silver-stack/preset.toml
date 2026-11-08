@@ -1,0 +1,15 @@
+id = "marquee.huazi.silver-stack"
+name = "银箔·叠影"
+language = "Chinese"
+order = 357
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F1F5F9"
+strokeWidth = 0.0023
+strokeColor = "#475569"
+shadow = true

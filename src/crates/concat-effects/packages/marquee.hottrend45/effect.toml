@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.hottrend45"
+name = "热门光斑 45"
+kind = "effect"
+category = "热门"
+order = 2709
+description = "Original 热门光斑 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

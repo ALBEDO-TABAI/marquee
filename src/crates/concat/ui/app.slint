@@ -183,11 +183,11 @@ export {
     NewVoiceData,
 }
 export component App inherits Window {
-    title: "Concat";
+    title: "幕次";
     // The taskbar's and Alt-Tab's picture on Windows, and the window
     // list's on X11. A Mac takes its Dock icon from the bundle and ignores
     // this; the .exe's own, for Explorer, is embedded by build.rs.
-    icon: @image-url("../../../../assets/icons/concat_logo_256.png");
+    icon: @image-url("../../../../assets/icons/marquee_logo_256.png");
     // Where the strip carries its own window buttons the platform's
     // decorations are not wanted, and this is the property Slint keeps
     // them off with: the winit backend re-applies `no-frame` to the
@@ -207,8 +207,8 @@ export component App inherits Window {
     // A phone's window is its screen, whatever these say; on a desk asked
     // for the phone shell (CONCAT_PHONE, see platform.rs) they are a
     // phone's shape, so the layout is seen as a phone would show it.
-    preferred-width: root.phone ? 420px : 1400px;
-    preferred-height: root.phone ? 880px : 900px;
+    preferred-width: root.phone ? 420px : 2560px;
+    preferred-height: root.phone ? 880px : 1320px;
     // Below this the three columns cannot all hold their minimum and the panes
     // start eating each other. The phone shell has no columns, and a phone
     // is narrower than this on every side.

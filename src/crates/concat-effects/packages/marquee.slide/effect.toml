@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.slide"
+name = "滑入"
+kind = "transition"
+category = "滑动"
+order = 504
+description = "Original 滑入 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

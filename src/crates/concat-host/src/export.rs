@@ -20,7 +20,7 @@ use crate::session::Session;
 
 /// What the window decides about an export: where it goes, how good it is,
 /// and any rasterised titles rejoining as image clips.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ExportSpec {
     /// The file to write.
     pub output: String,
@@ -45,6 +45,26 @@ pub struct ExportSpec {
     /// An HDR timeline written as HDR, its own HLG or PQ, rather than
     /// tone-mapped to SDR. Nothing for an SDR timeline.
     pub hdr: bool,
+    /// Run loudnorm on the mix (target −14 LUFS, true peak ≤ −1 dBTP).
+    /// Defaults to on via [`ExportSpec::default`].
+    pub normalize: bool,
+}
+
+impl Default for ExportSpec {
+    fn default() -> Self {
+        Self {
+            output: String::new(),
+            crf: 0,
+            preset: String::new(),
+            codec: VideoCodec::default(),
+            ten_bit: false,
+            rate_mode: concat_media::RateMode::default(),
+            bitrate_kbps: 0,
+            color_range: ColorRange::default(),
+            hdr: false,
+            normalize: true,
+        }
+    }
 }
 
 /// One progress report: which frame of how many, in which stage.
@@ -82,6 +102,7 @@ pub fn request(session: &Session, spec: &ExportSpec, titles: Vec<ExportClip>) ->
         color_range: spec.color_range,
         color_space: session.video().color_space,
         hdr: spec.hdr,
+        normalize: spec.normalize,
         effect_time_offset: 0.0,
         canvas: session.video().canvas,
         clips,

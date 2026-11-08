@@ -1,0 +1,20 @@
+id = "marquee.tt.list3-show"
+name = "综艺·三行列表"
+language = "Chinese"
+order = 958
+sample = "文字"
+
+[style]
+content = "三行列表"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04167
+color = "#FFE14A"
+strokeWidth = 0.00556
+strokeColor = "#111111"
+align = "left"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.001
+shadow = false

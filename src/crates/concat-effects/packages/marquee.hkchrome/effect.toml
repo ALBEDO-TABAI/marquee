@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.hkchrome"
+name = "港铬黄"
+kind = "filter"
+category = "风格"
+order = 461
+description = "Original 港铬黄 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

@@ -1,0 +1,20 @@
+id = "marquee.tt.dialog-season"
+name = "季节·对话条"
+language = "Chinese"
+order = 949
+sample = "文字"
+
+[style]
+content = "对话条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#ECFCCB"
+strokeWidth = 0.00278
+strokeColor = "#3F6212"
+align = "left"
+background = "#0000008c"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

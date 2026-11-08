@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.tacombotypewriterfade"
+name = "打字淡出"
+kind = "textanim"
+category = "组合"
+order = 664
+description = "Text combo: 打字淡出."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 50
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

@@ -70,7 +70,7 @@ struct Art {
     /// margin either side where the title's ink runs past the frame's
     /// edges. See `concat_text::Rendered::overscan`.
     canvas: (u32, u32),
-    /// The title's per-word reveal order, baked once here rather than on
+    /// The title's per-glyph reveal order, baked once here rather than on
     /// every clip build - see `concat_core::RevealMap`.
     reveal: Arc<RevealMap>,
 }
@@ -915,11 +915,11 @@ mod tests {
             (0, 0),
             "a centred title's block is on the clip"
         );
-        // "Your text": two words, so their reveal order spans 0 to 255.
+        // "Your text": several glyphs, so their reveal order spans 0 to 255.
         let reveal = title.clip.reveal_map.as_ref().expect("a title reveals");
         assert_eq!((reveal.width, reveal.height), (640, 360));
         assert!(reveal.gray.contains(&0));
-        assert!(reveal.gray.contains(&255), "a second word reaches the top");
+        assert!(reveal.gray.contains(&255), "a later glyph reaches the top");
         let painted = Path::new(&title.clip.path);
         assert!(painted.is_file(), "the PNG is on disk");
         let stamp = std::fs::metadata(painted).and_then(|m| m.modified()).ok();
@@ -947,7 +947,7 @@ mod tests {
             .apply(Command::UpdateClip {
                 clip_id: id.clone(),
                 patch: concat_project::commands::ClipPatch {
-                    text: Some(Some(style)),
+                    text: Some(concat_project::commands::TextField::Style(Box::new(style))),
                     ..Default::default()
                 },
             })

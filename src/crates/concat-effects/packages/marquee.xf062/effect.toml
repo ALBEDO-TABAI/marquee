@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf062"
+name = "右下擦除 5"
+kind = "transition"
+category = "滑动"
+order = 1662
+description = "Browsable transition SKU on the 滑动 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

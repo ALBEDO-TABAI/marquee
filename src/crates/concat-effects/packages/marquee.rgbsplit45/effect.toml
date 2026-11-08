@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.rgbsplit45"
+name = "RGB 分离 45"
+kind = "effect"
+category = "潮酷"
+order = 2837
+description = "Original RGB 分离 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

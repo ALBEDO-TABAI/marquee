@@ -1,0 +1,15 @@
+id = "marquee.huazi.mint-heavy"
+name = "薄荷·厚描"
+language = "Chinese"
+order = 282
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#D8FFE8"
+strokeWidth = 0.01265
+strokeColor = "#1A8F6A"
+shadow = false

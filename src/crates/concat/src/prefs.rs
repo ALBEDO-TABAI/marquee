@@ -72,7 +72,7 @@ pub struct Preferences {
     pub tts_model: Option<String>,
     /// The chosen voice id.
     pub tts_voice: Option<i32>,
-    /// The interface's locale code ("de", "pt-BR", ...); absent is English.
+    /// The interface's locale code ("de", "pt-BR", ...); absent is 简体中文.
     pub locale: Option<String>,
     /// Package ids starred in the effect libraries, in no order. One list
     /// across all three shelves: a star is a fact about a package, and which

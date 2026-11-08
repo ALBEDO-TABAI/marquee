@@ -66,6 +66,7 @@ pub enum Error {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::path::PathBuf;
 
     use concat_project::model::AppliedFilter;
 
@@ -332,7 +333,22 @@ mod tests {
     fn built_in_ids_are_namespaced_and_bare_aliases_still_resolve() {
         let catalogue = Catalogue::builtin();
         for package in catalogue.packages() {
-            assert!(package.id().starts_with("concat."), "{}", package.id());
+            assert!(
+                package.id().starts_with("concat.") || package.id().starts_with("marquee."),
+                "{}",
+                package.id()
+            );
+        }
+        for id in [
+            "marquee.teal-grade",
+            "marquee.cool-steel",
+            "marquee.film-contrast",
+            "marquee.corner-falloff",
+            "marquee.glow-rim",
+            "marquee.dip-black",
+            "marquee.cross-soft",
+        ] {
+            assert_eq!(catalogue.get(id).map(Package::id), Some(id), "{id}");
         }
         assert_eq!(catalogue.get("glow").map(Package::id), Some("concat.glow"));
         assert_eq!(
@@ -683,4 +699,46 @@ mod tests {
         assert!(package_folders(&dir.join("nowhere")).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn marquee_shaders_do_not_hide_rgb_split_behind_the_wrong_name() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("packages");
+        let mut unexpected = Vec::new();
+        for entry in std::fs::read_dir(&root).unwrap() {
+            let folder = entry.unwrap().path();
+            let name = folder.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if !name.starts_with("marquee.") {
+                continue;
+            }
+            let shader = folder.join("effect.wgsl");
+            if !shader.is_file() {
+                continue;
+            }
+            let body = std::fs::read_to_string(&shader).unwrap();
+            let splits = body.contains("sample(uv + shift)")
+                && body.contains(".r")
+                && body.contains("sample(uv - shift)")
+                && body.contains(".b");
+            if !splits {
+                continue;
+            }
+            let stem = name.trim_start_matches("marquee.");
+            let allowed = stem.starts_with("chromatic")
+                || stem.starts_with("rgbsplit")
+                || stem.starts_with("vhs")
+                || stem.starts_with("crt")
+                || stem.starts_with("datamosh")
+                || stem.starts_with("glitchslice")
+                || stem.starts_with("oldtv")
+                || stem.starts_with("scanfail");
+            if !allowed {
+                unexpected.push(name.to_owned());
+            }
+        }
+        assert!(
+            unexpected.is_empty(),
+            "RGB-split shader under a non-chromatic name: {unexpected:?}"
+        );
+    }
+
 }

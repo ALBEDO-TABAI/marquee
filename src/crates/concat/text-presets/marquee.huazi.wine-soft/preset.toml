@@ -1,0 +1,15 @@
+id = "marquee.huazi.wine-soft"
+name = "酒红·柔光"
+language = "Chinese"
+order = 464
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE8EE"
+strokeWidth = 0.00345
+strokeColor = "#8E2F45"
+shadow = true

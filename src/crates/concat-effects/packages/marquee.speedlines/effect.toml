@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.speedlines"
+name = "速度线"
+kind = "effect"
+category = "动感"
+order = 360
+description = "Original 速度线 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

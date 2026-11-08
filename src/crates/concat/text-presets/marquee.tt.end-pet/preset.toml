@@ -1,0 +1,20 @@
+id = "marquee.tt.end-pet"
+name = "宠物·结尾卡"
+language = "Chinese"
+order = 843
+sample = "文字"
+
+[style]
+content = "结尾卡"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.07778
+color = "#FFE4EC"
+strokeWidth = 0.00278
+strokeColor = "#BE123C"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.01
+shadow = false

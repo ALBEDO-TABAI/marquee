@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf109"
+name = "中央放大"
+kind = "transition"
+category = "扭曲"
+order = 1709
+description = "Browsable transition SKU on the 扭曲 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

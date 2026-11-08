@@ -1,0 +1,15 @@
+id = "marquee.huazi.navy-bevel"
+name = "夜蓝·斜切"
+language = "Chinese"
+order = 319
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#DBEAFE"
+strokeWidth = 0.0069
+strokeColor = "#1E3A8A"
+shadow = true

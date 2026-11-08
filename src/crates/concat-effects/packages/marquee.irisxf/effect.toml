@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.irisxf"
+name = "圆形虹膜"
+kind = "transition"
+category = "扭曲"
+order = 524
+description = "Original 圆形虹膜 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

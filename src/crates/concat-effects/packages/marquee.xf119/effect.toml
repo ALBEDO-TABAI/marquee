@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf119"
+name = "六边关闭"
+kind = "transition"
+category = "综艺"
+order = 1719
+description = "Browsable transition SKU on the 综艺 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

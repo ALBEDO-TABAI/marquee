@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.moodfog"
+name = "雾面过渡"
+kind = "transition"
+category = "自然"
+order = 521
+description = "Original 雾面过渡 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

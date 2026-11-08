@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf101"
+name = "扫描线"
+kind = "transition"
+category = "故障"
+order = 1701
+description = "Browsable transition SKU on the 故障 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

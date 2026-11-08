@@ -1,0 +1,22 @@
+format = 2
+
+[effect]
+id = "marquee.glow-rim45"
+name = "柔边光 45"
+kind = "effect"
+category = "Stylize"
+order = 2669
+intensity = "strength"
+description = "A faint neighbour bloom that lifts edges without a haze over the whole frame."
+
+[[param]]
+key = "strength"
+label = "Strength"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"

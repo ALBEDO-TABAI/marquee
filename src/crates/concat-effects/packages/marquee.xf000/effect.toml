@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf000"
+name = "交叉溶解"
+kind = "transition"
+category = "热门"
+order = 1600
+description = "Browsable transition SKU on the 热门 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

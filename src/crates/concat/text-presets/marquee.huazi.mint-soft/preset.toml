@@ -1,0 +1,15 @@
+id = "marquee.huazi.mint-soft"
+name = "薄荷·柔光"
+language = "Chinese"
+order = 284
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#D8FFE8"
+strokeWidth = 0.00345
+strokeColor = "#1A8F6A"
+shadow = true

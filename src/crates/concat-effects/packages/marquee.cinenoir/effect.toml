@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.cinenoir"
+name = "黑色电影"
+kind = "filter"
+category = "黑白"
+order = 468
+description = "Original 黑色电影 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

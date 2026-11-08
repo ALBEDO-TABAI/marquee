@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.indoorcool"
+name = "室内冷光"
+kind = "filter"
+category = "室内"
+order = 487
+description = "Original 室内冷光 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

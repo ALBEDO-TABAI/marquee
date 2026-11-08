@@ -2303,6 +2303,77 @@ pub mod ranges {
     }
 }
 
+/// JY-style motion on a clip: an intro, an outro and a looping combo,
+/// each a named recipe plus a duration in seconds. Empty names mean none.
+/// The engine turns these into opacity/transform keys at flatten time.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ClipAnim {
+    /// `fade`, `slideUp`, `slideDown`, `slideLeft`, `slideRight`, `zoomIn`.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub intro: String,
+    /// Seconds the intro covers, floored at 0.05.
+    pub intro_secs: f64,
+    /// Same recipe names as `intro`, played in reverse at the tail.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub outro: String,
+    /// Seconds the outro covers.
+    pub outro_secs: f64,
+    /// `pulse`, `breathe` or `float` during the hold between intro and outro.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub combo: String,
+    /// Period of the combo, in seconds.
+    pub combo_secs: f64,
+}
+
+impl Default for ClipAnim {
+    fn default() -> Self {
+        ClipAnim {
+            intro: String::new(),
+            intro_secs: 0.4,
+            outro: String::new(),
+            outro_secs: 0.4,
+            combo: String::new(),
+            combo_secs: 1.0,
+        }
+    }
+}
+
+impl ClipAnim {
+    /// True when no recipe is set, so a document can omit the object.
+    pub fn is_idle(&self) -> bool {
+        self.intro.is_empty() && self.outro.is_empty() && self.combo.is_empty()
+    }
+
+    /// Names the inspector's 入场/出场 list understands, `""` first.
+    pub const INTRO: &'static [&'static str] =
+        &["", "fade", "slideUp", "slideDown", "slideLeft", "slideRight", "zoomIn"];
+
+    /// Names the inspector's 组合 list understands.
+    pub const COMBO: &'static [&'static str] = &["", "pulse", "breathe", "float"];
+
+    /// Hold every duration to a usable window.
+    pub fn tidy(mut self) -> Self {
+        fn secs(value: f64, fallback: f64) -> f64 {
+            if value.is_finite() { value.clamp(0.05, 8.0) } else { fallback }
+        }
+        self.intro_secs = secs(self.intro_secs, 0.4);
+        self.outro_secs = secs(self.outro_secs, 0.4);
+        self.combo_secs = secs(self.combo_secs, 1.0);
+        if !Self::INTRO.contains(&self.intro.as_str()) {
+            self.intro.clear();
+        }
+        if !Self::INTRO.contains(&self.outro.as_str()) {
+            self.outro.clear();
+        }
+        if !Self::COMBO.contains(&self.combo.as_str()) {
+            self.combo.clear();
+        }
+        self
+    }
+}
+
 /// One placed piece of a timeline: a stretch of media (or a title) with its
 /// timing, mix, transform, and effects. Everything an edit decision touches
 /// lives here, which is why most commands are clip commands.
@@ -2454,6 +2525,9 @@ pub struct Clip {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "wire::maybe")]
     pub background: Option<Background>,
+    /// JY-style 入场 / 出场 / 组合 recipes; idle is omitted from the file.
+    #[serde(default, skip_serializing_if = "ClipAnim::is_idle")]
+    pub anim: ClipAnim,
     /// Fields this build does not know, kept so a document written by a
     /// newer or a different build round-trips through this one intact.
     #[serde(flatten, default, skip_serializing_if = "Map::is_empty")]
@@ -2554,6 +2628,7 @@ impl Clip {
             text: None,
             shape: None,
             background: None,
+            anim: ClipAnim::default(),
             extra: Map::new(),
         }
     }
@@ -2575,6 +2650,7 @@ impl Clip {
         self.volume = finite(self.volume, 1.0).max(0.0);
         self.fade_in = finite(self.fade_in, 0.0).clamp(0.0, MAX_TIME);
         self.fade_out = finite(self.fade_out, 0.0).clamp(0.0, MAX_TIME);
+        self.anim = std::mem::take(&mut self.anim).tidy();
         self.scale = finite(self.scale, 1.0).clamp(MIN_SCALE, MAX_SCALE);
         self.offset_x = finite(self.offset_x, 0.0).clamp(-MAX_OFFSET, MAX_OFFSET);
         self.offset_y = finite(self.offset_y, 0.0).clamp(-MAX_OFFSET, MAX_OFFSET);
@@ -3266,6 +3342,10 @@ pub struct Project {
     /// to the first timeline if it somehow does not.
     #[serde(default)]
     pub active_timeline_id: String,
+    /// In-memory clipboard for [`Command::CopyClips`] / paste / duplicate.
+    /// Never written to the project file.
+    #[serde(skip)]
+    pub clipboard: Vec<Clip>,
     /// Top-level fields this build does not know, kept so they round-trip.
     #[serde(flatten, default, skip_serializing_if = "Map::is_empty")]
     pub extra: Map<String, Value>,
@@ -3295,6 +3375,7 @@ impl Project {
             media: Vec::new(),
             fonts: Vec::new(),
             extra: Map::new(),
+            clipboard: Vec::new(),
             timelines: vec![Arc::new(Timeline {
                 id: "TL1".to_owned(),
                 name: "Timeline 1".to_owned(),

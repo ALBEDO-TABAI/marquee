@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf077"
+name = "俯仰"
+kind = "transition"
+category = "运镜"
+order = 1677
+description = "Browsable transition SKU on the 运镜 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

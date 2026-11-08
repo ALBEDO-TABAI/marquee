@@ -1123,6 +1123,21 @@ impl Studio {
             mask_feather: shown(clip, model::KeyProperty::MaskFeather, at) as f32,
             fade_in: clip.fade_in as f32,
             fade_out: clip.fade_out as f32,
+            anim_intro: model::ClipAnim::INTRO
+                .iter()
+                .position(|n| *n == clip.anim.intro.as_str())
+                .unwrap_or(0) as i32,
+            anim_outro: model::ClipAnim::INTRO
+                .iter()
+                .position(|n| *n == clip.anim.outro.as_str())
+                .unwrap_or(0) as i32,
+            anim_combo: model::ClipAnim::COMBO
+                .iter()
+                .position(|n| *n == clip.anim.combo.as_str())
+                .unwrap_or(0) as i32,
+            anim_intro_secs: clip.anim.intro_secs as f32,
+            anim_outro_secs: clip.anim.outro_secs as f32,
+            anim_combo_secs: clip.anim.combo_secs as f32,
             content: text.content.as_str().into(),
             font_family: text.font_family.trim_matches('"').into(),
             family_row: family_row.unwrap_or(0) as i32,
@@ -1607,6 +1622,28 @@ impl Studio {
             );
             sync(&models.transition_groups, groups);
             sync(&models.catalogue_transitions, entries);
+            let every = LibraryView {
+                group: -1,
+                ..LibraryView::default()
+            };
+            let (_, entries) = shelves(
+                PackageKind::Sticker,
+                &every,
+                starred,
+                &self.look_art,
+                &self.card_paths,
+                |_| true,
+            );
+            sync(&models.catalogue_stickers, entries);
+            let (_, entries) = shelves(
+                PackageKind::Textanim,
+                &every,
+                starred,
+                &self.look_art,
+                &self.card_paths,
+                |_| true,
+            );
+            sync(&models.catalogue_textanims, entries);
             *self.shelf_stamp.borrow_mut() = Some(stamp);
         }
         sync(
@@ -1691,16 +1728,41 @@ impl Studio {
                 }
             })
             .collect();
-        let latin = |card: &TextPresetData| card.language.eq_ignore_ascii_case("latin");
+        let huazi = |card: &TextPresetData| card.id.starts_with("marquee.huazi.");
+        let packed = |card: &TextPresetData| card.id.starts_with("marquee.tt.");
         sync(
             &models.style_presets,
-            cards.iter().filter(|card| latin(card)).cloned().collect(),
+            cards.iter().filter(|card| huazi(card)).cloned().collect(),
+        );
+        sync(
+            &models.template_presets,
+            cards.iter().filter(|card| packed(card)).cloned().collect(),
         );
         sync(
             &models.language_presets,
-            cards.iter().filter(|card| !latin(card)).cloned().collect(),
+            cards
+                .iter()
+                .filter(|card| !huazi(card) && !packed(card))
+                .cloned()
+                .collect(),
         );
         sync(&models.text_presets, cards);
+
+        let packs: Vec<TemplateCardData> = templates::list(&self.host.dirs.config)
+            .into_iter()
+            .map(|info| TemplateCardData {
+                path: info.path.into(),
+                name: info.name.into(),
+                detail: format!(
+                    "{}×{} · {}",
+                    info.width,
+                    info.height,
+                    info.slots.len()
+                )
+                .into(),
+            })
+            .collect();
+        sync(&models.project_templates, packs);
 
         // The bin.
         // The Media shelves count the imports; what the editor made is

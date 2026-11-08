@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.oil45"
+name = "油画 45"
+kind = "effect"
+category = "纹理"
+order = 2785
+description = "Original 油画 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

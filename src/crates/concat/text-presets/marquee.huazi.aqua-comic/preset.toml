@@ -1,0 +1,15 @@
+id = "marquee.huazi.aqua-comic"
+name = "水色·漫画"
+language = "Chinese"
+order = 375
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#CFFAFE"
+strokeWidth = 0.0092
+strokeColor = "#0E7490"
+shadow = false

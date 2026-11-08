@@ -1,0 +1,15 @@
+id = "marquee.huazi.neon-neon"
+name = "霓虹粉·霓虹"
+language = "Chinese"
+order = 223
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FF5CA8"
+strokeWidth = 0.0046
+strokeColor = "#2A0038"
+shadow = true

@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.watercolor45"
+name = "水彩 45"
+kind = "effect"
+category = "纹理"
+order = 2953
+description = "Original 水彩 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

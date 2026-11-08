@@ -1,0 +1,20 @@
+id = "marquee.tt.hook-ai"
+name = "AI·金句"
+language = "Chinese"
+order = 909
+sample = "文字"
+
+[style]
+content = "金句"
+fontFamily = "Noto Serif CJK SC"
+fontWeight = 700
+fontSize = 0.064
+color = "#DBEAFE"
+strokeWidth = 0.00278
+strokeColor = "#1E3A8A"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.002
+shadow = false

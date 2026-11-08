@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf127"
+name = "智能叠化"
+kind = "transition"
+category = "AI"
+order = 1727
+description = "Browsable transition SKU on the AI rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

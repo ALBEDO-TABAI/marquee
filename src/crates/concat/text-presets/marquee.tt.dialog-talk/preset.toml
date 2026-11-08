@@ -1,0 +1,20 @@
+id = "marquee.tt.dialog-talk"
+name = "口播·对话条"
+language = "Chinese"
+order = 954
+sample = "文字"
+
+[style]
+content = "对话条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#01B9C6"
+align = "left"
+background = "#0000008c"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

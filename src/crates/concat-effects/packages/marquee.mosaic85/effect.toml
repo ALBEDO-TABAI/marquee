@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.mosaic85"
+name = "马赛克 85"
+kind = "effect"
+category = "多屏"
+order = 2763
+description = "Original 马赛克 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

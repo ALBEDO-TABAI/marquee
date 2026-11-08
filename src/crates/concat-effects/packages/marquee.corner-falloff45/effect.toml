@@ -1,0 +1,22 @@
+format = 2
+
+[effect]
+id = "marquee.corner-falloff45"
+name = "暗角 45"
+kind = "effect"
+category = "Stylize"
+order = 2577
+intensity = "strength"
+description = "A soft radial falloff that holds the centre of the frame."
+
+[[param]]
+key = "strength"
+label = "Strength"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"

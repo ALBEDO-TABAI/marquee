@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.zoomspin"
+name = "旋转变焦"
+kind = "transition"
+category = "运镜"
+order = 506
+description = "Original 旋转变焦 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

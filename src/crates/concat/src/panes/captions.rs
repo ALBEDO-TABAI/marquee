@@ -10,7 +10,7 @@
 //! when a clip with sound is selected, or when a clip's menu opened it on
 //! that clip, and off otherwise. Either lands as one batch of title clips,
 //! one undo step.
-//! The transcriber runs on a worker and reports as
+//! Local Whisper (whisper.cpp via concat-speech) runs on a worker and reports as
 //! [`CaptionsMsg::Progress`], ending as [`CaptionsMsg::Finished`].
 //!
 //! The sheet also reads a SubRip file in as captions, with the same look,
@@ -563,6 +563,10 @@ impl CaptionsPane {
             language: (!concat_speech::transcribe::english_only(&model))
                 .then(|| self.language.clone())
                 .flatten(),
+            prompt: concat_speech::transcribe::default_zh_prompt(self.language.as_deref()),
+            glossary: Vec::new(),
+            glossary_fuzzy: false,
+            glossary_in_prompt: false,
         };
         let dirs = studio.host.dirs.clone();
         let transcriber = Arc::clone(&studio.host.transcriber);

@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.stkbubble"
+name = "会话框"
+kind = "sticker"
+category = "互动"
+order = 709
+description = "Original parametric sticker: 会话框."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 80
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

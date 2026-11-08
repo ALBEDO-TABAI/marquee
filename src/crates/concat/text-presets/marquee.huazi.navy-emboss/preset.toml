@@ -1,0 +1,15 @@
+id = "marquee.huazi.navy-emboss"
+name = "夜蓝·浮雕"
+language = "Chinese"
+order = 316
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#DBEAFE"
+strokeWidth = 0.0023
+strokeColor = "#1E3A8A"
+shadow = false

@@ -1,0 +1,15 @@
+id = "marquee.huazi.blackg-emboss"
+name = "黑金·浮雕"
+language = "Chinese"
+order = 416
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#1A1A1A"
+strokeWidth = 0.0023
+strokeColor = "#D4AF37"
+shadow = false

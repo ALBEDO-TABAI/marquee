@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.comicfx85"
+name = "漫画网 85"
+kind = "effect"
+category = "漫画"
+order = 2571
+description = "Original 漫画网 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

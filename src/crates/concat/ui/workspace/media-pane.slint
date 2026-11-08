@@ -56,6 +56,13 @@ export struct TextPresetData {
     align: TextAlignment,
 }
 
+/// One built-in or user-saved 智能包装 recipe in the Templates gallery.
+export struct TemplateCardData {
+    path: string,
+    name: string,
+    detail: string,
+}
+
 export struct MediaItemData {
     id: int,
     name: string,
@@ -269,6 +276,15 @@ component CategoryRow inherits Rectangle {
         : Colors.transparent;
 
     animate background { duration: 100ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+
+    Rectangle {
+        x: 0px;
+        y: 4px;
+        width: 2px;
+        height: parent.height - 8px;
+        border-radius: 1px;
+        background: root.current ? Theme.accent : #00000000;
+    }
 
     HorizontalLayout {
         // Indented past the group heading's chevron, so the rows read as
@@ -727,7 +743,7 @@ component MediaGrid inherits Rectangle {
         from-row: int, to-row: int, additive: bool);
 
     property <length> gap: 8px;
-    property <length> min-card: 88px;
+    property <length> min-card: 120px;
 
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
@@ -1202,7 +1218,7 @@ export component ShelfGrid inherits Rectangle {
     callback auditioned(id: string);
 
     property <length> gap: 8px;
-    property <length> min-card: 88px;
+    property <length> min-card: 108px;
     /// Name-only cards, half the height: for a shelf whose entries have no
     /// picture - sound. A picture shelf keeps its card shape while a card
     /// is still being drawn, its glyph standing in.
@@ -1252,7 +1268,7 @@ component AdjustmentShelf inherits Rectangle {
     property <string> name: I18n.t("mediaPane.adjustment");
 
     property <length> gap: 8px;
-    property <length> min-card: 88px;
+    property <length> min-card: 108px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1533,7 +1549,7 @@ export component PresetGrid inherits Rectangle {
     callback applied(id: string);
 
     property <length> gap: 8px;
-    property <length> min-card: 88px;
+    property <length> min-card: 108px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1686,7 +1702,7 @@ export component ShapeGrid inherits Rectangle {
     ];
 
     property <length> gap: 8px;
-    property <length> min-card: 88px;
+    property <length> min-card: 108px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1815,12 +1831,18 @@ export component MediaPane inherits Rectangle {
     in property <[TextPresetData]> presets;
     /// The looks for other writing, on the Languages shelf beside Styles.
     in property <[TextPresetData]> language-presets;
+    /// 文字模板 shelf: lower-thirds, quotes, hooks and the rest.
+    in property <[TextPresetData]> template-presets;
+    /// 智能包装 gallery: built-in recipes plus anything the user saved.
+    in property <[TemplateCardData]> project-templates;
     /// The effect catalogue's shelves, as Rust narrows them by the
     /// `Library` view: what the Effects, Filters and Transitions pages show.
     in property <[CatalogueEntryData]> catalogue-effects;
     in property <[CatalogueEntryData]> catalogue-audio;
     in property <[CatalogueEntryData]> catalogue-filters;
     in property <[CatalogueEntryData]> catalogue-transitions;
+    in property <[CatalogueEntryData]> catalogue-stickers;
+    in property <[CatalogueEntryData]> catalogue-textanims;
     in property <[string]> effect-groups;
     in property <[string]> audio-groups;
     in property <[string]> filter-groups;
@@ -1843,6 +1865,8 @@ export component MediaPane inherits Rectangle {
     callback apply-audio(effect-id: string);
     /// Templates page: open the save-as-template flow for this project.
     callback save-template();
+    /// Templates page: unpack the named recipe into a new project.
+    callback use-template(path: string);
     /// Adjustments page: bring in `.cube` tables as looks of the user's own.
     callback import-lut();
     /// Adjustments page: lay an adjustment layer at the playhead, called
@@ -1888,6 +1912,8 @@ export component MediaPane inherits Rectangle {
     /// 0 = Styles, 1 = Languages, 2 = Captions
     property <int> text-category;
     property <bool> stickers-open: true;
+    /// 0 = sticker packages (JY order), 1 = vector shapes.
+    property <int> sticker-shelf: 0;
     property <bool> transitions-open: true;
     property <bool> effects-open: true;
     property <bool> filters-open: true;
@@ -2013,9 +2039,14 @@ export component MediaPane inherits Rectangle {
                         }
                         LibraryTab {
                             glyph: Glyph.text-mark;
-                            label: I18n.t("mediaPane.textAndCaptions");
-                            current: root.tab == 1;
-                            clicked => { root.tab = 1; }
+                            label: I18n.t("mediaPane.text");
+                            current: root.tab == 1 && root.text-category != 2;
+                            clicked => {
+                                root.tab = 1;
+                                if (root.text-category == 2) {
+                                    root.text-category = 0;
+                                }
+                            }
                         }
                         LibraryTab {
                             glyph: Glyph.sticker;
@@ -2048,6 +2079,15 @@ export component MediaPane inherits Rectangle {
                             label: I18n.t("mediaPane.adjustments");
                             current: root.tab == 7;
                             clicked => { root.tab = 7; }
+                        }
+                        LibraryTab {
+                            glyph: Glyph.text-mark;
+                            label: I18n.t("mediaPane.captionsTab");
+                            current: root.tab == 1 && root.text-category == 2;
+                            clicked => {
+                                root.tab = 1;
+                                root.text-category = 2;
+                            }
                         }
                         LibraryTab {
                             glyph: Glyph.slot;
@@ -2267,11 +2307,17 @@ export component MediaPane inherits Rectangle {
                         }
                         if root.text-open: CategoryRow {
                             height: 24px;
-                            label: I18n.t("mediaPane.styles");
+                            label: I18n.t("mediaPane.huazi");
                             current: root.text-category == 0;
                             clicked => { root.text-category = 0; }
                         }
-                        // Beside Styles: the looks for other writing.
+                        if root.text-open: CategoryRow {
+                            height: 24px;
+                            label: I18n.t("mediaPane.textTemplates");
+                            current: root.text-category == 4;
+                            clicked => { root.text-category = 4; }
+                        }
+                        // Other writing: Latin defaults and remaining languages.
                         if root.text-open: CategoryRow {
                             height: 24px;
                             label: I18n.t("mediaPane.languages");
@@ -2292,6 +2338,12 @@ export component MediaPane inherits Rectangle {
                             current: root.text-category == 2;
                             clicked => { root.text-category = 2; }
                         }
+                        CategoryRow {
+                            height: 24px;
+                            label: I18n.t("mediaPane.textAnim");
+                            current: root.text-category == 3;
+                            clicked => { root.text-category = 3; }
+                        }
                     }
 
                     // Stickers: the one shelf there is, Shapes, so its row
@@ -2305,10 +2357,20 @@ export component MediaPane inherits Rectangle {
                             open: root.stickers-open;
                             toggled => { root.stickers-open = !root.stickers-open; }
                         }
-                        if root.stickers-open: CategoryRow {
-                            height: 24px;
-                            label: I18n.t("mediaPane.shapes");
-                            current: true;
+                        if root.stickers-open: VerticalLayout {
+                            spacing: 1px;
+                            CategoryRow {
+                                height: 24px;
+                                label: I18n.t("mediaPane.stickers");
+                                current: root.sticker-shelf == 0;
+                                clicked => { root.sticker-shelf = 0; }
+                            }
+                            CategoryRow {
+                                height: 24px;
+                                label: I18n.t("mediaPane.shapes");
+                                current: root.sticker-shelf == 1;
+                                clicked => { root.sticker-shelf = 1; }
+                            }
                         }
                     }
 
@@ -2691,22 +2753,41 @@ export component MediaPane inherits Rectangle {
                         export-srt => { root.captions-export-srt(); }
                     }
                 }
-                if root.tab == 1 && root.text-category != 2: HorizontalLayout {
+                if root.tab == 1 && root.text-category != 2 && root.text-category != 3: HorizontalLayout {
                     padding: 8px;
 
                     PresetGrid {
                         horizontal-stretch: 1;
-                        items: root.text-category == 1 ? root.language-presets : root.presets;
+                        items: root.text-category == 4 ? root.template-presets
+                            : root.text-category == 1 ? root.language-presets
+                            : root.presets;
                         applied(id) => { root.add-text(id); }
+                    }
+                }
+
+                if root.tab == 1 && root.text-category == 3: VerticalLayout {
+                    padding: 8px;
+                    ShelfGrid {
+                        entries: root.catalogue-textanims;
+                        glyph: Glyph.text-mark;
+                        payload-kind: "filter";
+                        auditions: true;
+                        applied(id, label) => { root.apply-filter(id, label); }
                     }
                 }
 
                 // The figures. Each card is one shape, placed at the
                 // playhead on a click or dragged onto a lane.
-                if root.tab == 2: HorizontalLayout {
+                if root.tab == 2: VerticalLayout {
                     padding: 8px;
-
-                    ShapeGrid {
+                    if root.sticker-shelf == 0: ShelfGrid {
+                        entries: root.catalogue-stickers;
+                        glyph: Glyph.sticker;
+                        payload-kind: "filter";
+                        auditions: true;
+                        applied(id, label) => { root.apply-filter(id, label); }
+                    }
+                    if root.sticker-shelf == 1: ShapeGrid {
                         horizontal-stretch: 1;
                         placed(shape, label) => { root.add-shape(shape, label); }
                     }
@@ -2858,21 +2939,63 @@ export component MediaPane inherits Rectangle {
                     text: I18n.t("mediaPane.noLutsYet");
                 }
 
-                // Templates: the save affordance, then the gallery of saved
-                // templates, which shows its empty state until one is saved.
-                if root.tab == 6: HorizontalLayout {
+                // Templates: save this project, then the gallery of built-in
+                // 智能包装 recipes and anything the user has saved.
+                if root.tab == 6: VerticalLayout {
                     padding: 8px;
+                    spacing: 8px;
 
                     ImportButton {
                         label: I18n.t("mediaPane.saveProjectTemplate");
                         glyph: Glyph.slot;
                         clicked => { root.save-template(); }
                     }
-                }
 
-                if root.tab == 6: Empty {
-                    glyph: Glyph.slot;
-                    text: I18n.t("mediaPane.noTemplatesYetMark");
+                    if root.project-templates.length == 0: Empty {
+                        glyph: Glyph.slot;
+                        text: I18n.t("mediaPane.noTemplatesYetMark");
+                    }
+
+                    if root.project-templates.length > 0: Rectangle {
+                        property <length> gap: 8px;
+                        property <length> card-w: (self.width - 8px) / 2;
+                        property <length> card-h: 72px;
+                        property <int> pack-rows: Math.ceil(root.project-templates.length / 2);
+                        height: self.pack-rows * 80px - 8px;
+
+                        for pack[index] in root.project-templates: Rectangle {
+                            x: Math.mod(index, 2) * (parent.card-w + parent.gap);
+                            y: Math.floor(index / 2) * (parent.card-h + parent.gap);
+                            width: parent.card-w;
+                            height: parent.card-h;
+                            border-radius: Theme.r-sm;
+                            border-width: 1px;
+                            border-color: pack-touch.has-hover ? Theme.line-strong : Theme.line;
+                            background: pack-touch.has-hover ? Theme.field-hover : Theme.field;
+
+                            VerticalLayout {
+                                padding: 10px;
+                                spacing: 4px;
+                                Text {
+                                    text: pack.name;
+                                    color: Theme.fg;
+                                    font-size: Theme.fs;
+                                    overflow: elide;
+                                }
+                                Text {
+                                    text: pack.detail;
+                                    color: Theme.fg-muted;
+                                    font-size: Theme.fs-sm;
+                                    overflow: elide;
+                                }
+                            }
+
+                            pack-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.use-template(pack.path); }
+                            }
+                        }
+                    }
                 }
             }
         }

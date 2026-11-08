@@ -1,0 +1,15 @@
+id = "marquee.huazi.sky-bevel"
+name = "晴空·斜切"
+language = "Chinese"
+order = 449
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#E8F4FF"
+strokeWidth = 0.0069
+strokeColor = "#4A9FE0"
+shadow = true

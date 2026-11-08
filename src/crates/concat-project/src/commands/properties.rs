@@ -33,6 +33,9 @@ pub(super) fn apply(
             if let Some(fade_out) = patch.fade_out {
                 applied |= assign(&mut clip.fade_out, fade_out.max(0.0));
             }
+            if let Some(anim) = patch.anim {
+                applied |= assign(&mut clip.anim, anim.tidy());
+            }
             if let Some(opacity) = patch.opacity {
                 applied |= assign(&mut clip.opacity, opacity.clamp(0.0, 1.0));
             }
@@ -74,12 +77,22 @@ pub(super) fn apply(
             if let Some(transition) = patch.transition_in {
                 applied |= assign(&mut clip.transition_in, transition);
             }
-            if let Some(text) = patch.text {
-                // The name follows the words, like addTextClip snapshots it.
-                if let Some(style) = &text {
-                    applied |= assign(&mut clip.name, first_line(&style.content));
+            if let Some(field) = patch.text {
+                match field {
+                    TextField::Clear => {
+                        applied |= assign(&mut clip.text, None);
+                    }
+                    TextField::Words(words) => {
+                        let mut style = clip.text.clone().unwrap_or_default();
+                        applied |= assign(&mut style.content, words);
+                        applied |= assign(&mut clip.name, first_line(&style.content));
+                        applied |= assign(&mut clip.text, Some(style));
+                    }
+                    TextField::Style(style) => {
+                        applied |= assign(&mut clip.name, first_line(&style.content));
+                        applied |= assign(&mut clip.text, Some(*style));
+                    }
                 }
-                applied |= assign(&mut clip.text, text);
             }
             if let Some(shape) = patch.shape
                 && clip.kind == crate::model::ClipKind::Shape
@@ -95,6 +108,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -118,6 +133,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: text.runs != before,
+            
+            ..Default::default()
             })
         }
 
@@ -143,6 +160,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: text.runs != before,
+            
+            ..Default::default()
             })
         }
 
@@ -150,6 +169,7 @@ pub(super) fn apply(
             clip_id,
             speed,
             ripple,
+            clear_curve,
         } => {
             let timeline = project.active_mut();
             let Some(clip) = timeline.clip_mut(&clip_id) else {
@@ -160,18 +180,31 @@ pub(super) fn apply(
             let next = speed.clamp(MIN_SPEED, MAX_SPEED);
             let source_covered = clip.duration * clip.speed;
             let old_end = clip.start + clip.duration;
-            // Bitwise so no assignment is short-circuited away. A rate set
-            // by hand is a constant rate: the curve goes.
-            let applied = assign(&mut clip.speed, next)
-                | assign(
-                    &mut clip.duration,
-                    (source_covered / next).max(MIN_CLIP_DURATION),
-                )
-                | assign(&mut clip.speed_curve, None);
-            make_room(timeline, &clip_id, old_end, ripple);
+            let mut warnings = Vec::new();
+            let mut applied = false;
+            if clip.speed_curve.is_some() && !clear_curve {
+                warnings.push(
+                    "speedCurve kept; pass clearCurve: true to replace it with a constant speed"
+                        .into(),
+                );
+            } else {
+                applied |= assign(&mut clip.speed, next);
+                if clear_curve || clip.speed_curve.is_some() {
+                    applied |= assign(&mut clip.speed_curve, None);
+                }
+                if ripple {
+                    applied |= assign(
+                        &mut clip.duration,
+                        (source_covered / next).max(MIN_CLIP_DURATION),
+                    );
+                    make_room(timeline, &clip_id, old_end, true);
+                }
+            }
             Ok(Outcome {
                 created_id: None,
                 applied,
+                warnings,
+                ..Default::default()
             })
         }
 
@@ -184,6 +217,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -201,6 +236,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -217,6 +254,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -234,6 +273,66 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: true,
+            
+            ..Default::default()
+            })
+        }
+
+        Command::DuckAudio {
+            music_id,
+            trigger_id,
+            amount,
+            attack,
+            release,
+        } => {
+            let timeline = project.active();
+            let Some(music) = timeline.clip(&music_id).cloned() else {
+                return Ok(Outcome::default());
+            };
+            let Some(trigger) = timeline.clip(&trigger_id) else {
+                return Ok(Outcome::default());
+            };
+            let amount = amount.max(0.0);
+            let attack = attack.max(0.0);
+            let release = release.max(0.0);
+            let win_start = trigger.start.max(music.start);
+            let win_end = (trigger.start + trigger.duration).min(music.start + music.duration);
+            if win_end <= win_start + 1e-4 || music.duration <= 1e-6 {
+                return Ok(Outcome {
+                    created_id: None,
+                    applied: false,
+                    warnings: vec![
+                        "duckAudio: music and trigger do not overlap; wrote 0 keys".into(),
+                    ],
+                    ..Default::default()
+                });
+            }
+            let rest = music.volume.max(0.0);
+            let down = (win_start - attack).max(music.start);
+            let up = (win_end + release).min(music.start + music.duration);
+            let frac = |time: f64| ((time - music.start) / music.duration).clamp(0.0, 1.0);
+            // Keys closer than KEY_EPSILON collapse; a 0.12s attack on a
+            // 78s music clip is ~0.0015 and would swallow the attack key.
+            let ats = separate_key_ats([
+                frac(down),
+                frac(win_start),
+                frac(win_end),
+                frac(up),
+            ]);
+            let timeline = project.active_mut();
+            let Some(clip) = timeline.clip_mut(&music_id) else {
+                return Ok(Outcome::default());
+            };
+            let before = clip.keys.clone();
+            clip.set_key(KeyProperty::Volume, ats[0], rest, KeyEase::default());
+            clip.set_key(KeyProperty::Volume, ats[1], amount, KeyEase::default());
+            clip.set_key(KeyProperty::Volume, ats[2], amount, KeyEase::default());
+            clip.set_key(KeyProperty::Volume, ats[3], rest, KeyEase::default());
+            Ok(Outcome {
+                created_id: None,
+                applied: clip.keys != before,
+            
+            ..Default::default()
             })
         }
 
@@ -250,6 +349,21 @@ pub(super) fn apply(
             };
             if !at.is_finite() || !value.is_finite() {
                 return Ok(Outcome::default());
+            }
+            // Mask keys are invisible unless the clip already has a mask:
+            // flatten (and preview) skip animation on a missing mask.
+            if matches!(
+                property,
+                KeyProperty::MaskX
+                    | KeyProperty::MaskY
+                    | KeyProperty::MaskWidth
+                    | KeyProperty::MaskHeight
+                    | KeyProperty::MaskRotation
+                    | KeyProperty::MaskRoundness
+                    | KeyProperty::MaskFeather
+            ) && clip.mask.is_none()
+            {
+                clip.mask = Some(ClipMask::of(MaskShape::Rectangle));
             }
             // Clamped the way the field itself is, so a key can never hold a
             // value the constant would have been refused. The clamps are the
@@ -270,6 +384,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: clip.keys != before,
+            
+            ..Default::default()
             })
         }
 
@@ -286,6 +402,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -298,6 +416,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -324,6 +444,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: link.keys != before,
+            
+            ..Default::default()
             })
         }
 
@@ -344,6 +466,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -363,6 +487,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -383,16 +509,19 @@ pub(super) fn apply(
                 .map(|points| crate::speed::mean_of(points))
                 .unwrap_or(clip.speed)
                 .clamp(MIN_SPEED, MAX_SPEED);
-            let applied = assign(&mut clip.speed_curve, curve)
-                | assign(&mut clip.speed, mean)
-                | assign(
+            let mut applied = assign(&mut clip.speed_curve, curve) | assign(&mut clip.speed, mean);
+            if ripple {
+                applied |= assign(
                     &mut clip.duration,
                     (source_covered / mean).max(MIN_CLIP_DURATION),
                 );
-            make_room(timeline, &clip_id, old_end, ripple);
+                make_room(timeline, &clip_id, old_end, true);
+            }
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -425,6 +554,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
         Command::SetClipTransform {
@@ -462,6 +593,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -497,6 +630,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: *clip != before,
+            
+            ..Default::default()
             })
         }
 
@@ -538,4 +673,26 @@ fn make_room(timeline: &mut Timeline, clip_id: &str, old_end: f64, ripple: bool)
         };
         clips::follow_main(timeline, main.as_deref(), &track_id, ripple);
     }
+}
+
+/// Spread four key fractions so neighbouring ones stay at least
+/// `KEY_EPSILON` apart (otherwise `set_key` overwrites the earlier).
+fn separate_key_ats(mut ats: [f64; 4]) -> [f64; 4] {
+    let eps = crate::model::KEY_EPSILON + 1e-9;
+    for i in 1..4 {
+        if ats[i] < ats[i - 1] + eps {
+            ats[i] = (ats[i - 1] + eps).min(1.0);
+        }
+    }
+    for i in (0..3).rev() {
+        if ats[i + 1] < ats[i] + eps {
+            ats[i] = (ats[i + 1] - eps).max(0.0);
+        }
+    }
+    for i in 1..4 {
+        if ats[i] < ats[i - 1] + eps {
+            ats[i] = (ats[i - 1] + eps).min(1.0);
+        }
+    }
+    ats
 }

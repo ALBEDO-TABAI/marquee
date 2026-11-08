@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.sunflare2"
+name = "旅途漏光"
+kind = "effect"
+category = "出游"
+order = 405
+description = "Original 旅途漏光 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

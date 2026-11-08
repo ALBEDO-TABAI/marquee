@@ -1,0 +1,15 @@
+id = "marquee.huazi.stackc-comic"
+name = "叠彩·漫画"
+language = "Chinese"
+order = 265
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#FFFFFF"
+strokeWidth = 0.0092
+strokeColor = "#FF3B5C"
+shadow = false

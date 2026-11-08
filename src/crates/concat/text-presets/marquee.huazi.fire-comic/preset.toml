@@ -1,0 +1,15 @@
+id = "marquee.huazi.fire-comic"
+name = "赤焰·漫画"
+language = "Chinese"
+order = 385
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#FEE2E2"
+strokeWidth = 0.0092
+strokeColor = "#991B1B"
+shadow = false

@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf051"
+name = "左上滑入 12"
+kind = "transition"
+category = "滑动"
+order = 1651
+description = "Browsable transition SKU on the 滑动 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

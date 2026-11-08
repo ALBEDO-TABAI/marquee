@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.lightning85"
+name = "闪电 85"
+kind = "effect"
+category = "氛围"
+order = 2747
+description = "Original 闪电 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

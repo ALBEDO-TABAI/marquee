@@ -1,0 +1,24 @@
+format = 2
+
+[effect]
+id = "marquee.ch03"
+name = "会话框 3"
+kind = "sticker"
+category = "热门"
+order = 1086
+description = "Original parametric frame/sticker SKU."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 88
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"
+

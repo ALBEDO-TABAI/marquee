@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.fog25"
+name = "薄雾 25"
+kind = "effect"
+category = "氛围"
+order = 2640
+description = "Original 薄雾 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 25
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

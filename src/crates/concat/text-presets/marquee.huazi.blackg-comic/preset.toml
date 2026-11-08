@@ -1,0 +1,15 @@
+id = "marquee.huazi.blackg-comic"
+name = "黑金·漫画"
+language = "Chinese"
+order = 415
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#1A1A1A"
+strokeWidth = 0.0092
+strokeColor = "#D4AF37"
+shadow = false

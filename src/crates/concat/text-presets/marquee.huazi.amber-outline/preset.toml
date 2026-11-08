@@ -1,0 +1,15 @@
+id = "marquee.huazi.amber-outline"
+name = "琥珀·描边"
+language = "Chinese"
+order = 361
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FEF3C7"
+strokeWidth = 0.00805
+strokeColor = "#92400E"
+shadow = false

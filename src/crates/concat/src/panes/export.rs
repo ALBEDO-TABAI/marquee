@@ -493,6 +493,7 @@ impl ExportPane {
             // Video range, what every player and every platform expects.
             color_range: ColorRange::Limited,
             hdr: self.hdr(studio),
+            normalize: true,
         };
         let (frame_w, frame_h) = studio.output_size();
         let titles = studio

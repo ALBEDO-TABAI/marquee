@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.tacapslidedown"
+name = "字幕·下滑入"
+kind = "textanim"
+category = "字幕动画"
+order = 650
+description = "Caption motion: 下滑入."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

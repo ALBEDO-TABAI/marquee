@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf028"
+name = "左擦除 25"
+kind = "transition"
+category = "滑动"
+order = 1628
+description = "Browsable transition SKU on the 滑动 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

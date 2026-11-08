@@ -32,8 +32,8 @@ pub mod speed;
 pub mod srt;
 
 pub use commands::{
-    Command, CommandError, Outcome, PlayheadSide, consolidation_clips, delete_to_playhead,
-    why_not_merge,
+    Command, CommandError, Outcome, Placement, PlacedClip, PlayheadSide, consolidation_clips,
+    delete_to_playhead, why_not_merge,
 };
 pub use doc::{DOCUMENT_VERSION, DocumentSettings, document_version, from_document, to_document};
 pub use editor::{Editor, RetiredFields};
@@ -219,7 +219,8 @@ mod tests {
     }
 
     use crate::commands::{
-        ClipMove, ClipPatch, Command, NewMedia, PlayheadSide, TrackFlag, TrimEdge,
+        ClipMove, ClipPatch, Command, CommandError, NewMedia, Placement, PlayheadSide, TrackFlag,
+        TrimEdge,
     };
     use crate::doc::DocumentSettings;
     use crate::editor::Editor;
@@ -349,6 +350,7 @@ mod tests {
             track_id: track_id.clone(),
             start,
             ripple: false,
+            placement: None,
         };
         editor.apply(add(20.0)).expect("adds");
         assert_eq!(editor.project().active().video.color_space, ColorSpace::Hlg);
@@ -569,6 +571,7 @@ mod tests {
                     track_id: tracks[track].clone(),
                     start: 0.0,
                     ripple: false,
+                    placement: None,
                 })
                 .expect("adds")
                 .created_id
@@ -772,6 +775,7 @@ mod tests {
                 track_id,
                 start: 20.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds")
             .created_id
@@ -811,6 +815,7 @@ mod tests {
                 track_id,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds")
             .created_id
@@ -830,6 +835,7 @@ mod tests {
                         track_id: track_id.to_owned(),
                         start: *start,
                         ripple: false,
+                        placement: None,
                     })
                     .expect("adds")
                     .created_id
@@ -843,12 +849,13 @@ mod tests {
     fn stacked(editor: &mut Editor, media_id: &str, track_id: &str, starts: &[f64]) -> Vec<String> {
         let ids = lane(editor, media_id, track_id, starts);
         for (id, start) in ids.iter().zip(starts) {
-            editor
+            let clip = editor
                 .project_mut()
                 .active_mut()
                 .clip_mut(id)
-                .expect("just added")
-                .start = *start;
+                .expect("just added");
+            clip.start = *start;
+            clip.track_id = track_id.to_owned();
         }
         ids
     }
@@ -978,11 +985,14 @@ mod tests {
     }
 
     #[test]
-    fn a_clip_added_onto_another_takes_the_nearest_gap() {
-        let (mut editor, media_id, _first) = fixture();
+    fn a_clip_added_onto_another_keeps_its_time_on_a_new_track() {
+        let (mut editor, media_id, first) = fixture();
         let video = editor.project().active().tracks[0].id.clone();
         let added = lane(&mut editor, &media_id, &video, &[4.0]);
-        assert_eq!(start_of(&editor, &added[0]), 10.0);
+        assert_eq!(start_of(&editor, &added[0]), 4.0);
+        let copy = editor.project().active().clip(&added[0]).unwrap();
+        assert_ne!(copy.track_id, video);
+        assert_eq!(editor.project().active().clip(&first).unwrap().start, 0.0);
     }
 
     #[test]
@@ -1018,14 +1028,34 @@ mod tests {
     }
 
     #[test]
-    fn slowing_a_clip_down_moves_what_follows_it() {
+    fn slowing_a_clip_in_place_does_not_push_what_follows_it() {
+        let (mut editor, media_id, first) = fixture();
+        let video = editor.project().active().tracks[0].id.clone();
+        let next = lane(&mut editor, &media_id, &video, &[10.0]);
+        editor
+            .apply(Command::SetClipSpeed {
+                clip_id: first.clone(),
+                ripple: false,
+                clear_curve: false,
+                speed: 0.5,
+            })
+            .expect("retimes");
+        let clip = editor.project().active().clip(&first).unwrap();
+        assert!((clip.duration - 10.0).abs() < 1e-9, "in-place keeps the slot");
+        assert!((clip.speed - 0.5).abs() < 1e-9);
+        assert_eq!(start_of(&editor, &next[0]), 10.0);
+    }
+
+    #[test]
+    fn slowing_a_clip_with_ripple_moves_what_follows_it() {
         let (mut editor, media_id, first) = fixture();
         let video = editor.project().active().tracks[0].id.clone();
         let next = lane(&mut editor, &media_id, &video, &[10.0]);
         editor
             .apply(Command::SetClipSpeed {
                 clip_id: first,
-                ripple: false,
+                ripple: true,
+                clear_curve: false,
                 speed: 0.5,
             })
             .expect("retimes");
@@ -2289,6 +2319,7 @@ mod tests {
                 track_id,
                 start: 10.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds")
             .created_id
@@ -2296,7 +2327,7 @@ mod tests {
         editor
             .apply(Command::SetClipSpeedCurve {
                 clip_id: clip_id.clone(),
-                ripple: false,
+                ripple: true,
                 curve: Some(vec![
                     crate::model::SpeedPoint {
                         at: 0.0,
@@ -2345,6 +2376,7 @@ mod tests {
                         track_id: track_id.clone(),
                         start,
                         ripple: false,
+                        placement: None,
                     })
                     .expect("adds")
                     .created_id
@@ -2359,6 +2391,7 @@ mod tests {
                     clip_id: clip_id.clone(),
                     ripple,
                     speed: 2.0,
+                clear_curve: false,
                 })
                 .expect("speeds up");
             editor
@@ -2386,15 +2419,19 @@ mod tests {
                 timeline.clip(&next).unwrap().start,
                 timeline.clip(&later).unwrap().start,
             );
-            assert!(end < 5.0, "the clip got shorter");
             if ripple {
+                assert!(end < 5.0, "the clip got shorter");
                 assert!((next - end).abs() < 1e-9, "the next clip closes up");
                 assert!(
                     (later - next - 15.0).abs() < 1e-9,
                     "a gap further down the lane is kept"
                 );
             } else {
-                assert_eq!((next, later), (10.0, 25.0), "a plain retime leaves the gap");
+                assert!(
+                    (ramped.duration - 10.0).abs() < 1e-9,
+                    "in-place speed keeps the timeline duration"
+                );
+                assert_eq!((next, later), (10.0, 25.0), "neighbours stay put");
             }
             assert!(editor.undo(), "undoes");
             assert!(editor.undo(), "undoes");
@@ -2518,6 +2555,7 @@ mod tests {
             Command::SetClipSpeed {
                 clip_id: clip_id.clone(),
                 ripple: false,
+                clear_curve: false,
                 speed: f64::NAN,
             },
             Command::SplitClips {
@@ -2578,7 +2616,7 @@ mod tests {
         let bad_text = Command::UpdateClip {
             clip_id: clip_id.clone(),
             patch: ClipPatch {
-                text: Some(Some(style)),
+                text: Some(crate::commands::TextField::Style(Box::new(style))),
                 ..Default::default()
             },
         };
@@ -3238,7 +3276,8 @@ mod tests {
         editor
             .apply(Command::SetClipSpeed {
                 clip_id: clip_id.clone(),
-                ripple: false,
+                ripple: true,
+                clear_curve: false,
                 speed: 2.0,
             })
             .expect("ok");
@@ -3268,6 +3307,7 @@ mod tests {
             .apply(Command::SetClipSpeed {
                 clip_id: clip_id.clone(),
                 ripple: false,
+                clear_curve: false,
                 speed: 100.0,
             })
             .expect("ok");
@@ -3276,6 +3316,7 @@ mod tests {
             .apply(Command::SetClipSpeed {
                 clip_id,
                 ripple: false,
+                clear_curve: false,
                 speed: 0.0,
             })
             .expect("ok");
@@ -3327,6 +3368,7 @@ mod tests {
                 track_id,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds")
             .created_id
@@ -4093,6 +4135,7 @@ mod tests {
                     Command::SetClipSpeed {
                         clip_id,
                         ripple: false,
+                clear_curve: false,
                         speed: 2.0,
                     },
                 ],
@@ -4281,6 +4324,7 @@ mod tests {
                 track_id: video_track.clone(),
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds");
 
@@ -4334,6 +4378,7 @@ mod tests {
                 track_id: video_track.clone(),
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds");
         let layer_id = editor
@@ -4344,6 +4389,7 @@ mod tests {
                 effect_id: "concat.adjust".into(),
                 name: "Adjustment".into(),
                 sound: false,
+                scale: None,
             })
             .expect("adds")
             .created_id
@@ -4461,6 +4507,7 @@ mod tests {
                 track_id: video_track.clone(),
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds");
         let layer_id = editor
@@ -4471,6 +4518,7 @@ mod tests {
                 effect_id: "concat.telephone".into(),
                 name: "Telephone".into(),
                 sound: true,
+                scale: None,
             })
             .expect("adds")
             .created_id
@@ -4520,6 +4568,7 @@ mod tests {
                 effect_id: source.filters[0].id.clone(),
                 name: source.name.clone(),
                 sound: true,
+                scale: None,
             })
             .expect("adds")
             .created_id
@@ -4588,6 +4637,7 @@ mod tests {
                 track_id: video_track,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds");
 
@@ -4641,6 +4691,7 @@ mod tests {
                     track_id: track_id.clone(),
                     start: 0.0,
                     ripple: false,
+                    placement: None,
                 })
                 .expect("adds");
         }
@@ -4740,6 +4791,7 @@ mod tests {
                     Command::SetClipSpeed {
                         clip_id,
                         ripple: false,
+                clear_curve: false,
                         speed: 2.0,
                     },
                 ],
@@ -5048,6 +5100,7 @@ mod tests {
                 track_id,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("adds");
 
@@ -5307,6 +5360,7 @@ mod tests {
                 track_id: "T1".to_owned(),
                 start: 1.0,
                 ripple: false,
+                placement: None,
             },
             Command::AddClipAtFirstFree {
                 media_id: "m1".to_owned(),
@@ -5355,6 +5409,7 @@ mod tests {
             Command::SetClipSpeed {
                 clip_id: "c1".to_owned(),
                 ripple: false,
+                clear_curve: false,
                 speed: 2.0,
             },
             Command::SetClipTransform {
@@ -5709,6 +5764,7 @@ mod tests {
                     effect_id: "concat.warm".into(),
                     name: name.into(),
                     sound: false,
+                    scale: None,
                 })
                 .expect("a layer");
         }
@@ -5806,6 +5862,7 @@ mod tests {
                 track_id: track,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             })
             .expect("places")
             .created_id
@@ -6023,4 +6080,499 @@ mod tests {
             crate::delete_to_playhead(timeline, &gone, 5.0, PlayheadSide::Left, false).is_none()
         );
     }
+    #[test]
+    fn duck_audio_keeps_four_keys_on_a_long_music_clip() {
+        let (mut editor, _, trigger) = fixture();
+        let music_media = editor
+            .apply(media("/score.mp3", 78.0, true))
+            .expect("adds")
+            .created_id
+            .expect("id");
+        let music_track = editor.project().active().tracks[1].id.clone();
+        let music = editor
+            .apply(Command::AddClip {
+                media_id: music_media,
+                track_id: music_track,
+                start: 0.0,
+                ripple: false,
+                placement: None,
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        // Stretch the placed clip to the file's 78s (AddClip uses media duration).
+        let placed = editor.project().active().clip(&music).unwrap();
+        assert!((placed.duration - 78.0).abs() < 1e-6, "got {}", placed.duration);
+        editor
+            .apply(Command::DuckAudio {
+                music_id: music.clone(),
+                trigger_id: trigger,
+                amount: 0.18,
+                attack: 0.12,
+                release: 0.45,
+            })
+            .expect("ducks");
+        let clip = editor.project().active().clip(&music).unwrap();
+        let keys: Vec<_> = clip
+            .keys
+            .iter()
+            .filter(|key| key.property == crate::model::KeyProperty::Volume)
+            .collect();
+        assert_eq!(keys.len(), 4, "expected attack + hold + hold + release, got {keys:?}");
+        let gap = crate::model::KEY_EPSILON;
+        for pair in keys.windows(2) {
+            assert!(
+                pair[1].at - pair[0].at > gap,
+                "keys too close: {} and {}",
+                pair[0].at,
+                pair[1].at
+            );
+        }
+    }
+
+    #[test]
+    fn duck_audio_warns_when_the_clips_do_not_overlap() {
+        let (mut editor, _, trigger) = fixture();
+        let music_media = editor
+            .apply(media("/score.mp3", 8.0, true))
+            .expect("adds")
+            .created_id
+            .expect("id");
+        let music_track = editor.project().active().tracks[1].id.clone();
+        let music = editor
+            .apply(Command::AddClip {
+                media_id: music_media,
+                track_id: music_track,
+                start: 40.0,
+                ripple: false,
+                placement: None,
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        let outcome = editor
+            .apply(Command::DuckAudio {
+                music_id: music.clone(),
+                trigger_id: trigger,
+                amount: 0.18,
+                attack: 0.12,
+                release: 0.45,
+            })
+            .expect("ducks");
+        assert!(!outcome.applied);
+        assert!(
+            outcome.warnings.iter().any(|warning| warning.contains("do not overlap")),
+            "{:?}",
+            outcome.warnings
+        );
+        let keys = editor
+            .project()
+            .active()
+            .clip(&music)
+            .unwrap()
+            .keys
+            .iter()
+            .filter(|key| key.property == crate::model::KeyProperty::Volume)
+            .count();
+        assert_eq!(keys, 0);
+    }
+
+    #[test]
+    fn set_clip_speed_keeps_an_existing_speed_curve_unless_cleared() {
+        let (mut editor, _, clip_id) = fixture();
+        editor
+            .apply(Command::SetClipSpeedCurve {
+                clip_id: clip_id.clone(),
+                ripple: false,
+                curve: Some(vec![
+                    crate::model::SpeedPoint {
+                        at: 0.0,
+                        speed: 0.9,
+                        slope: None,
+                    },
+                    crate::model::SpeedPoint {
+                        at: 0.5,
+                        speed: 1.2,
+                        slope: None,
+                    },
+                    crate::model::SpeedPoint {
+                        at: 1.0,
+                        speed: 1.0,
+                        slope: None,
+                    },
+                ]),
+            })
+            .expect("curve");
+        let kept = editor
+            .apply(Command::SetClipSpeed {
+                clip_id: clip_id.clone(),
+                ripple: false,
+                clear_curve: false,
+                speed: 1.075,
+            })
+            .expect("set speed");
+        assert!(!kept.applied);
+        assert!(
+            kept.warnings.iter().any(|warning| warning.contains("speedCurve kept")),
+            "{:?}",
+            kept.warnings
+        );
+        assert!(editor.project().active().clip(&clip_id).unwrap().speed_curve.is_some());
+
+        let cleared = editor
+            .apply(Command::SetClipSpeed {
+                clip_id: clip_id.clone(),
+                ripple: false,
+                clear_curve: true,
+                speed: 1.075,
+            })
+            .expect("clear curve");
+        assert!(cleared.applied);
+        let clip = editor.project().active().clip(&clip_id).unwrap();
+        assert!(clip.speed_curve.is_none());
+        assert!((clip.speed - 1.075).abs() < 1e-9);
+    }
+
+    #[test]
+    fn update_clip_text_accepts_a_plain_string() {
+        let (mut editor, _, _) = fixture();
+        let id = editor
+            .apply(Command::AddTextClip {
+                track_id: None,
+                above: true,
+                start: 0.0,
+                style: None,
+                duration: Some(4.0),
+                offset_y: None,
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        let patch: ClipPatch = serde_json::from_value(serde_json::json!({
+            "text": "午前的光"
+        }))
+        .expect("string text patch");
+        editor
+            .apply(Command::UpdateClip {
+                clip_id: id.clone(),
+                patch,
+            })
+            .expect("updates");
+        let clip = editor.project().active().clip(&id).unwrap();
+        let style = clip.text.as_ref().expect("style");
+        assert_eq!(style.content, "午前的光");
+        assert_eq!(clip.name, "午前的光");
+    }
+
+    #[test]
+    fn a_sticker_layer_defaults_to_a_small_scale() {
+        let (mut editor, _, _) = fixture();
+        let sticker = editor
+            .apply(Command::AddLayerClip {
+                track_id: None,
+                start: 0.0,
+                duration: Some(2.0),
+                effect_id: "marquee.ch01".into(),
+                name: "会话框".into(),
+                sound: false,
+                scale: None,
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        let clip = editor.project().active().clip(&sticker).unwrap();
+        assert!((clip.scale - 0.20).abs() < 1e-9, "got {}", clip.scale);
+        let full = editor
+            .apply(Command::AddLayerClip {
+                track_id: None,
+                start: 3.0,
+                duration: Some(2.0),
+                effect_id: "concat.adjust".into(),
+                name: "Adjustment".into(),
+                sound: false,
+                scale: None,
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        assert!((editor.project().active().clip(&full).unwrap().scale - 1.0).abs() < 1e-9);
+        let forced = editor
+            .apply(Command::AddLayerClip {
+                track_id: None,
+                start: 6.0,
+                duration: Some(2.0),
+                effect_id: "marquee.ch01".into(),
+                name: "big".into(),
+                sound: false,
+                scale: Some(1.0),
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        assert!((editor.project().active().clip(&forced).unwrap().scale - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn mask_keys_enable_a_default_mask() {
+        let (mut editor, _, clip_id) = fixture();
+        assert!(editor.project().active().clip(&clip_id).unwrap().mask.is_none());
+        editor
+            .apply(Command::SetClipKey {
+                clip_id: clip_id.clone(),
+                property: crate::model::KeyProperty::MaskX,
+                at: 0.0,
+                value: -0.2,
+                ease: crate::model::KeyEase::LINEAR,
+            })
+            .expect("keys");
+        let clip = editor.project().active().clip(&clip_id).unwrap();
+        let mask = clip.mask.expect("maskX should enable a default mask");
+        assert_eq!(mask.shape, crate::model::MaskShape::Rectangle);
+        assert!(
+            clip.keys
+                .iter()
+                .any(|key| key.property == crate::model::KeyProperty::MaskX)
+        );
+    }
+
+    #[test]
+    fn copy_paste_and_duplicate_clips_round_trip_with_undo() {
+        let (mut editor, _, clip_id) = fixture();
+        let copy: Command = serde_json::from_value(json!({
+            "op": "copyClips",
+            "clipIds": [clip_id]
+        }))
+        .expect("copyClips");
+        editor.apply(copy).expect("copies");
+        assert_eq!(editor.project().clipboard.len(), 1);
+        assert_eq!(editor.project().active().clips.len(), 1);
+
+        let paste: Command = serde_json::from_value(json!({
+            "op": "pasteClip",
+            "start": 20.0
+        }))
+        .expect("pasteClip alias");
+        let pasted = editor.apply(paste).expect("pastes").created_id.expect("id");
+        assert_eq!(editor.project().active().clips.len(), 2);
+        let clone = editor.project().active().clip(&pasted).unwrap();
+        assert!((clone.start - 20.0).abs() < 1e-6, "start {}", clone.start);
+        assert_ne!(clone.id, clip_id);
+
+        assert!(editor.undo());
+        assert_eq!(editor.project().active().clips.len(), 1);
+
+        let duplicate: Command = serde_json::from_value(json!({
+            "op": "duplicateClip",
+            "clipId": clip_id,
+            "offset": 12.0
+        }))
+        .expect("duplicateClip alias");
+        editor.apply(duplicate).expect("duplicates");
+        assert_eq!(editor.project().active().clips.len(), 2);
+        assert!(editor.undo());
+        assert_eq!(editor.project().active().clips.len(), 1);
+
+        let multi: Command = serde_json::from_value(json!({
+            "op": "duplicateClips",
+            "clipIds": [clip_id]
+        }))
+        .expect("duplicateClips");
+        editor.apply(multi).expect("duplicates many");
+        assert_eq!(editor.project().active().clips.len(), 2);
+    }
+
+    fn editor_with_clip(path: &str, duration: f64, start: f64) -> (Editor, String, String, String) {
+        let mut editor = Editor::new();
+        let media_id = editor
+            .apply(media(path, duration, true))
+            .expect("adds")
+            .created_id
+            .expect("id");
+        let track_id = editor.project().active().tracks[0].id.clone();
+        let clip_id = editor
+            .apply(Command::AddClip {
+                media_id: media_id.clone(),
+                track_id: track_id.clone(),
+                start,
+                ripple: false,
+                placement: None,
+            })
+            .expect("adds")
+            .created_id
+            .expect("id");
+        (editor, media_id, track_id, clip_id)
+    }
+
+    #[test]
+    fn duplicate_clips_keeps_start_plus_offset_and_moves_to_a_free_track() {
+        let (mut editor, _, track_id, clip_id) = editor_with_clip("/cafe.mp4", 8.0, 8.0);
+        let outcome = editor
+            .apply(serde_json::from_value(json!({
+                "op": "duplicateClips",
+                "clipIds": [clip_id],
+                "offset": 2.0
+            }))
+            .expect("duplicate"))
+            .expect("duplicates");
+        assert_eq!(outcome.placed.len(), 1);
+        let placed = &outcome.placed[0];
+        assert!(
+            (placed.start - 10.0).abs() < 1e-6,
+            "start {}",
+            placed.start
+        );
+        assert!((placed.end - 18.0).abs() < 1e-6);
+        assert_ne!(placed.track_id, track_id);
+        assert!(!outcome.warnings.is_empty(), "{:?}", outcome.warnings);
+        let original = editor.project().active().clip(&clip_id).unwrap();
+        assert!((original.start - 8.0).abs() < 1e-6);
+        assert_eq!(original.track_id, track_id);
+        let copy = editor.project().active().clip(&placed.clip_id).unwrap();
+        assert!((copy.start - 10.0).abs() < 1e-6);
+        assert_eq!(copy.track_id, placed.track_id);
+    }
+
+    #[test]
+    fn paste_and_add_clip_report_where_they_land() {
+        let (mut editor, media_id, track_id, clip_id) = editor_with_clip("/cafe.mp4", 8.0, 8.0);
+        editor
+            .apply(serde_json::from_value(json!({
+                "op": "copyClips",
+                "clipIds": [clip_id]
+            }))
+            .expect("copy"))
+            .expect("copies");
+        let pasted = editor
+            .apply(serde_json::from_value(json!({
+                "op": "pasteClips",
+                "start": 8.0,
+                "trackId": track_id
+            }))
+            .expect("paste"))
+            .expect("pastes");
+        assert_eq!(pasted.placed.len(), 1);
+        assert!((pasted.placed[0].start - 8.0).abs() < 1e-6);
+        assert_ne!(pasted.placed[0].track_id, track_id);
+        assert!(!pasted.warnings.is_empty());
+
+        let extra = editor
+            .apply(Command::AddTrack { bottom: false })
+            .expect("track")
+            .created_id
+            .expect("T2");
+        let sticker = editor
+            .apply(media("/sticker.png", 5.0, false))
+            .expect("sticker media")
+            .created_id
+            .expect("id");
+        editor
+            .apply(Command::AddClip {
+                media_id: sticker,
+                track_id: extra.clone(),
+                start: 1.0,
+                ripple: false,
+                placement: None,
+            })
+            .expect("sticker");
+        let morning = editor
+            .apply(media("/morning.mp4", 4.0, true))
+            .expect("morning media")
+            .created_id
+            .expect("id");
+        let added = editor
+            .apply(Command::AddClip {
+                media_id: morning,
+                track_id: extra.clone(),
+                start: 0.0,
+                ripple: false,
+                placement: None,
+            })
+            .expect("add at 0");
+        assert_eq!(added.placed.len(), 1);
+        assert!(
+            (added.placed[0].start - 0.0).abs() < 1e-6,
+            "start {}",
+            added.placed[0].start
+        );
+        assert_ne!(added.placed[0].track_id, extra);
+        assert!(!added.warnings.is_empty());
+        let _ = (media_id,);
+    }
+
+    #[test]
+    fn placement_error_overwrite_and_insert() {
+        let (mut editor, media_id, track_id, _) = editor_with_clip("/cafe.mp4", 8.0, 8.0);
+        let short = editor
+            .apply(media("/short.mp4", 4.0, true))
+            .expect("short")
+            .created_id
+            .expect("id");
+        let refuse = editor.apply(Command::AddClip {
+            media_id: short.clone(),
+            track_id: track_id.clone(),
+            start: 10.0,
+            ripple: false,
+            placement: Some(Placement::Error),
+        });
+        assert!(matches!(refuse, Err(CommandError::Occupied)));
+
+        let overwritten = editor
+            .apply(Command::AddClip {
+                media_id: short.clone(),
+                track_id: track_id.clone(),
+                start: 10.0,
+                ripple: false,
+                placement: Some(Placement::Overwrite),
+            })
+            .expect("overwrite");
+        assert_eq!(overwritten.placed[0].track_id, track_id);
+        assert!((overwritten.placed[0].start - 10.0).abs() < 1e-6);
+        let clips: Vec<_> = editor
+            .project()
+            .active()
+            .clips
+            .iter()
+            .filter(|clip| clip.track_id == track_id)
+            .cloned()
+            .collect();
+        assert!(
+            clips.iter().any(|clip| (clip.start - 10.0).abs() < 1e-6
+                && (clip.duration - 4.0).abs() < 1e-6)
+        );
+        assert!(
+            clips
+                .iter()
+                .any(|clip| (clip.start - 8.0).abs() < 1e-6 && (clip.duration - 2.0).abs() < 1e-6),
+            "{:?}",
+            clips
+                .iter()
+                .map(|c| (c.start, c.duration))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            clips
+                .iter()
+                .any(|clip| (clip.start - 14.0).abs() < 1e-6 && (clip.duration - 2.0).abs() < 1e-6)
+        );
+
+        let (mut editor, _, track_id, first) = editor_with_clip("/cafe.mp4", 8.0, 8.0);
+        let inserted = editor
+            .apply(Command::AddClip {
+                media_id,
+                track_id: track_id.clone(),
+                start: 8.0,
+                ripple: false,
+                placement: Some(Placement::Insert),
+            })
+            .expect("insert");
+        assert!((inserted.placed[0].start - 8.0).abs() < 1e-6);
+        assert_eq!(inserted.placed[0].track_id, track_id);
+        let shifted = editor.project().active().clip(&first).unwrap();
+        assert!(
+            (shifted.start - 16.0).abs() < 1e-6,
+            "shifted to {}",
+            shifted.start
+        );
+    }
+
 }

@@ -1,0 +1,20 @@
+id = "marquee.tt.count-min"
+name = "简约·倒计时"
+language = "Chinese"
+order = 991
+sample = "文字"
+
+[style]
+content = "倒计时"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11111
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#00000000"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.004
+shadow = false

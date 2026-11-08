@@ -1,0 +1,15 @@
+format = 2
+
+[effect]
+id = "marquee.cross-soft"
+name = "柔叠"
+kind = "transition"
+category = "Basic"
+order = 221
+aliases = ["cross-soft"]
+description = "A straightforward cross-dissolve between the two shots."
+
+[transition]
+entry = "effect.wgsl"
+xfade = "fade"
+fallback = "cross-fade"

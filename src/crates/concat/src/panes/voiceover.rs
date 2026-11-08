@@ -714,6 +714,7 @@ impl VoiceoverPane {
                 track_id,
                 start: landed.landing,
                 ripple: false,
+                placement: None,
             }),
             None => studio.apply(Command::AddClipAtFirstFree {
                 media_id: media_id.clone(),

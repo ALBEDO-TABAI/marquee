@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.tacomboglitchglitch"
+name = "故障闪切"
+kind = "textanim"
+category = "组合"
+order = 668
+description = "Text combo: 故障闪切."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 50
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

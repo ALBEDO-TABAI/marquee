@@ -1,0 +1,15 @@
+id = "marquee.huazi.comic-comic"
+name = "芒果·漫画"
+language = "Chinese"
+order = 255
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#FFE14A"
+strokeWidth = 0.0092
+strokeColor = "#111111"
+shadow = false

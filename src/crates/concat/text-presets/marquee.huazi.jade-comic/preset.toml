@@ -1,0 +1,15 @@
+id = "marquee.huazi.jade-comic"
+name = "翠玉·漫画"
+language = "Chinese"
+order = 395
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.11
+color = "#D1FAE5"
+strokeWidth = 0.0092
+strokeColor = "#065F46"
+shadow = false

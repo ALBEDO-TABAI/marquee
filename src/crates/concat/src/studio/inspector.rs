@@ -263,6 +263,30 @@ impl Studio {
                 }
                 ClipField::FadeIn => clip.fade_in = value.clamp(0.0, clip.duration / 2.0),
                 ClipField::FadeOut => clip.fade_out = value.clamp(0.0, clip.duration / 2.0),
+                ClipField::AnimIntro => {
+                    clip.anim.intro = model::ClipAnim::INTRO
+                        .get(value.round().max(0.0) as usize)
+                        .copied()
+                        .unwrap_or("")
+                        .to_owned();
+                }
+                ClipField::AnimOutro => {
+                    clip.anim.outro = model::ClipAnim::INTRO
+                        .get(value.round().max(0.0) as usize)
+                        .copied()
+                        .unwrap_or("")
+                        .to_owned();
+                }
+                ClipField::AnimCombo => {
+                    clip.anim.combo = model::ClipAnim::COMBO
+                        .get(value.round().max(0.0) as usize)
+                        .copied()
+                        .unwrap_or("")
+                        .to_owned();
+                }
+                ClipField::AnimIntroSecs => clip.anim.intro_secs = value.clamp(0.05, 8.0),
+                ClipField::AnimOutroSecs => clip.anim.outro_secs = value.clamp(0.05, 8.0),
+                ClipField::AnimComboSecs => clip.anim.combo_secs = value.clamp(0.05, 8.0),
                 ClipField::FontSize => text.font_size = value.clamp(0.01, 0.5),
                 ClipField::FontWeight => text.font_weight = value.clamp(100.0, 900.0),
                 ClipField::Italic => text.italic = value != 0.0,

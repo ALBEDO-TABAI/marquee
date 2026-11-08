@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.snow45"
+name = "飘雪 45"
+kind = "effect"
+category = "自然"
+order = 2881
+description = "Original 飘雪 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

@@ -1,0 +1,20 @@
+id = "marquee.tt.open-show"
+name = "综艺·开场标题"
+language = "Chinese"
+order = 802
+sample = "文字"
+
+[style]
+content = "开场标题"
+fontFamily = "Noto Serif CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE14A"
+strokeWidth = 0.00556
+strokeColor = "#111111"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.008
+shadow = false

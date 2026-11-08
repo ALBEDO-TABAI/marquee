@@ -1,0 +1,20 @@
+id = "marquee.tt.corner-game"
+name = "游戏·角标"
+language = "Chinese"
+order = 878
+sample = "文字"
+
+[style]
+content = "角标"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#F3E8FF"
+strokeWidth = 0.00417
+strokeColor = "#6B2FA0"
+align = "left"
+background = "#C2410C"
+backgroundPaddingX = 0.01389
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

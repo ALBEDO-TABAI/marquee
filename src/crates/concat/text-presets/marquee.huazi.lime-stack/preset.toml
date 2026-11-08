@@ -1,0 +1,15 @@
+id = "marquee.huazi.lime-stack"
+name = "青柠·叠影"
+language = "Chinese"
+order = 337
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#ECFCCB"
+strokeWidth = 0.0023
+strokeColor = "#3F6212"
+shadow = true

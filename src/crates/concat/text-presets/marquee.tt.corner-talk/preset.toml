@@ -1,0 +1,20 @@
+id = "marquee.tt.corner-talk"
+name = "口播·角标"
+language = "Chinese"
+order = 882
+sample = "文字"
+
+[style]
+content = "角标"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#01B9C6"
+align = "left"
+background = "#C2410C"
+backgroundPaddingX = 0.01389
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

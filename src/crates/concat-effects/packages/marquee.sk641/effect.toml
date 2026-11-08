@@ -1,0 +1,24 @@
+format = 2
+
+[effect]
+id = "marquee.sk641"
+name = "心形·薄荷·呼吸"
+kind = "sticker"
+category = "宠物"
+order = 1009
+description = "Original parametric sticker SKU (SDF art, no third-party IP)."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"
+

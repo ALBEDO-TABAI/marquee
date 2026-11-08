@@ -1,0 +1,15 @@
+id = "marquee.huazi.ivory-drop"
+name = "象牙·长影"
+language = "Chinese"
+order = 488
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFFEF5"
+strokeWidth = 0.00575
+strokeColor = "#C4B896"
+shadow = true

@@ -244,6 +244,8 @@ fn model_upstream(id: &str) -> String {
 }
 
 /// Where downloaded models live: `<app data>/whisper-models/ggml-<id>.bin`.
+/// App data is `$XDG_DATA_HOME/app.marquee.editor` when `XDG_DATA_HOME` is
+/// an absolute path, otherwise `~/.local/share/app.marquee.editor`.
 fn models_dir(dirs: &AppDirs) -> Result<PathBuf, String> {
     let dir = dirs.data.join("whisper-models");
     std::fs::create_dir_all(&dir)
@@ -592,6 +594,22 @@ pub struct TranscribeRequest {
     /// English-only model hears English whatever this says.
     #[serde(default)]
     pub language: Option<String>,
+    /// Optional initial prompt (script, punctuation, vocabulary bias).
+    #[serde(default)]
+    pub prompt: Option<String>,
+    /// Hotwords / glossary terms appended to the prompt and used by a light
+    /// post-correction pass (plus `captions-dictionary.json` in app data).
+    #[serde(default)]
+    pub glossary: Vec<String>,
+    /// When true, also apply the old same-length “almost the same characters”
+    /// substitution. Off by default: it rewrote neighbouring words.
+    #[serde(default)]
+    pub glossary_fuzzy: bool,
+    /// When true, append glossary terms to whisper's initial prompt.
+    /// Off by default: stuffing the list into the prompt can bias a same-pinyin
+    /// syllable that is not itself a glossary term (e.g. 开始响 → 开始想).
+    #[serde(default)]
+    pub glossary_in_prompt: bool,
 }
 
 struct LoadedModel {
@@ -938,9 +956,15 @@ impl Transcriber {
             "auto"
         };
 
-        let strategy = if recipe.beam > 1 {
+        // Chinese benefits from a wider beam; elsewhere greedy stays default.
+        let beam = if language == "zh" {
+            recipe.beam.max(5)
+        } else {
+            recipe.beam
+        };
+        let strategy = if beam > 1 {
             SamplingStrategy::BeamSearch {
-                beam_size: recipe.beam,
+                beam_size: beam,
                 // Whisper's default: no patience factor.
                 patience: -1.0,
             }
@@ -952,6 +976,21 @@ impl Transcriber {
         let mut params = FullParams::new(strategy);
         params.set_n_threads(threads as i32);
         params.set_language(Some(language));
+        let prompt = request
+            .prompt
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .or_else(|| default_zh_prompt(Some(language)));
+        let prompt = if request.glossary_in_prompt {
+            merge_glossary_prompt(prompt, &request.glossary)
+        } else {
+            prompt
+        };
+        if let Some(ref prompt) = prompt {
+            params.set_initial_prompt(prompt);
+        }
         params.set_print_special(false);
         params.set_print_progress(false);
         params.set_print_realtime(false);
@@ -1031,7 +1070,16 @@ impl Transcriber {
             }
             keep_segment(start, end, text)
         });
-        let lines: Vec<Segment> = lines.collect();
+        let dictionary = load_caption_dictionary(dirs);
+        let mut lines: Vec<Segment> = lines.collect();
+        for line in &mut lines {
+            line.text = correct_caption_text(
+                &line.text,
+                &request.glossary,
+                &dictionary,
+                request.glossary_fuzzy,
+            );
+        }
         Ok(if recipe.prune {
             drop_repeats(lines)
         } else {
@@ -1284,6 +1332,10 @@ mod tests {
                     window,
                     model_id,
                     language: std::env::var("CONCAT_CAPTION_LANGUAGE").ok(),
+                    prompt: None,
+                    glossary: Vec::new(),
+            glossary_fuzzy: false,
+            glossary_in_prompt: false,
                 },
                 |_| {},
             )
@@ -1625,6 +1677,10 @@ mod accuracy {
                         window: 3600.0,
                         model_id: model.to_owned(),
                         language,
+                        prompt: None,
+                        glossary: Vec::new(),
+            glossary_fuzzy: false,
+            glossary_in_prompt: false,
                     };
                     // The model's load is timed apart from the work: it is
                     // paid once per session, not per run.
@@ -1716,6 +1772,10 @@ mod real_audio {
             window: 30.0,
             model_id: "tiny.en".to_owned(),
             language: None,
+            prompt: None,
+            glossary: Vec::new(),
+            glossary_fuzzy: false,
+            glossary_in_prompt: false,
         };
         let segments = transcriber
             .transcribe(&dirs, &request, |stage| eprintln!("{stage:?}"))
@@ -1724,5 +1784,571 @@ mod real_audio {
             eprintln!("{:.2}-{:.2} {}", segment.start, segment.end, segment.text);
         }
         assert!(!segments.is_empty(), "no words heard");
+    }
+}
+
+
+/// Terms from `captions.transcribe` `glossary`, joined onto the whisper prompt.
+pub fn merge_glossary_prompt(prompt: Option<String>, glossary: &[String]) -> Option<String> {
+    let terms: Vec<&str> = glossary
+        .iter()
+        .map(|term| term.trim())
+        .filter(|term| !term.is_empty())
+        .collect();
+    if terms.is_empty() {
+        return prompt;
+    }
+    let extra = format!("专有词汇：{}", terms.join("、"));
+    Some(match prompt {
+        Some(existing) if !existing.is_empty() => format!("{existing} {extra}"),
+        _ => extra,
+    })
+}
+
+/// Built-in Chinese homophone fixes seen on travel / city narration.
+fn builtin_zh_fixes() -> &'static [(&'static str, &'static str)] {
+    &[
+        ("电线干", "电线杆"),
+        ("嗅求", "绣球"),
+        ("先露进", "先漏进"),
+        ("露进", "漏进"),
+        ("向有人", "像有人"),
+        ("来得很清", "来得很轻"),
+        ("得很清", "得很轻"),
+    ]
+}
+
+/// User replacements at `<app data>/captions-dictionary.json` (object of
+/// `"wrong": "right"`) and the same file under config, if present.
+pub fn load_caption_dictionary(dirs: &AppDirs) -> Vec<(String, String)> {
+    let mut pairs = Vec::new();
+    for path in [
+        dirs.data.join("captions-dictionary.json"),
+        dirs.config.join("captions-dictionary.json"),
+    ] {
+        if let Ok(bytes) = std::fs::read(&path) {
+            pairs.extend(parse_caption_dictionary(&bytes));
+        }
+    }
+    pairs
+}
+
+fn parse_caption_dictionary(bytes: &[u8]) -> Vec<(String, String)> {
+    let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
+        return Vec::new();
+    };
+    let mut pairs = Vec::new();
+    match value {
+        serde_json::Value::Object(map) => {
+            for (from, to) in map {
+                if let Some(to) = to.as_str() {
+                    if !from.is_empty() && !to.is_empty() {
+                        pairs.push((from, to.to_owned()));
+                    }
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                let from = item.get("from").and_then(|v| v.as_str());
+                let to = item.get("to").and_then(|v| v.as_str());
+                if let (Some(from), Some(to)) = (from, to) {
+                    if !from.is_empty() && !to.is_empty() {
+                        pairs.push((from.to_owned(), to.to_owned()));
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    pairs
+}
+
+/// Replace known slips, then the user's dictionary, then glossary terms
+/// that match as exact homophones (same length, same pinyin, not crossing
+/// punctuation). The old n−1 character “fuzzy” pass is opt-in.
+pub fn correct_caption_text(
+    text: &str,
+    glossary: &[String],
+    user: &[(String, String)],
+    fuzzy: bool,
+) -> String {
+    let mut out = text.to_string();
+    let mut replacements: Vec<(String, String)> = builtin_zh_fixes()
+        .iter()
+        .map(|(from, to)| ((*from).to_owned(), (*to).to_owned()))
+        .collect();
+    replacements.extend(user.iter().cloned());
+    replacements.sort_by(|a, b| b.0.chars().count().cmp(&a.0.chars().count()));
+    for (from, to) in &replacements {
+        if !from.is_empty() {
+            out = out.replace(from, to);
+        }
+    }
+    let script = detect_han_script(text);
+    let listed: Vec<&str> = glossary.iter().map(|term| term.trim()).collect();
+    for term in &listed {
+        if term.chars().count() < 2 {
+            continue;
+        }
+        if let Some(script) = script {
+            if detect_han_script(term) == Some(script.other()) {
+                continue;
+            }
+        }
+        out = replace_glossary_homophones(&out, term, &listed);
+        if fuzzy {
+            out = fuzzy_replace_glossary(&out, term);
+        }
+    }
+    out
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum HanScript {
+    Simplified,
+    Traditional,
+}
+
+impl HanScript {
+    fn other(self) -> Self {
+        match self {
+            Self::Simplified => Self::Traditional,
+            Self::Traditional => Self::Simplified,
+        }
+    }
+}
+
+fn detect_han_script(text: &str) -> Option<HanScript> {
+    let mut simplified = 0usize;
+    let mut traditional = 0usize;
+    for ch in text.chars() {
+        match char_han_script(ch) {
+            Some(HanScript::Simplified) => simplified += 1,
+            Some(HanScript::Traditional) => traditional += 1,
+            None => {}
+        }
+    }
+    if simplified > traditional {
+        Some(HanScript::Simplified)
+    } else if traditional > simplified {
+        Some(HanScript::Traditional)
+    } else {
+        None
+    }
+}
+
+fn char_han_script(ch: char) -> Option<HanScript> {
+    const PAIRS: &[(char, char)] = &[
+        ('线', '線'), ('杆', '桿'), ('机', '機'), ('电', '電'), ('贩', '販'),
+        ('卖', '賣'), ('动', '動'), ('门', '門'), ('过', '過'), ('还', '還'),
+        ('这', '這'), ('里', '裡'), ('里', '裏'), ('经', '經'), ('发', '發'),
+        ('东', '東'), ('达', '達'), ('种', '種'), ('声', '聲'), ('长', '長'),
+        ('对', '對'), ('会', '會'), ('后', '後'), ('来', '來'), ('时', '時'),
+        ('国', '國'), ('为', '為'), ('说', '說'), ('语', '語'), ('启', '啟'),
+    ];
+    for (simp, trad) in PAIRS {
+        if ch == *simp && simp != trad {
+            return Some(HanScript::Simplified);
+        }
+        if ch == *trad && simp != trad {
+            return Some(HanScript::Traditional);
+        }
+    }
+    None
+}
+
+fn replace_glossary_homophones(text: &str, term: &str, listed: &[&str]) -> String {
+    let n = term.chars().count();
+    if n == 0 {
+        return text.to_owned();
+    }
+    let Some(want) = reading(term) else {
+        return text.to_owned();
+    };
+    let chars: Vec<char> = text.chars().collect();
+    let mut i = 0;
+    let mut out = String::new();
+    while i < chars.len() {
+        if i + n <= chars.len() {
+            let span = &chars[i..i + n];
+            if span.iter().all(|ch| !is_boundary(*ch)) {
+                let window: String = span.iter().collect();
+                if window == term {
+                    out.push_str(term);
+                    i += n;
+                    continue;
+                }
+                if listed.iter().any(|item| *item == window) {
+                    out.push_str(&window);
+                    i += n;
+                    continue;
+                }
+                if reading(&window).as_deref() == Some(want.as_str()) {
+                    out.push_str(term);
+                    i += n;
+                    continue;
+                }
+            }
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+    out
+}
+
+fn is_boundary(ch: char) -> bool {
+    ch.is_whitespace()
+        || matches!(
+            ch,
+            ',' | '，' | '.' | '。' | '!' | '！' | '?' | '？' | ';' | '；' | ':' | '：'
+                | '、' | '"' | '“' | '”' | '\'' | '‘' | '’' | '(' | ')' | '（' | '）'
+        )
+}
+
+fn reading(text: &str) -> Option<String> {
+    let mut out = String::new();
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch.to_ascii_lowercase());
+            continue;
+        }
+        out.push_str(syllable(ch)?);
+        out.push(' ');
+    }
+    Some(out)
+}
+
+fn syllable(ch: char) -> Option<&'static str> {
+    Some(match ch {
+        '一' => "yi", '上' => "shang", '下' => "xia", '东' => "dong", '中' => "zhong",
+        '了' => "le", '事' => "shi", '京' => "jing", '亮' => "liang", '人' => "ren",
+        '住' => "zhu", '傍' => "bang", '像' => "xiang", '先' => "xian", '光' => "guang",
+        '刀' => "dao", '切' => "qie", '刚' => "gang", '到' => "dao", '动' => "dong",
+        '動' => "dong", '午' => "wu", '卖' => "mai", '发' => "fa", '变' => "bian",
+        '口' => "kou", '可' => "ke", '向' => "xiang", '呼' => "hu", '咖' => "ka",
+        '响' => "xiang", '啡' => "fei", '嗅' => "xiu", '回' => "hui", '在' => "zai",
+        '地' => "de", '场' => "chang", '声' => "sheng", '多' => "duo", '夜' => "ye",
+        '够' => "gou", '大' => "da", '天' => "tian", '奶' => "nai", '始' => "shi",
+        '家' => "jia", '小' => "xiao", '层' => "ceng", '已' => "yi", '巷' => "xiang",
+        '市' => "shi", '干' => "gan", '店' => "dian", '开' => "kai", '很' => "hen",
+        '得' => "de", '想' => "xiang", '我' => "wo", '才' => "cai", '打' => "da",
+        '拉' => "la", '招' => "zhao", '早' => "zao", '晚' => "wan", '晨' => "chen",
+        '更' => "geng", '有' => "you", '机' => "ji", '杆' => "gan", '条' => "tiao",
+        '来' => "lai", '桿' => "gan", '楚' => "chu", '楼' => "lou", '機' => "ji",
+        '比' => "bi", '求' => "qiu", '没' => "mei", '沿' => "yan", '清' => "qing",
+        '湿' => "shi", '漏' => "lou", '灯' => "deng", '热' => "re", '牌' => "pai",
+        '球' => "qiu", '生' => "sheng", '电' => "dian", '留' => "liu", '白' => "bai",
+        '的' => "de", '盆' => "pen", '着' => "zhe", '空' => "kong", '窗' => "chuang",
+        '線' => "xian", '红' => "hong", '线' => "xian", '经' => "jing", '绣' => "xiu",
+        '缝' => "feng", '自' => "zi", '色' => "se", '街' => "jie", '袋' => "dai",
+        '被' => "bei", '角' => "jiao", '记' => "ji", '话' => "hua", '说' => "shuo",
+        '販' => "fan", '賣' => "mai", '贩' => "fan", '走' => "zou", '起' => "qi",
+        '足' => "zu", '轻' => "qing", '达' => "da", '过' => "guo", '还' => "hai",
+        '这' => "zhe", '进' => "jin", '透' => "tou", '醒' => "xing", '里' => "li",
+        '门' => "men", '雨' => "yu", '電' => "dian", '露' => "lu", '音' => "yin",
+        '鱼' => "yu",
+        _ => return None,
+    })
+}
+
+fn fuzzy_replace_glossary(text: &str, term: &str) -> String {
+    let needle: Vec<char> = term.chars().collect();
+    let n = needle.len();
+    let chars: Vec<char> = text.chars().collect();
+    let mut i = 0;
+    let mut out = String::new();
+    while i < chars.len() {
+        if i + n <= chars.len() {
+            let window = &chars[i..i + n];
+            if window == needle.as_slice() {
+                out.push_str(term);
+                i += n;
+                continue;
+            }
+            let shared = window
+                .iter()
+                .zip(needle.iter())
+                .filter(|(a, b)| a == b)
+                .count();
+            if shared >= n.saturating_sub(1) {
+                out.push_str(term);
+                i += n;
+                continue;
+            }
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+    out
+}
+
+/// Simplified Chinese + punctuation hint when the language is zh.
+pub fn default_zh_prompt(language: Option<&str>) -> Option<String> {
+    let code = language.map(|s| s.trim().to_ascii_lowercase()).unwrap_or_default();
+    if matches!(code.as_str(), "zh" | "zh-cn" | "zh-hans" | "chinese") {
+        Some("以下是普通话的句子，使用简体中文和标点符号。".to_owned())
+    } else {
+        None
+    }
+}
+
+/// Default model id: multilingual `small` for Chinese, `tiny.en` otherwise.
+pub fn default_model_id(model: Option<&str>, language: Option<&str>) -> String {
+    if let Some(model) = model.map(str::trim).filter(|s| !s.is_empty()) {
+        return model.to_owned();
+    }
+    if default_zh_prompt(language).is_some() {
+        "small".to_owned()
+    } else {
+        "tiny.en".to_owned()
+    }
+}
+
+#[cfg(test)]
+mod m8_defaults {
+    use super::{default_model_id, default_zh_prompt};
+
+    #[test]
+    fn default_model_id_picks_small_for_chinese() {
+        assert_eq!(default_model_id(None, Some("zh")), "small");
+        assert_eq!(default_model_id(Some("base"), Some("zh")), "base");
+        assert_eq!(default_model_id(None, Some("en")), "tiny.en");
+    }
+
+    #[test]
+    fn chinese_gets_a_punctuation_prompt() {
+        let prompt = default_zh_prompt(Some("zh")).expect("zh prompt");
+        assert!(prompt.contains("简体中文"));
+        assert!(prompt.contains("标点"));
+        assert!(default_zh_prompt(Some("en")).is_none());
+    }
+
+    #[test]
+    fn glossary_is_appended_to_the_whisper_prompt() {
+        let merged = super::merge_glossary_prompt(
+            default_zh_prompt(Some("zh")),
+            &["绣球".into(), "电线杆".into()],
+        )
+        .expect("merged");
+        assert!(merged.contains("简体中文"));
+        assert!(merged.contains("绣球"));
+        assert!(merged.contains("电线杆"));
+    }
+
+    #[test]
+    fn post_correction_fixes_known_homophones_and_glossary() {
+        let text = "风来得很清，光先露进巷子，向有人靠在电线干旁，墙角种着嗅求。";
+        let fixed = super::correct_caption_text(text, &["绣球".into(), "电线杆".into()], &[], false);
+        assert!(fixed.contains("来得很轻"), "{fixed}");
+        assert!(fixed.contains("漏进"), "{fixed}");
+        assert!(fixed.contains("像有人"), "{fixed}");
+        assert!(fixed.contains("电线杆"), "{fixed}");
+        assert!(fixed.contains("绣球"), "{fixed}");
+        assert!(!fixed.contains("电线干"), "{fixed}");
+        assert!(!fixed.contains("嗅求"), "{fixed}");
+    }
+
+    #[test]
+    fn user_dictionary_overrides_a_slip() {
+        let fixed = super::correct_caption_text(
+            "今晚去浅草寺",
+            &[],
+            &[("浅草寺".into(), "浅草寺神社".into())],
+            false,
+        );
+        assert_eq!(fixed, "今晚去浅草寺神社");
+    }
+
+    #[test]
+    fn glossary_does_not_corrupt_neighbour_words() {
+        let before =
+            "巷口的咖啡机开始响,像有人在很小声地打招呼。夜里回家,口袋里还留着白天的热";
+        let glossary = [
+            "巷口",
+            "傍晚",
+            "自动贩卖机",
+            "自動販賣機",
+            "电线杆",
+            "電線桿",
+            "绣球",
+            "窗缝",
+            "漏进",
+            "很轻",
+            "像有人",
+            "咖啡机",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+        let after = super::correct_caption_text(before, &glossary, &[], false);
+        assert_eq!(after, before, "default glossary must not rewrite neighbours");
+        assert!(!after.contains("开始想"), "{after}");
+        assert!(!after.contains("很轻声"), "{after}");
+        assert!(!after.contains("回家巷口"), "{after}");
+        let fuzzy = super::correct_caption_text(before, &glossary, &[], true);
+        assert!(
+            fuzzy.contains("很轻声") || fuzzy.contains("回家巷口"),
+            "opt-in fuzzy should still be the old sliding match: {fuzzy}"
+        );
+    }
+
+    #[test]
+    fn glossary_replaces_pinyin_equal_tokens() {
+        let fixed = super::correct_caption_text("沿着电线干走", &["电线杆".into()], &[], false);
+        assert!(fixed.contains("电线杆"), "{fixed}");
+        assert!(!fixed.contains("电线干"), "{fixed}");
+    }
+
+    #[test]
+    fn glossary_keeps_the_source_script_when_both_forms_are_listed() {
+        let glossary = ["电线杆", "電線桿", "自动贩卖机", "自動販賣機"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        let simplified = "我沿着电线杆走，经过还没醒透的自动贩卖机";
+        assert_eq!(
+            super::correct_caption_text(simplified, &glossary, &[], false),
+            simplified
+        );
+        let traditional = "我沿著電線桿走，經過還沒醒透的自動販賣機";
+        assert_eq!(
+            super::correct_caption_text(traditional, &glossary, &[], false),
+            traditional
+        );
+    }
+
+    fn cer(hyp: &str, refer: &str) -> f64 {
+        let a: Vec<char> = hyp.chars().filter(|ch| !ch.is_whitespace()).collect();
+        let b: Vec<char> = refer.chars().filter(|ch| !ch.is_whitespace()).collect();
+        if b.is_empty() {
+            return 0.0;
+        }
+        let mut dp = vec![vec![0usize; a.len() + 1]; b.len() + 1];
+        for i in 0..=b.len() {
+            dp[i][0] = i;
+        }
+        for j in 0..=a.len() {
+            dp[0][j] = j;
+        }
+        for i in 1..=b.len() {
+            for j in 1..=a.len() {
+                let cost = usize::from(a[j - 1] != b[i - 1]);
+                dp[i][j] = (dp[i - 1][j] + 1)
+                    .min(dp[i][j - 1] + 1)
+                    .min(dp[i - 1][j - 1] + cost);
+            }
+        }
+        dp[b.len()][a.len()] as f64 / b.len() as f64
+    }
+
+    #[test]
+    fn glossary_does_not_worsen_cer_against_the_script() {
+        let script = "巷口的咖啡机开始响，像有人在很小声地打招呼。夜里回家，口袋里还留着白天的热。";
+        let heard =
+            "巷口的咖啡机开始响,像有人在很小声地打招呼。夜里回家,口袋里还留着白天的热";
+        let glossary = ["巷口", "很轻", "像有人", "咖啡机"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        let after = super::correct_caption_text(heard, &glossary, &[], false);
+        let before_cer = cer(heard, script);
+        let after_cer = cer(&after, script);
+        assert!(
+            after_cer <= before_cer + 1e-9,
+            "CER worsened {before_cer} -> {after_cer}; after={after}"
+        );
+    }
+
+    #[test]
+    fn glossary_is_not_merged_into_prompt_unless_asked() {
+        let base = default_zh_prompt(Some("zh")).unwrap();
+        assert!(
+            !base.contains("专有词汇"),
+            "default zh prompt must not list glossary terms"
+        );
+        let merged = super::merge_glossary_prompt(Some(base), &["巷口".into()]).unwrap();
+        assert!(merged.contains("专有词汇：巷口"), "{merged}");
+    }
+
+    /// Live check: `CONCAT_TRANSCRIBE_AUDIO=/path/narration.wav cargo test -p concat-speech --lib -- glossary_live_cer --nocapture`
+    #[test]
+    fn glossary_live_cer_on_narration_wav() {
+        let Ok(path) = std::env::var("CONCAT_TRANSCRIBE_AUDIO") else {
+            return;
+        };
+        if !std::path::Path::new(&path).exists() {
+            panic!("CONCAT_TRANSCRIBE_AUDIO does not exist: {path}");
+        }
+        let script = match std::env::var("CONCAT_WER_REFERENCE") {
+            Ok(path) => std::fs::read_to_string(&path).unwrap_or_else(|err| {
+                panic!("CONCAT_WER_REFERENCE could not be read ({path}): {err}")
+            }),
+            Err(_) => {
+                "东京的早晨来得很轻。窗缝里先漏进一层奶色的光，楼下的店门才刚刚拉开。巷口的咖啡机开始响，像有人在很小声地打招呼。我沿着电线杆走，经过还没醒透的自动贩卖机，经过一盆被夜雨打湿的绣球。中午，市场里的人变多了，刀切鱼的声音比说话还清楚。傍晚，灯一条一条亮起来，招牌上的红，比天空的红更先到达。夜里回家，口袋里还留着白天的热。街角没有大事发生。可这一天，已经足够被记住。".into()
+            }
+        };
+        let glossary = [
+            "巷口",
+            "傍晚",
+            "自动贩卖机",
+            "自動販賣機",
+            "电线杆",
+            "電線桿",
+            "绣球",
+            "窗缝",
+            "漏进",
+            "很轻",
+            "像有人",
+            "咖啡机",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+        let dirs = concat_host::AppDirs::locate().expect("app dirs");
+        let transcriber = super::Transcriber::new();
+        transcriber
+            .download_model(&dirs, "small", |_| {})
+            .expect("download or find ggml-small");
+        let run = |glossary: Vec<String>, glossary_in_prompt: bool| {
+            let segments = transcriber
+                .transcribe(
+                    &dirs,
+                    &super::TranscribeRequest {
+                        path: path.clone(),
+                        audio_stream: None,
+                        source_start: 0.0,
+                        window: 3600.0,
+                        model_id: "small".into(),
+                        language: Some("zh".into()),
+                        prompt: None,
+                        glossary,
+                        glossary_fuzzy: false,
+                        glossary_in_prompt,
+                    },
+                    |_| {},
+                )
+                .expect("transcribe");
+            segments
+                .into_iter()
+                .map(|line| line.text)
+                .collect::<Vec<_>>()
+                .join("")
+        };
+        let none = run(Vec::new(), false);
+        let glossary_only = run(glossary.clone(), false);
+        let none_cer = cer(&none, &script);
+        let gloss_cer = cer(&glossary_only, &script);
+        eprintln!("LIVE_CER no-glossary={none_cer:.4} text={none}");
+        eprintln!("LIVE_CER glossary-post-only={gloss_cer:.4} text={glossary_only}");
+        assert!(
+            !glossary_only.contains("開始想") && !glossary_only.contains("开始想")
+                || !none.contains("开始响") && !none.contains("開始響"),
+            "glossary post-only should not introduce 开始想 when the model already heard 开始响: none={none} gloss={glossary_only}"
+        );
+        assert!(
+            gloss_cer <= none_cer + 0.02 + 1e-9,
+            "live glossary CER worsened {none_cer} -> {gloss_cer}"
+        );
     }
 }

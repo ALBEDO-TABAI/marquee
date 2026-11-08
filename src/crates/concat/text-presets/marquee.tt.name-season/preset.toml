@@ -1,0 +1,20 @@
+id = "marquee.tt.name-season"
+name = "季节·人名条"
+language = "Chinese"
+order = 817
+sample = "文字"
+
+[style]
+content = "人名条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04722
+color = "#ECFCCB"
+strokeWidth = 0.00278
+strokeColor = "#3F6212"
+align = "left"
+background = "#01B9C6"
+backgroundPaddingX = 0.01944
+backgroundPaddingY = 0.01944
+tracking = 0.0
+shadow = false

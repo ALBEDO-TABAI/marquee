@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.petbokeh45"
+name = "软焦宠物 45"
+kind = "effect"
+category = "宠物"
+order = 2793
+description = "Original 软焦宠物 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

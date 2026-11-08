@@ -13,7 +13,7 @@ pub const SEAT_MIN_H: f32 = 140.0;
 /// has been squeezed too far.
 pub const SEAT_MIN_GRAB: f32 = 64.0;
 /// The gutter between the halves of a split, and the margin round the lot.
-pub const SEAT_GAP: f32 = 8.0;
+pub const SEAT_GAP: f32 = 7.0;
 
 pub enum Dock {
     /// One view, filling its box.
@@ -254,24 +254,19 @@ pub fn lay_out(node: &Dock, (x, y, w, h): (f32, f32, f32, f32), out: &mut DockLa
     }
 }
 
-/// The arrangement the editor opens with: the inspector a column down the
-/// whole right side, and in the rest the library and the monitor across the
-/// top and the timeline under both of them. The inspector is the tallest
-/// thing in the window - a stack of sections that would otherwise scroll -
-/// and the timeline gives up its right end to it, which is the end with
-/// nothing on it yet. About 0.22 of the width to the inspector and 0.25 to
-/// the library, which is 0.32 of what is left once the inspector has had
-/// its share; the timeline takes the lower 0.4 of the height.
+/// The arrangement the editor opens with, sized to Jianying 11.7 chrome
+/// on a 2560×1320 window (title 30, workspace 1290): rail+library 806,
+/// preview 1248, inspector 474, splitter 7, timeline 558.
 pub fn default_dock() -> Dock {
     Dock::Split {
         columns: true,
-        ratio: 0.78,
+        ratio: 0.8143,
         first: Box::new(Dock::Split {
             columns: false,
-            ratio: 0.6,
+            ratio: 0.5651,
             first: Box::new(Dock::Split {
                 columns: true,
-                ratio: 0.32,
+                ratio: 0.389,
                 first: Dock::leaf(PaneKind::Media),
                 second: Dock::leaf(PaneKind::Preview),
             }),

@@ -1,0 +1,20 @@
+id = "marquee.tt.huazititle-winter"
+name = "冬日·花字标题"
+language = "Chinese"
+order = 1008
+sample = "文字"
+
+[style]
+content = "花字标题"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.08889
+color = "#E8F6FF"
+strokeWidth = 0.00278
+strokeColor = "#4AA3D9"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.005
+shadow = false

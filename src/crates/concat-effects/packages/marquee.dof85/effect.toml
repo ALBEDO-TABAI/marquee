@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.dof85"
+name = "浅景深 85"
+kind = "effect"
+category = "基础"
+order = 2607
+description = "Original 浅景深 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

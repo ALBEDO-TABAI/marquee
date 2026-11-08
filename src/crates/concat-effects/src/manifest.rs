@@ -202,6 +202,10 @@ pub enum Kind {
     Transition,
     /// A generator: no input, an image out.
     Generator,
+    /// A sticker overlay: image in, image out, drawn as a parametric mark.
+    Sticker,
+    /// A title motion look: image in, image out, filed on the text page.
+    Textanim,
 }
 
 impl Kind {

@@ -1,0 +1,20 @@
+id = "marquee.tt.talk-game"
+name = "游戏·口播名"
+language = "Chinese"
+order = 914
+sample = "文字"
+
+[style]
+content = "口播名"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04167
+color = "#F3E8FF"
+strokeWidth = 0.00417
+strokeColor = "#6B2FA0"
+align = "left"
+background = "#111111"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

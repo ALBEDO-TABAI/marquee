@@ -1,0 +1,15 @@
+id = "marquee.huazi.white-plain"
+name = "素白·净色"
+language = "Chinese"
+order = 400
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFFFFF"
+strokeWidth = 0.0
+strokeColor = "#111111"
+shadow = false

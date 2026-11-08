@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.shapexf"
+name = "形状打开"
+kind = "transition"
+category = "综艺"
+order = 509
+description = "Original 形状打开 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

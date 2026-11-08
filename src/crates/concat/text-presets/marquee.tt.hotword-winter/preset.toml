@@ -1,0 +1,20 @@
+id = "marquee.tt.hotword-winter"
+name = "冬日·热词"
+language = "Chinese"
+order = 936
+sample = "文字"
+
+[style]
+content = "热词"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.07222
+color = "#E8F6FF"
+strokeWidth = 0.00278
+strokeColor = "#4AA3D9"
+align = "center"
+background = "#FF3B5C"
+backgroundPaddingX = 0.01389
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

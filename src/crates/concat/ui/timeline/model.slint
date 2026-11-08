@@ -168,6 +168,8 @@ export enum TextAlignment { left, center, right }
 export enum ClipField {
     scale, offset-x, offset-y, rotation, stretch-x, stretch-y, opacity,
     volume, speed, preserve-pitch, fade-in, fade-out,
+    anim-intro, anim-outro, anim-combo,
+    anim-intro-secs, anim-outro-secs, anim-combo-secs,
     flip-h, flip-v, blend, crop-left, crop-top, crop-right, crop-bottom,
     font-size, font-weight, italic, underline, strikethrough, text-case, text-opacity, align,
     stroke-width, shadow, line-height, tracking, text-width, text-height,
@@ -419,6 +421,13 @@ export struct SelectedClipData {
     mask-feather: float,
     fade-in: float,
     fade-out: float,
+    /// JY-style 入场/出场/组合: indexes into ClipAnim::INTRO / COMBO, plus seconds
+    anim-intro: int,
+    anim-outro: int,
+    anim-combo: int,
+    anim-intro-secs: float,
+    anim-outro-secs: float,
+    anim-combo-secs: float,
 
     // the cutout: 0 none, 1 automatic, 2 custom; what it keeps, 0 auto,
     // 1 person, 2 object; how soft its edge is; how many strokes it

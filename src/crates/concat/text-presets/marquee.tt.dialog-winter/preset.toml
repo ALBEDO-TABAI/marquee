@@ -1,0 +1,20 @@
+id = "marquee.tt.dialog-winter"
+name = "冬日·对话条"
+language = "Chinese"
+order = 948
+sample = "文字"
+
+[style]
+content = "对话条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#E8F6FF"
+strokeWidth = 0.00278
+strokeColor = "#4AA3D9"
+align = "left"
+background = "#0000008c"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf105"
+name = "立方翻转"
+kind = "transition"
+category = "扭曲"
+order = 1705
+description = "Browsable transition SKU on the 扭曲 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.radialxf"
+name = "径向模糊"
+kind = "transition"
+category = "模糊"
+order = 511
+description = "Original 径向模糊 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

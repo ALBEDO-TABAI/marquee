@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.grainxf"
+name = "颗粒叠化"
+kind = "transition"
+category = "叠化"
+order = 501
+description = "Original 颗粒叠化 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

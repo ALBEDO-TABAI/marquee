@@ -1,0 +1,15 @@
+id = "marquee.huazi.ink-bevel"
+name = "墨韵·斜切"
+language = "Chinese"
+order = 349
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F8F5F0"
+strokeWidth = 0.0069
+strokeColor = "#1A1A1A"
+shadow = true

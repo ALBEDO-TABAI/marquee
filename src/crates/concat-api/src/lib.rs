@@ -56,7 +56,8 @@ use concat_project::model::VideoSettings;
 
 pub use message::{
     API_VERSION, ApiError, Dirs, Done, ErrorCode, Event, ExportSpec, Fill, JobState, JobStatus,
-    PackageInfo, ParamInfo, Picture, Reply, Request, Response, Started, VersionInfo, Written,
+    CaptionSegment, PackageInfo, ParamInfo, Picture, Reply, Request, Response, Started, TextPresetInfo,
+    VersionInfo, Written,
 };
 
 /// The export sheet's middle quality, and what an export gets when the
@@ -470,6 +471,30 @@ impl Api {
             }
             Request::MediaImport { path, file } => view(self.import(&path, &file)?),
             Request::CatalogueList { kind } => Ok(Reply::Packages(catalogue(kind.as_deref())?)),
+            Request::PresetList { category, query } => {
+                Ok(Reply::Presets(list_presets(category.as_deref(), query.as_deref())?))
+            }
+            Request::CaptionsTranscribe {
+                file,
+                model,
+                language,
+                prompt,
+                glossary,
+                glossary_fuzzy,
+                glossary_in_prompt,
+                source_start,
+                window,
+            } => Ok(Reply::Captions(self.transcribe(
+                &file,
+                model.as_deref(),
+                language.as_deref(),
+                prompt.as_deref(),
+                glossary.as_deref(),
+                glossary_fuzzy,
+                glossary_in_prompt,
+                source_start,
+                window,
+            )?)),
             Request::TemplateList => Ok(Reply::Templates(templates::list(&self.dirs.config))),
             Request::TemplateInstantiate {
                 template,
@@ -500,6 +525,64 @@ impl Api {
                 }
             }
         }
+    }
+
+
+    /// [`Request::CaptionsTranscribe`]: download the named whisper.cpp model
+    /// if needed, then return timed cues. `base` is multilingual (Chinese).
+    pub fn transcribe(
+        &self,
+        file: &str,
+        model: Option<&str>,
+        language: Option<&str>,
+        prompt: Option<&str>,
+        glossary: Option<&[String]>,
+        glossary_fuzzy: Option<bool>,
+        glossary_in_prompt: Option<bool>,
+        source_start: Option<f64>,
+        window: Option<f64>,
+    ) -> Result<Vec<CaptionSegment>, ApiError> {
+        let model_id = concat_speech::transcribe::default_model_id(model, language);
+        let prompt = prompt
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .or_else(|| concat_speech::transcribe::default_zh_prompt(language));
+        let transcriber = concat_speech::transcribe::Transcriber::new();
+        transcriber
+            .download_model(&self.dirs, &model_id, |_| {})
+            .map_err(ApiError::failed)?;
+        let window = match window {
+            Some(value) if value.is_finite() && value > 0.0 => value,
+            _ => media::probe(file)
+                .ok()
+                .and_then(|summary| summary.duration)
+                .filter(|d| *d > 0.0)
+                .unwrap_or(30.0),
+        };
+        let request = concat_speech::transcribe::TranscribeRequest {
+            path: file.to_owned(),
+            audio_stream: None,
+            source_start: source_start.unwrap_or(0.0).max(0.0),
+            window,
+            model_id,
+            language: language.map(str::to_owned).filter(|s| !s.is_empty()),
+            prompt,
+            glossary: glossary.unwrap_or(&[]).to_vec(),
+            glossary_fuzzy: glossary_fuzzy.unwrap_or(false),
+            glossary_in_prompt: glossary_in_prompt.unwrap_or(false),
+        };
+        let segments = transcriber
+            .transcribe(&self.dirs, &request, |_| {})
+            .map_err(ApiError::failed)?;
+        Ok(segments
+            .into_iter()
+            .map(|seg| CaptionSegment {
+                start: seg.start,
+                end: seg.end,
+                text: seg.text,
+            })
+            .collect())
     }
 
     /// [`Request::Version`].
@@ -725,6 +808,7 @@ impl Api {
             bitrate_kbps: 0,
             color_range,
             hdr,
+            normalize: spec.normalize.unwrap_or(true),
         };
 
         let project_path = session.path().to_owned();
@@ -1030,9 +1114,11 @@ fn catalogue(kind: Option<&str>) -> Result<Vec<PackageInfo>, ApiError> {
         Some("audio") => Some(Kind::Audio),
         Some("transition") => Some(Kind::Transition),
         Some("generator") => Some(Kind::Generator),
+        Some("sticker") => Some(Kind::Sticker),
+        Some("textanim") => Some(Kind::Textanim),
         Some(other) => {
             return Err(ApiError::invalid(format!(
-                "{other:?} is not a kind: effect, filter, audio, transition or generator"
+                "{other:?} is not a kind: effect, filter, audio, transition, generator, sticker or textanim"
             )));
         }
     };
@@ -1071,6 +1157,105 @@ fn catalogue(kind: Option<&str>) -> Result<Vec<PackageInfo>, ApiError> {
         .collect();
     packages.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(packages)
+}
+
+
+/// [`Request::PresetList`]: 花字, 文字模板 and the other title looks,
+/// scanned from the checkout's `text-presets/` and the user's config
+/// overlay. Category is derived from the id prefix so callers do not have
+/// to know folder layout.
+fn list_presets(
+    category: Option<&str>,
+    query: Option<&str>,
+) -> Result<Vec<TextPresetInfo>, ApiError> {
+    let mut roots = Vec::new();
+    let bundled = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../concat/text-presets");
+    if bundled.is_dir() {
+        roots.push(bundled);
+    }
+    if let Ok(dirs) = concat_host::AppDirs::locate() {
+        let user = dirs.config.join("text-presets");
+        if user.is_dir() {
+            roots.push(user);
+        }
+    }
+    let query = query.map(|text| text.to_ascii_lowercase());
+    let mut presets = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for root in roots {
+        let entries = std::fs::read_dir(&root).map_err(|error| ApiError::failed(error.to_string()))?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let file = if path.is_dir() {
+                path.join("preset.toml")
+            } else if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
+                path.clone()
+            } else {
+                continue;
+            };
+            let Ok(text) = std::fs::read_to_string(&file) else {
+                continue;
+            };
+            let Some(id) = toml_string(&text, "id") else {
+                continue;
+            };
+            if !seen.insert(id.clone()) {
+                continue;
+            }
+            let name = toml_string(&text, "name").unwrap_or_else(|| id.clone());
+            let language = toml_string(&text, "language").unwrap_or_else(|| "Latin".to_owned());
+            let sample = toml_string(&text, "sample").unwrap_or_default();
+            let bucket = if id.starts_with("marquee.huazi.") {
+                "huazi"
+            } else if id.starts_with("marquee.tt.") {
+                "template"
+            } else {
+                "language"
+            };
+            if let Some(want) = category {
+                if !want.is_empty() && want != bucket {
+                    continue;
+                }
+            }
+            if let Some(ref needle) = query {
+                let hay = format!("{id} {name} {language} {bucket} {sample}").to_ascii_lowercase();
+                if !hay.contains(needle) {
+                    continue;
+                }
+            }
+            presets.push(TextPresetInfo {
+                id,
+                name,
+                category: bucket.to_owned(),
+                language,
+                sample,
+                path: file.parent().unwrap_or(&file).to_string_lossy().into_owned(),
+            });
+        }
+    }
+    presets.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(presets)
+}
+
+fn toml_string(text: &str, key: &str) -> Option<String> {
+    let prefix = format!("{key} ");
+    for line in text.lines() {
+        let line = line.trim();
+        let Some(rest) = line.strip_prefix(key) else {
+            continue;
+        };
+        let rest = rest.trim_start();
+        let Some(rest) = rest.strip_prefix('=') else {
+            continue;
+        };
+        let rest = rest.trim();
+        if let Some(inner) = rest.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+            return Some(inner.to_owned());
+        }
+        return Some(rest.to_owned());
+    }
+    let _ = prefix;
+    None
 }
 
 /// The key a project folder is held under: its canonical path where the
@@ -1442,6 +1627,7 @@ mod tests {
                 track_id,
                 start: 0.0,
                 ripple: false,
+                placement: None,
             }),
         }));
         assert_eq!(refused.code, ErrorCode::Refused);
@@ -1476,6 +1662,25 @@ mod tests {
         let all = catalogue(None).expect("all");
         assert!(all.len() > packages.len());
         assert!(all.iter().any(|package| !package.params.is_empty()));
+    }
+
+    #[test]
+    fn presets_list_filters_huazi_and_search() {
+        let all = list_presets(None, None).expect("presets");
+        assert!(
+            all.len() >= 322 + 233,
+            "expected Jianying-scale 花字+模板, got {}",
+            all.len()
+        );
+        let huazi = list_presets(Some("huazi"), None).expect("huazi");
+        assert!(huazi.iter().all(|row| row.category == "huazi"));
+        assert!(huazi.len() >= 322);
+        let hit = list_presets(Some("huazi"), Some("珊瑚")).expect("search");
+        assert!(
+            hit.iter().any(|row| row.id == "marquee.huazi.coral-outline"),
+            "{hit:?}"
+        );
+        assert!(hit.iter().all(|row| row.category == "huazi"));
     }
 
     #[test]
@@ -1792,4 +1997,38 @@ mod tests {
             refused.message
         );
     }
+    #[test]
+    fn media_probe_accepts_path_or_file() {
+        let by_path: crate::Request = serde_json::from_value(serde_json::json!({
+            "method": "media.probe",
+            "path": "/tmp/a.mp4"
+        }))
+        .expect("path");
+        let by_file: crate::Request = serde_json::from_value(serde_json::json!({
+            "method": "media.probe",
+            "file": "/tmp/a.mp4"
+        }))
+        .expect("file alias");
+        match (by_path, by_file) {
+            (
+                crate::Request::MediaProbe { path: a },
+                crate::Request::MediaProbe { path: b },
+            ) => {
+                assert_eq!(a, "/tmp/a.mp4");
+                assert_eq!(b, "/tmp/a.mp4");
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn export_spec_normalizes_by_default() {
+        let spec: crate::ExportSpec = serde_json::from_value(serde_json::json!({
+            "output": "/tmp/out.mp4"
+        }))
+        .expect("spec");
+        assert_eq!(spec.normalize, None);
+        assert!(spec.normalize.unwrap_or(true));
+    }
+
 }

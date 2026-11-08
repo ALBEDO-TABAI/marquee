@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf088"
+name = "漏光·warm"
+kind = "transition"
+category = "光效"
+order = 1688
+description = "Browsable transition SKU on the 光效 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

@@ -1,0 +1,15 @@
+id = "marquee.huazi.mint-neon"
+name = "薄荷·霓虹"
+language = "Chinese"
+order = 283
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#D8FFE8"
+strokeWidth = 0.0046
+strokeColor = "#1A8F6A"
+shadow = true

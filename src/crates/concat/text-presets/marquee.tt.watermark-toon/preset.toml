@@ -1,0 +1,20 @@
+id = "marquee.tt.watermark-toon"
+name = "卡通·水印"
+language = "Chinese"
+order = 976
+sample = "文字"
+
+[style]
+content = "水印"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03056
+color = "#FFE14A"
+strokeWidth = 0.00694
+strokeColor = "#111111"
+align = "right"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.002
+shadow = false

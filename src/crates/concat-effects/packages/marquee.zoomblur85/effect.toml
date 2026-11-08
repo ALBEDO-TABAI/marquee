@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.zoomblur85"
+name = "变焦模糊 85"
+kind = "effect"
+category = "动感"
+order = 2967
+description = "Original 变焦模糊 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

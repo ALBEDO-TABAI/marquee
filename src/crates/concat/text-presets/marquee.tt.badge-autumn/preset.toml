@@ -1,0 +1,20 @@
+id = "marquee.tt.badge-autumn"
+name = "秋日·标签"
+language = "Chinese"
+order = 915
+sample = "文字"
+
+[style]
+content = "标签"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.03889
+color = "#F4E8D0"
+strokeWidth = 0.00278
+strokeColor = "#C2410C"
+align = "right"
+background = "#C2410C"
+backgroundPaddingX = 0.02222
+backgroundPaddingY = 0.01389
+tracking = 0.0
+shadow = false

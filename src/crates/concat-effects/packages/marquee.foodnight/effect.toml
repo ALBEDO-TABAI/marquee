@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.foodnight"
+name = "夜宵"
+kind = "filter"
+category = "夜景"
+order = 428
+description = "Original 夜宵 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

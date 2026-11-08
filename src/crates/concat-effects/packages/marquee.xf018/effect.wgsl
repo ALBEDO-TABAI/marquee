@@ -1,0 +1,8 @@
+fn transition(uv: vec2<f32>, progress: f32) -> vec4<f32> {
+    let t = smoothstep(0.0, 1.0, progress);
+    let dir = vec2<f32>(1.0, 0.0);
+    let s = 0.60 * 0.03 * (1.0 - abs(t * 2.0 - 1.0));
+    let a = (from_at(uv) + from_at(uv + dir * s) + from_at(uv - dir * s)) / 3.0;
+    let b = (to_at(uv) + to_at(uv + dir * s) + to_at(uv - dir * s)) / 3.0;
+    return mix(a, b, t);
+}

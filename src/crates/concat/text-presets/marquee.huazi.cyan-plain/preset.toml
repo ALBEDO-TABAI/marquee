@@ -1,0 +1,15 @@
+id = "marquee.huazi.cyan-plain"
+name = "青焰·净色"
+language = "Chinese"
+order = 200
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#E8FFFC"
+strokeWidth = 0.0
+strokeColor = "#01B9C6"
+shadow = false

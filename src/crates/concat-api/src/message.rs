@@ -145,7 +145,9 @@ pub enum Request {
     /// Reports what is inside a media file without touching any project.
     #[serde(rename = "media.probe")]
     MediaProbe {
-        /// The file.
+        /// The file to inspect. `file` is accepted as an alias (same sense
+        /// as `media.import`'s media path) so callers are not surprised.
+        #[serde(alias = "file")]
         path: String,
     },
     /// Probes a file and adds it to a project's bin: what dropping a file
@@ -166,6 +168,55 @@ pub enum Request {
         /// or "generator".
         #[serde(default)]
         kind: Option<String>,
+    },
+
+    /// Built-in and user text presets (花字, 文字模板, language looks).
+    /// `category` is `huazi`, `template` or `language`; `query` matches
+    /// id, name, language or category (case-insensitive).
+    #[serde(rename = "presets.list")]
+    PresetList {
+        /// `huazi`, `template` or `language`. Absent lists every look.
+        #[serde(default)]
+        category: Option<String>,
+        /// Case-insensitive match against id, name, language or category.
+        #[serde(default)]
+        query: Option<String>,
+    },
+
+    /// Transcribe a media file with the local whisper.cpp model.
+    /// Downloads the model into the app data dir when it is not there yet.
+    #[serde(rename = "captions.transcribe")]
+    CaptionsTranscribe {
+        /// Absolute path of the media file (wav, mp4, …).
+        file: String,
+        /// Model id: `tiny.en`, `tiny`, `base.en`, `base`, `small`, `small.en`.
+        /// Default `tiny.en`, or multilingual `small` when `language` is `zh`.
+        #[serde(default)]
+        model: Option<String>,
+        /// Whisper language code (`en`, `zh`, …). Absent/auto lets the model hear.
+        #[serde(default)]
+        language: Option<String>,
+        /// Optional initial prompt (bias vocabulary, script, punctuation).
+        /// Chinese defaults to a Simplified-Chinese punctuated hint when absent.
+        #[serde(default)]
+        prompt: Option<String>,
+        /// Hotwords / glossary terms: appended to the prompt and applied by
+        /// a light post-correction pass (with `captions-dictionary.json`).
+        #[serde(default)]
+        glossary: Option<Vec<String>>,
+        /// Opt-in same-length fuzzy glossary substitution (off by default).
+        #[serde(default)]
+        glossary_fuzzy: Option<bool>,
+        /// Opt-in: also inject glossary terms into whisper's initial prompt.
+        /// Default is post-correction only.
+        #[serde(default)]
+        glossary_in_prompt: Option<bool>,
+        /// Seconds into the file to start. 0 when absent.
+        #[serde(default)]
+        source_start: Option<f64>,
+        /// How many source seconds to read. The file's duration when absent.
+        #[serde(default)]
+        window: Option<f64>,
     },
 
     /// The template library.
@@ -301,6 +352,10 @@ pub struct ExportSpec {
     /// SDR timeline.
     #[serde(default)]
     pub hdr: Option<bool>,
+    /// Run a loudnorm (+ true-peak limiter) on the mix. Defaults to on:
+    /// target −14 LUFS integrated, true peak ≤ −1 dBTP. Pass false to skip.
+    #[serde(default)]
+    pub normalize: Option<bool>,
 }
 
 /// What a request hands back. Serialised as the payload alone: the variant
@@ -322,6 +377,10 @@ pub enum Reply {
     Media(MediaSummary),
     /// [`Request::CatalogueList`].
     Packages(Vec<PackageInfo>),
+    /// [`Request::PresetList`].
+    Presets(Vec<TextPresetInfo>),
+    /// [`Request::CaptionsTranscribe`].
+    Captions(Vec<CaptionSegment>),
     /// [`Request::TemplateList`].
     Templates(Vec<TemplateInfo>),
     /// [`Request::TemplateSave`].
@@ -513,6 +572,38 @@ pub struct PackageInfo {
     pub intensity: Option<String>,
     /// The knobs, in the order the inspector shows them.
     pub params: Vec<ParamInfo>,
+}
+
+/// One 花字 / 文字模板 / language look, as `presets.list` returns it.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TextPresetInfo {
+    /// Stable id stored on a title, e.g. `marquee.huazi.coral-outline`.
+    pub id: String,
+    /// What the card says.
+    pub name: String,
+    /// `huazi`, `template` or `language`.
+    pub category: String,
+    /// Writing the face is for (`Chinese`, `Latin`, …).
+    pub language: String,
+    /// What the library card draws.
+    pub sample: String,
+    /// Folder that holds `preset.toml`, so a caller can copy `[style]`.
+    pub path: String,
+}
+
+/// One transcribed cue, times in seconds from the start of the window.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptionSegment {
+    /// Start of the cue, seconds.
+    pub start: f64,
+    /// End of the cue, seconds.
+    pub end: f64,
+    /// What was said.
+    pub text: String,
 }
 
 /// One parameter of a package.

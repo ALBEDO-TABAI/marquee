@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.audiobar45"
+name = "频谱条 45"
+kind = "effect"
+category = "有声"
+order = 2513
+description = "Original 频谱条 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

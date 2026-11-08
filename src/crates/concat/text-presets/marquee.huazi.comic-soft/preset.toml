@@ -1,0 +1,15 @@
+id = "marquee.huazi.comic-soft"
+name = "芒果·柔光"
+language = "Chinese"
+order = 254
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE14A"
+strokeWidth = 0.00345
+strokeColor = "#111111"
+shadow = true

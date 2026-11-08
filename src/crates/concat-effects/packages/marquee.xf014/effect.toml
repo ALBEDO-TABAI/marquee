@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf014"
+name = "基础下擦"
+kind = "transition"
+category = "基础"
+order = 1614
+description = "Browsable transition SKU on the 基础 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

@@ -1,0 +1,15 @@
+id = "marquee.huazi.mint-bevel"
+name = "薄荷·斜切"
+language = "Chinese"
+order = 289
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#D8FFE8"
+strokeWidth = 0.0069
+strokeColor = "#1A8F6A"
+shadow = true

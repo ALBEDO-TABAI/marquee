@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.zoomxf"
+name = "推近"
+kind = "transition"
+category = "运镜"
+order = 505
+description = "Original 推近 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

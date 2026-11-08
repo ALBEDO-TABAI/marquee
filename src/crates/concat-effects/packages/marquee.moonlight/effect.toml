@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.moonlight"
+name = "月光"
+kind = "effect"
+category = "氛围"
+order = 379
+description = "Original 月光 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

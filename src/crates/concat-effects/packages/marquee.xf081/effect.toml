@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf081"
+name = "拉远"
+kind = "transition"
+category = "缩放"
+order = 1681
+description = "Browsable transition SKU on the 缩放 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

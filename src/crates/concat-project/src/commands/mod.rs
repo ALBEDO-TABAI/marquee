@@ -13,7 +13,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    AppliedFilter, AudioTrack, Background, Clip, ClipKind, ClipMask, ColorRange, ColorSpace, Crop,
+    AppliedFilter, AudioTrack, Background, Clip, ClipAnim, ClipKind, ClipMask, ColorRange, ColorSpace, Crop, MaskShape,
     CustomFont, Cutout, CutoutMode, Enhanced, Framing, KeyEase, KeyProperty, MediaItem, MediaKind,
     MediaOrigin, Project, RunStyle, ShapeStyle, SpeedPoint, Stabilize, Stroke, TextStyle, Timeline,
     Track, Transition, VideoSettings, VoiceMix,
@@ -29,6 +29,9 @@ mod tracks;
 
 /// Fallback length for media whose container reports no duration.
 const UNKNOWN_DURATION: f64 = 5.0;
+fn default_duck_amount() -> f64 { 0.15 }
+fn default_duck_attack() -> f64 { 0.08 }
+fn default_duck_release() -> f64 { 0.2 }
 /// How long a still lasts when first placed. Editorial default, not a fact.
 const DEFAULT_IMAGE_DURATION: f64 = 5.0;
 /// How long a title lasts when first placed.
@@ -84,6 +87,42 @@ pub struct ClipMove {
     pub track_id: String,
 }
 
+/// What `updateClip.patch.text` accepts: `null` clears the style, a plain
+/// string rewrites `TextStyle.content` (keeping the rest of the look), and
+/// an object replaces the style wholesale.
+#[derive(Clone, PartialEq, Debug)]
+pub enum TextField {
+    /// JSON `null`.
+    Clear,
+    /// A bare string: new words on the existing style, or a default look.
+    Words(String),
+    /// A full [`TextStyle`].
+    Style(Box<TextStyle>),
+}
+
+impl Serialize for TextField {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            TextField::Clear => serializer.serialize_none(),
+            TextField::Words(words) => serializer.serialize_str(words),
+            TextField::Style(style) => style.serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TextField {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        match value {
+            serde_json::Value::Null => Ok(TextField::Clear),
+            serde_json::Value::String(words) => Ok(TextField::Words(words)),
+            other => TextStyle::deserialize(other)
+                .map(|style| TextField::Style(Box::new(style)))
+                .map_err(serde::de::Error::custom),
+        }
+    }
+}
+
 /// A partial update to one clip. Every field optional; `transition_in` and
 /// `text` are double-optional so "clear it" and "leave it alone" stay
 /// distinct on the wire (absent = untouched, null = cleared).
@@ -101,6 +140,9 @@ pub struct ClipPatch {
     pub fade_in: Option<f64>,
     /// New fade-out length in seconds, floored at 0.
     pub fade_out: Option<f64>,
+    /// JY-style 入场 / 出场 / 组合 recipes, whole.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anim: Option<ClipAnim>,
     /// New opacity, clamped into 0..=1.
     pub opacity: Option<f64>,
     /// New pitch-preservation setting, taken as sent.
@@ -154,15 +196,13 @@ pub struct ClipPatch {
     )]
     #[cfg_attr(feature = "schema", schemars(with = "Option<Transition>"))]
     pub transition_in: Option<Option<Transition>>,
-    /// The title styling, same three-way wire semantics as `transition_in`.
-    /// Setting a style also renames the clip after its first line.
-    #[serde(
-        default,
-        with = "double_option",
-        skip_serializing_if = "Option::is_none"
-    )]
-    #[cfg_attr(feature = "schema", schemars(with = "Option<TextStyle>"))]
-    pub text: Option<Option<TextStyle>>,
+    /// The title styling, or just its words. Absent leaves it alone;
+    /// `null` clears it; a string rewrites `content`; an object replaces
+    /// the style. Setting words or a style also renames the clip after
+    /// its first line.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<serde_json::Value>"))]
+    pub text: Option<TextField>,
     /// A shape clip's figure and paint, whole: absent leaves it alone. Only
     /// a shape clip takes it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -320,8 +360,14 @@ pub enum Command {
         /// every clip at or after `start` is shifted right by the new
         /// clip's duration, so the drop lands without covering anything.
         /// False for programmatic adds, true for a drop from the bin.
+        /// Ignored when `placement` is set.
         #[serde(default)]
         ripple: bool,
+        /// Collision policy when the asked span is taken. Absent: `insert`
+        /// if `ripple` is true, otherwise `newTrack` (so an overlay at
+        /// time 0 stays at time 0).
+        #[serde(default)]
+        placement: Option<Placement>,
     },
     /// [`Command::AddClip`] without naming a lane: lands on the lowest
     /// track with nothing in the clip's span, falling back to the bottom
@@ -428,6 +474,11 @@ pub enum Command {
         /// layer.
         #[serde(default)]
         sound: bool,
+        /// Clip scale. Absent uses 1.0, except sticker packages (ids whose
+        /// last segment starts with `sk`/`ti`/`de`/`ch`/`st`) default to
+        /// 0.20 — Jianying's sticker size, not a full-frame overlay.
+        #[serde(default)]
+        scale: Option<f64>,
     },
     /// Places a transition as a clip of its own (#621): the package named,
     /// at its defaults, acting on everything beneath it for its span - from
@@ -467,6 +518,54 @@ pub enum Command {
         #[serde(default)]
         ripple: bool,
     },
+    /// Copies the named clips onto the project clipboard (not written to
+    /// disk, not an undo step). Accepts `clipIds` and/or a single `clipId`.
+    #[serde(alias = "copyClip")]
+    CopyClips {
+        /// Clips to copy, in selection order.
+        #[serde(default)]
+        clip_ids: Vec<String>,
+        /// Singular twin of `clipIds`, so `copyClip` with `clipId` works.
+        #[serde(default)]
+        clip_id: Option<String>,
+    },
+    /// Pastes the clipboard at `start` (the leftmost pasted clip), keeping
+    /// relative timing and lanes. One undo step. Empty clipboard is a no-op.
+    #[serde(alias = "pasteClip")]
+    PasteClips {
+        /// Timeline time of the earliest pasted clip. The originals' starts
+        /// when absent.
+        #[serde(default)]
+        start: Option<f64>,
+        /// Optional lane for the first pasted clip; others keep their
+        /// relative row. Absent keeps each clip's original lane when it
+        /// still exists.
+        #[serde(default)]
+        track_id: Option<String>,
+        /// Collision policy. Absent defaults to `newTrack`.
+        #[serde(default)]
+        placement: Option<Placement>,
+    },
+    /// Clones the named clips later by `offset` seconds (1.0 when absent).
+    /// The copy keeps `start + offset`; a same-lane overlap goes to a free
+    /// lane above (or a new one) unless `placement` says otherwise.
+    /// seconds (1.0 when absent). One undo step. Accepts `clipIds` and/or
+    /// a single `clipId` (`duplicateClip`).
+    #[serde(alias = "duplicateClip")]
+    DuplicateClips {
+        /// Clips to clone.
+        #[serde(default)]
+        clip_ids: Vec<String>,
+        /// Singular twin of `clipIds`.
+        #[serde(default)]
+        clip_id: Option<String>,
+        /// Seconds to shift the copies later. 1.0 when absent.
+        #[serde(default)]
+        offset: Option<f64>,
+        /// Collision policy. Absent defaults to `newTrack`.
+        #[serde(default)]
+        placement: Option<Placement>,
+    },
     /// Gives a clip everything another has but its place: its look and
     /// sound, keys, effects, crop, mask, cutout, stabilizing, background
     /// and enhancement - the whole clip, so a field added to [`Clip`] is
@@ -484,6 +583,28 @@ pub enum Command {
         clip_id: String,
         /// The clip it is made like.
         like: Box<Clip>,
+    },
+    /// Puts a key on one property at one point of a clip, replacing
+    /// whichever key on that property was already within a hair of it.
+    ///
+    /// The value is the property's own - the number the inspector shows -
+    /// not the relative factor the engine plays; see `model::ClipKey`.
+    /// Lowers a music (or bed) clip's volume while a trigger clip plays —
+    /// a voice or SFX — writing `volume` keys with a short attack and release.
+    DuckAudio {
+        /// The clip whose gain is lowered (typically music).
+        music_id: String,
+        /// The clip whose span is the duck window (typically speech or SFX).
+        trigger_id: String,
+        /// Target linear gain of `music_id` during the window. 0.15 when absent.
+        #[serde(default = "default_duck_amount")]
+        amount: f64,
+        /// Seconds to ramp down before the trigger starts. 0.08 when absent.
+        #[serde(default = "default_duck_attack")]
+        attack: f64,
+        /// Seconds to ramp back up after the trigger ends. 0.2 when absent.
+        #[serde(default = "default_duck_release")]
+        release: f64,
     },
     /// Puts a key on one property at one point of a clip, replacing
     /// whichever key on that property was already within a hair of it.
@@ -780,6 +901,11 @@ pub enum Command {
         /// clip that grew over them.
         #[serde(default)]
         ripple: bool,
+        /// When true, drop an existing `speedCurve` and use the constant
+        /// `speed`. Default false: the curve is kept and a warning is
+        /// returned instead of silently clearing it.
+        #[serde(default)]
+        clear_curve: bool,
     },
     /// Adjusts the picture's placement. Each field is optional so a drag
     /// can send just the axis it moved; absent fields stay put.
@@ -967,6 +1093,47 @@ pub struct Outcome {
     /// snapshot for it. For a batch: whether any member changed anything.
     #[serde(default)]
     pub applied: bool,
+    /// Every clip this command put on the timeline, with the lane and span
+    /// it actually landed on (which may differ from what was asked).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub placed: Vec<PlacedClip>,
+    /// Why a clip did not keep the asked lane or time, when it could
+    /// still be placed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
+}
+
+/// Where a newly placed clip actually sits.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PlacedClip {
+    /// The minted (or existing) clip id.
+    pub clip_id: String,
+    /// The lane it occupies.
+    pub track_id: String,
+    /// Timeline start in seconds.
+    pub start: f64,
+    /// Timeline end (`start + duration`) in seconds.
+    pub end: f64,
+}
+
+/// What to do when a drop would cover a clip already on the named lane.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum Placement {
+    /// Split or trim clips that occupy the span, then land at the asked time.
+    Overwrite,
+    /// Ripple later clips on the lane to make room (magnetic insert).
+    Insert,
+    /// Keep the asked time; if the lane is taken, use a free lane above
+    /// or mint a new one (Jianying's overlay behaviour). The default for
+    /// programmatic adds, pastes and duplicates.
+    #[default]
+    NewTrack,
+    /// Refuse the command when the asked span is occupied.
+    Error,
 }
 
 /// Why a command was refused. Every variant renders through `Display` as the
@@ -987,6 +1154,9 @@ pub enum CommandError {
     /// A clip-placing command named a track no longer on the timeline.
     #[error("That track no longer exists.")]
     TrackGone,
+    /// `placement: error` and the asked span already holds a clip.
+    #[error("That place is already occupied.")]
+    Occupied,
     /// A first-free-track placement found a timeline with no tracks at all.
     #[error("There are no tracks.")]
     NoTracks,
@@ -1159,15 +1329,18 @@ impl Command {
                     })
             }
             Command::AddLayerClip {
-                start, duration, ..
-            }
-            | Command::AddTransitionClip {
+                start, duration, scale, ..
+            } => bad([*start]) || bad(*duration) || bad(*scale),
+            Command::AddTransitionClip {
                 start, duration, ..
             } => bad([*start]) || bad(*duration),
             Command::SetClipSpeedCurve { curve, .. } => bad(curve
                 .iter()
                 .flatten()
                 .flat_map(|point| [point.at, point.speed])),
+            Command::DuckAudio {
+                amount, attack, release, ..
+            } => bad([*amount, *attack, *release]),
             Command::SetClipKey {
                 at, value, ease, ..
             }
@@ -1234,8 +1407,9 @@ impl Command {
                         patch.background,
                         Some(Some(Background::Blur { amount })) if !amount.is_finite()
                     )
-                    || patch.text.iter().flatten().any(|style| {
-                        bad([
+                    || matches!(
+                        &patch.text,
+                        Some(TextField::Style(style)) if bad([
                             style.font_size,
                             style.font_weight,
                             style.opacity,
@@ -1245,7 +1419,7 @@ impl Command {
                             style.max_width,
                             style.max_height,
                         ])
-                    })
+                    )
             }
             Command::SetClipSpeed { speed, .. } => bad([*speed]),
             Command::FrameClip { at, .. } => bad([*at]),
@@ -1265,6 +1439,8 @@ impl Command {
                 .into_iter()
                 .flatten()
                 .copied()),
+            Command::PasteClips { start, .. } => bad(*start),
+            Command::DuplicateClips { offset, .. } => bad(*offset),
             _ => false,
         }
     }
@@ -1303,17 +1479,25 @@ pub fn apply(
             let mut staged = project.clone();
             let mut created = None;
             let mut applied = false;
+            let mut placed = Vec::new();
+            let mut warnings = Vec::new();
             for command in commands {
                 let outcome = apply(&mut staged, mint, command)?;
                 if outcome.created_id.is_some() {
                     created = outcome.created_id;
                 }
                 applied |= outcome.applied;
+                placed.extend(outcome.placed);
+                warnings.extend(outcome.warnings);
             }
             *project = staged;
             Ok(Outcome {
                 created_id: created,
                 applied,
+                placed,
+                warnings,
+            
+            ..Default::default()
             })
         }
 
@@ -1340,7 +1524,10 @@ pub fn apply(
         | Command::SetClipEnhanced { .. }
         | Command::MergeClips { .. }
         | Command::ConsolidateClips { .. }
-        | Command::RemoveClips { .. }) => clips::apply(project, mint, command),
+        | Command::RemoveClips { .. }
+        | Command::CopyClips { .. }
+        | Command::PasteClips { .. }
+        | Command::DuplicateClips { .. }) => clips::apply(project, mint, command),
         command @ (Command::UpdateClip { .. }
         | Command::StyleTextRange { .. }
         | Command::ClearTextStyles { .. }
@@ -1351,6 +1538,7 @@ pub fn apply(
         | Command::SetClipStabilize { .. }
         | Command::SetClipVoice { .. }
         | Command::SetClipKey { .. }
+        | Command::DuckAudio { .. }
         | Command::ClearClipKey { .. }
         | Command::ClearClipKeys { .. }
         | Command::SetEffectKey { .. }

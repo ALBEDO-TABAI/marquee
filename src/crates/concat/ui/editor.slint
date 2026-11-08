@@ -9,7 +9,7 @@ import {
 import {
     CurveData, CurveGroupData, WheelData, WheelGroupData,
 } from "inspector/grading.slint";
-import { MediaFilter, MediaItemData, TextPresetData } from "workspace/media-pane.slint";
+import { MediaFilter, MediaItemData, TemplateCardData, TextPresetData } from "workspace/media-pane.slint";
 import { CaptionsSheetData } from "dialogs/captions.slint";
 import { DockDivider, DockSide, SeatBox } from "dock.slint";
 import { PaneKind } from "workspace/pane-switcher.slint";
@@ -115,6 +115,10 @@ export global Editor {
     in-out property <[TextPresetData]> style-presets;
     /// The presets for other writing, for its Languages shelf.
     in-out property <[TextPresetData]> language-presets;
+    /// 文字模板 shelf.
+    in-out property <[TextPresetData]> template-presets;
+    /// 智能包装 gallery.
+    in-out property <[TemplateCardData]> project-templates;
     /// A title placed at the playhead in the look `preset` names;
     /// "default" is the plain title.
     callback library-add-text(preset: string);
@@ -134,6 +138,7 @@ export global Editor {
     in-out property <string> library-audition;
     callback library-apply-audio(effect-id: string);
     callback library-save-template();
+    callback library-use-template(path: string);
     /// Adjustments page: import `.cube` tables as looks of the user's own,
     /// which its LUTs shelf lists.
     callback library-import-lut();
@@ -194,6 +199,8 @@ export global Editor {
     in-out property <image> adjustment-art;
     in-out property <[CatalogueEntryData]> catalogue-audio;
     in-out property <[CatalogueEntryData]> catalogue-transitions;
+    in-out property <[CatalogueEntryData]> catalogue-stickers;
+    in-out property <[CatalogueEntryData]> catalogue-textanims;
     in-out property <[string]> effect-groups;
     in-out property <[string]> filter-groups;
     in-out property <[string]> audio-groups;

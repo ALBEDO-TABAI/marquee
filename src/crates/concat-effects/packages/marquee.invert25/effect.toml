@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.invert25"
+name = "反相 25"
+kind = "effect"
+category = "暗调"
+order = 2720
+description = "Original 反相 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 25
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

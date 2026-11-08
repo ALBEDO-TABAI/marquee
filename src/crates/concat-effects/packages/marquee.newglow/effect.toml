@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.newglow"
+name = "新潮辉光"
+kind = "effect"
+category = "最新"
+order = 411
+description = "Original 新潮辉光 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 40
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

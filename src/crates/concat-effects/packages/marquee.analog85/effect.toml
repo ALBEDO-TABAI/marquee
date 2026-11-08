@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.analog85"
+name = "胶片模拟 85"
+kind = "effect"
+category = "复古"
+order = 2503
+description = "Original 胶片模拟 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 85
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

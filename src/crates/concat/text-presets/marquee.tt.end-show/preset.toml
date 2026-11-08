@@ -1,0 +1,20 @@
+id = "marquee.tt.end-show"
+name = "综艺·结尾卡"
+language = "Chinese"
+order = 838
+sample = "文字"
+
+[style]
+content = "结尾卡"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.07778
+color = "#FFE14A"
+strokeWidth = 0.00556
+strokeColor = "#111111"
+align = "center"
+background = "#00000000"
+backgroundPaddingX = 0
+backgroundPaddingY = 0
+tracking = 0.01
+shadow = false

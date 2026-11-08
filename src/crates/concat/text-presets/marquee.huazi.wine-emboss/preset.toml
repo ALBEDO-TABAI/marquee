@@ -1,0 +1,15 @@
+id = "marquee.huazi.wine-emboss"
+name = "酒红·浮雕"
+language = "Chinese"
+order = 466
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#FFE8EE"
+strokeWidth = 0.0023
+strokeColor = "#8E2F45"
+shadow = false

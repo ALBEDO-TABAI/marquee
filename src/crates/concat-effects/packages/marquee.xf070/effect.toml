@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf070"
+name = "对角分割"
+kind = "transition"
+category = "分割"
+order = 1670
+description = "Browsable transition SKU on the 分割 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf093"
+name = "胶片灼烧"
+kind = "transition"
+category = "拍摄"
+order = 1693
+description = "Browsable transition SKU on the 拍摄 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

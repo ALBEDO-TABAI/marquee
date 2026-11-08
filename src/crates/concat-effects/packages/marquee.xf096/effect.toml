@@ -1,0 +1,16 @@
+format = 2
+
+[effect]
+id = "marquee.xf096"
+name = "硬切"
+kind = "transition"
+category = "拍摄"
+order = 1696
+description = "Browsable transition SKU on the 拍摄 rail."
+
+
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
+

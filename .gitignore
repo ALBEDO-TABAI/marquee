@@ -61,3 +61,17 @@ desktop.ini
 
 # Audits are working notes for whoever runs them, not part of the source
 audit/
+
+# Local FFmpeg shared build (not redistributed with the fork source)
+vendor/ffmpeg/
+
+# Local evaluation films, caches and locks — not part of a source release
+docs-eval/
+docs/parity/**/*.mp4
+docs/parity/**/cache/
+docs/parity/**/concat.lock
+**/*.concat.lock
+
+# Downloaded speech models (hundreds of MiB)
+**/whisper-models/
+ggml-*.bin

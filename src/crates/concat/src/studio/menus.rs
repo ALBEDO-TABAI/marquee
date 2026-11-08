@@ -678,6 +678,7 @@ impl Studio {
                         .unwrap_or_default(),
                     name: source.name.clone(),
                     sound,
+                    scale: None,
                 })
             }
             // A transition clip is laid as one, its package first; the
@@ -714,6 +715,7 @@ impl Studio {
                 track_id: track_id.to_owned(),
                 start: lane_end,
                 ripple: false,
+                placement: None,
             },
         )?;
         let placed = self.clip(&created).cloned()?;

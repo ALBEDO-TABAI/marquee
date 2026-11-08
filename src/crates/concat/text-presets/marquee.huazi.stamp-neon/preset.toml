@@ -1,0 +1,15 @@
+id = "marquee.huazi.stamp-neon"
+name = "朱砂·霓虹"
+language = "Chinese"
+order = 243
+sample = "花字"
+
+[style]
+content = "花字"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.1
+color = "#F4E8D0"
+strokeWidth = 0.0046
+strokeColor = "#8B1E1E"
+shadow = true

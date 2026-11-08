@@ -155,7 +155,7 @@ pub struct TitleRun {
     pub stroke_color: Option<String>,
 }
 
-/// One word's box in canvas pixels, top-left origin, in reading order
+/// One glyph's box in canvas pixels, top-left origin, in reading order
 /// (line by line, left to right within a line). A pixel-reveal effect
 /// keys off this order rather than the word itself, which is why it is
 /// exposed as rects and not text.
@@ -1190,6 +1190,12 @@ impl Setter<'_> {
                 fitted = None;
             }
         }
+        if line_start < text.len() {
+            let end = trimmed(line_start, text.len());
+            if end > line_start {
+                lines.push(self.set(para, line_start..end, true));
+            }
+        }
         if lines.is_empty() {
             lines.push(self.set(para, line_start..line_start, true));
         }
@@ -1329,7 +1335,7 @@ impl Setter<'_> {
             (pen - self.tracking).max(0.0)
         };
         let (words, stretches) = if outline {
-            let words = words(para.text, range)
+            let words = clusters(para.text, range)
                 .into_iter()
                 .filter_map(|word| {
                     spans
@@ -1455,23 +1461,36 @@ fn bitmap(image: &ttf_parser::RasterGlyphImage<'_>) -> Option<Pixmap> {
 /// break inside a paragraph.
 const MANDATORY: &[char] = &['\u{b}', '\u{c}', '\r', '\u{85}', '\u{2028}', '\u{2029}'];
 
-/// The words of `range`, in reading order: the stretches between the places
-/// a line may break, less their spaces. Words as a space-separated script
-/// has them, and each character of one that has no spaces.
-fn words(text: &str, range: Range<usize>) -> Vec<Range<usize>> {
-    let mut words = Vec::new();
-    let mut start = range.start;
-    for (at, _) in unicode_linebreak::linebreaks(&text[range.clone()]) {
-        let at = range.start + at;
-        let word = &text[start..at];
-        let lead = word.len() - word.trim_start().len();
-        let body = word.trim().len();
-        if body > 0 {
-            words.push(start + lead..start + lead + body);
+/// The writable clusters of `range`, in reading order: each non-space
+/// character together with any marks that join it, so a per-glyph reveal
+/// can time one letter at a time. Space-separated words used to share one
+/// box; wrapping still happens between the places a line may break.
+fn clusters(text: &str, range: Range<usize>) -> Vec<Range<usize>> {
+    let mut out = Vec::new();
+    let slice = &text[range.clone()];
+    let chars: Vec<(usize, char)> = slice.char_indices().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let (rel, ch) = chars[i];
+        let at = range.start + rel;
+        if ch.is_whitespace() {
+            i += 1;
+            continue;
         }
-        start = at;
+        let mut end = at + ch.len_utf8();
+        i += 1;
+        while i < chars.len() {
+            let (rel2, ch2) = chars[i];
+            if joins(ch2) {
+                end = range.start + rel2 + ch2.len_utf8();
+                i += 1;
+            } else {
+                break;
+            }
+        }
+        out.push(at..end);
     }
-    words
+    out
 }
 
 /// A separable box blur over premultiplied RGBA, run twice for a soft
@@ -2234,6 +2253,19 @@ mod tests {
         r > 200 && g > 200 && b > 200
     }
 
+    fn union_rects(rects: &[WordRect]) -> WordRect {
+        let left = rects.iter().map(|r| r.x).min().unwrap_or(0);
+        let top = rects.iter().map(|r| r.y).min().unwrap_or(0);
+        let right = rects.iter().map(|r| r.x + r.width as i32).max().unwrap_or(0);
+        let bottom = rects.iter().map(|r| r.y + r.height as i32).max().unwrap_or(0);
+        WordRect {
+            x: left,
+            y: top,
+            width: (right - left).max(0) as u32,
+            height: (bottom - top).max(0) as u32,
+        }
+    }
+
     /// "Make" in red, "this" in the title's white: each word is painted in
     /// its own colour, and only its own.
     #[test]
@@ -2248,8 +2280,9 @@ mod tests {
             ..TitleRun::default()
         }];
         let frame = render_frame(&fonts, &styled, 640, 360).expect("renders");
-        assert_eq!(frame.words.len(), 2);
-        let (make, this) = (frame.words[0], frame.words[1]);
+        assert_eq!(frame.words.len(), 8, "{:?}", frame.words);
+        let make = union_rects(&frame.words[0..4]);
+        let this = union_rects(&frame.words[4..8]);
         assert!(pixels_in(&frame, make, is_red) > 50, "the run is red");
         assert_eq!(pixels_in(&frame, make, is_white), 0, "and nothing else");
         assert!(
@@ -2282,15 +2315,18 @@ mod tests {
         }];
         let before = render_frame(&fonts, &plain, 640, 360).expect("renders");
         let after = render_frame(&fonts, &styled, 640, 360).expect("renders");
-        let ratio = after.words[0].width as f32 / before.words[0].width as f32;
+        // "big" is three glyphs; "word" the next four; "next" starts at 7.
+        let big = |frame: &RenderedFrame| union_rects(&frame.words[0..3]);
+        let word = |frame: &RenderedFrame| union_rects(&frame.words[3..7]);
+        let ratio = big(&after).width as f32 / big(&before).width as f32;
         assert!((1.8..2.2).contains(&ratio), "twice as wide: {ratio}");
         assert!(
-            after.words[0].height > before.words[0].height,
+            big(&after).height > big(&before).height,
             "its line stands taller"
         );
-        assert_eq!(after.words[1].width, before.words[1].width, "word is not");
+        assert_eq!(word(&after).width, word(&before).width, "word is not");
         assert!(after.block_height > before.block_height);
-        let gap = |frame: &RenderedFrame| frame.words[2].y - frame.words[0].y;
+        let gap = |frame: &RenderedFrame| frame.words[7].y - frame.words[0].y;
         assert!(gap(&after) > gap(&before), "the next line moved down");
     }
 
@@ -2313,10 +2349,12 @@ mod tests {
         // Full HD: at 360 lines a rule is a pixel thick and never solid.
         let before = render_frame(&fonts, &plain, 1920, 1080).expect("renders");
         let after = render_frame(&fonts, &styled, 1920, 1080).expect("renders");
-        let ink =
-            |frame: &RenderedFrame, word: usize| pixels_in(frame, frame.words[word], is_white);
-        assert!(ink(&after, 0) > ink(&before, 0), "the run gained its rule");
-        assert_eq!(ink(&after, 1), ink(&before, 1), "its neighbour did not");
+        // "ruled" is five glyphs, "plain" the next five.
+        let ink = |frame: &RenderedFrame, range: std::ops::Range<usize>| {
+            pixels_in(frame, union_rects(&frame.words[range]), is_white)
+        };
+        assert!(ink(&after, 0..5) > ink(&before, 0..5), "the run gained its rule");
+        assert_eq!(ink(&after, 5..10), ink(&before, 5..10), "its neighbour did not");
 
         styled.runs = vec![TitleRun {
             start: 0,
@@ -2325,12 +2363,18 @@ mod tests {
             ..TitleRun::default()
         }];
         let bold = render_frame(&fonts, &styled, 1920, 1080).expect("renders");
-        assert!(ink(&bold, 0) > ink(&before, 0), "a heavier face, more ink");
-        assert!(bold.words[0].width > before.words[0].width, "and wider");
+        assert!(ink(&bold, 0..5) > ink(&before, 0..5), "a heavier face, more ink");
+        assert!(
+            union_rects(&bold.words[0..5]).width > union_rects(&before.words[0..5]).width,
+            "and wider"
+        );
         // Its neighbour is the same word, moved along by however much
         // wider the bold one is: only its edges land on other pixels.
-        assert_eq!(bold.words[1].width, before.words[1].width);
-        let (moved, still) = (ink(&bold, 1) as f32, ink(&before, 1) as f32);
+        assert_eq!(
+            union_rects(&bold.words[5..10]).width,
+            union_rects(&before.words[5..10]).width
+        );
+        let (moved, still) = (ink(&bold, 5..10) as f32, ink(&before, 5..10) as f32);
         assert!(
             (moved / still - 1.0).abs() < 0.03,
             "{moved} against {still}"
@@ -2351,9 +2395,11 @@ mod tests {
             ..TitleRun::default()
         }];
         let frame = render_frame(&fonts, &styled, 640, 360).expect("renders");
-        assert!(pixels_in(&frame, frame.words[0], is_red) > 30);
-        assert_eq!(pixels_in(&frame, frame.words[0], is_white), 0);
-        assert_eq!(pixels_in(&frame, frame.words[1], is_red), 0);
+        let ete = union_rects(&frame.words[0..3]);
+        let ici = union_rects(&frame.words[3..6]);
+        assert!(pixels_in(&frame, ete, is_red) > 30);
+        assert_eq!(pixels_in(&frame, ete, is_white), 0);
+        assert_eq!(pixels_in(&frame, ici, is_red), 0);
     }
 
     /// A limit narrower than the words wraps them: the block comes out no
@@ -2387,6 +2433,33 @@ mod tests {
     /// A title with no box of its own wraps at the frame's edge rather than
     /// running off it: the block is never wider than the frame, and a block
     /// anchored at the centre and growing one way never wider than half.
+
+    /// Four CJK glyphs at a title size stay four glyphs: the last character
+    /// is neither dropped by wrap leftover nor cropped from the block.
+    #[test]
+    fn four_cjk_glyphs_are_all_painted() {
+        let fonts = Fonts::new();
+        let mut four = style("午前的光");
+        four.font_size = 0.086;
+        four.shadow = false;
+        let mut three = style("午前的");
+        three.font_size = 0.086;
+        three.shadow = false;
+        let painted = render(&fonts, &four, 1920, 1080).expect("renders");
+        let shorter = render(&fonts, &three, 1920, 1080).expect("renders");
+        assert!(
+            painted.block_width > shorter.block_width,
+            "午前的光 ({}) should be wider than 午前的 ({})",
+            painted.block_width,
+            shorter.block_width
+        );
+        assert!(
+            painted.words.len() >= 4,
+            "expected four glyphs, got {:?}",
+            painted.words.len()
+        );
+    }
+
     #[test]
     fn a_title_without_a_box_wraps_at_the_frames_edge() {
         let fonts = Fonts::new();
@@ -2411,14 +2484,14 @@ mod tests {
         assert!(plated.block_width <= 640, "{}", plated.block_width);
     }
 
-    /// Every word gets a box, in reading order, left to right on a line and
-    /// top to bottom across lines that wrap - what a per-word reveal keys
+    /// Every glyph gets a box, in reading order, left to right on a line and
+    /// top to bottom across lines that wrap - what a per-character reveal keys
     /// off without knowing what a word is.
     #[test]
     fn every_word_gets_a_box_in_reading_order() {
         let fonts = Fonts::new();
         let out = render(&fonts, &style("one two three"), 640, 360).expect("renders");
-        assert_eq!(out.words.len(), 3, "{:?}", out.words);
+        assert_eq!(out.words.len(), 11, "{:?}", out.words);
         assert!(out.words[0].x < out.words[1].x);
         assert!(out.words[1].x < out.words[2].x);
         for word in &out.words {
@@ -2428,10 +2501,10 @@ mod tests {
         let mut narrow = style("one two three four five six");
         narrow.max_width = 0.3;
         let wrapped = render(&fonts, &narrow, 640, 360).expect("renders");
-        assert_eq!(wrapped.words.len(), 6, "{:?}", wrapped.words);
-        // A later word on a lower line sits strictly below an earlier one.
-        let last_row_y = wrapped.words.last().expect("six words").y;
-        let first_row_y = wrapped.words.first().expect("six words").y;
+        assert_eq!(wrapped.words.len(), 22, "{:?}", wrapped.words);
+        // A later glyph on a lower line sits strictly below an earlier one.
+        let last_row_y = wrapped.words.last().expect("letters").y;
+        let first_row_y = wrapped.words.first().expect("letters").y;
         assert!(last_row_y > first_row_y, "{last_row_y} vs {first_row_y}");
     }
 
@@ -2974,10 +3047,10 @@ mod tests {
     fn right_to_left_words_run_right_to_left() {
         let fonts = Fonts::new();
         let out = render(&fonts, &style("שלום עולם"), 640, 360).expect("renders");
-        assert_eq!(out.words.len(), 2, "{:?}", out.words);
+        assert_eq!(out.words.len(), 8, "{:?}", out.words);
         assert!(
             out.words[0].x > out.words[1].x,
-            "the first word read is on the right: {:?}",
+            "the first letter read is on the right: {:?}",
             out.words
         );
     }

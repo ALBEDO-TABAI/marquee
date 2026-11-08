@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.indoorwarm"
+name = "室内暖光"
+kind = "filter"
+category = "室内"
+order = 486
+description = "Original 室内暖光 grade."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 45
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

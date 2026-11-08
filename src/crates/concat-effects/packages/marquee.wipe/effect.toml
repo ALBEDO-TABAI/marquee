@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.wipe"
+name = "擦除"
+kind = "transition"
+category = "滑动"
+order = 503
+description = "Original 擦除 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

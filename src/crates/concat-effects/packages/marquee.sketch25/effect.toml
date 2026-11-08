@@ -1,0 +1,23 @@
+format = 2
+
+[effect]
+id = "marquee.sketch25"
+name = "素描 25"
+kind = "effect"
+category = "漫画"
+order = 2868
+description = "Original 素描 family look."
+intensity = "amount"
+
+[[param]]
+key = "amount"
+label = "Amount"
+min = 0
+max = 100
+default = 25
+step = 1
+unit = "%"
+
+[wgsl]
+entry = "effect.wgsl"
+space = "display"

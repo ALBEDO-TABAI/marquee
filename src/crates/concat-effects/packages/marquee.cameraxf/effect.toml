@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.cameraxf"
+name = "运镜切"
+kind = "transition"
+category = "运镜"
+order = 513
+description = "Original 运镜切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"

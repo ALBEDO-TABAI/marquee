@@ -1,0 +1,20 @@
+id = "marquee.tt.news-autumn"
+name = "秋日·资讯条"
+language = "Chinese"
+order = 863
+sample = "文字"
+
+[style]
+content = "资讯条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#F4E8D0"
+strokeWidth = 0.00278
+strokeColor = "#C2410C"
+align = "left"
+background = "#000000b8"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

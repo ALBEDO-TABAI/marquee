@@ -1,0 +1,20 @@
+id = "marquee.tt.news-pet"
+name = "宠物·资讯条"
+language = "Chinese"
+order = 867
+sample = "文字"
+
+[style]
+content = "资讯条"
+fontFamily = "Noto Sans CJK SC"
+fontWeight = 700
+fontSize = 0.04444
+color = "#FFE4EC"
+strokeWidth = 0.00278
+strokeColor = "#BE123C"
+align = "left"
+background = "#000000b8"
+backgroundPaddingX = 0.01667
+backgroundPaddingY = 0.01667
+tracking = 0.0
+shadow = false

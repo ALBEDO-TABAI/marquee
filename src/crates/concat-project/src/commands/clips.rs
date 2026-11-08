@@ -20,30 +20,25 @@ pub(super) fn apply(
             track_id,
             start,
             ripple,
+            placement,
         } => {
             let media = project
                 .media_by_id(&media_id)
                 .ok_or(CommandError::MediaGone)?
                 .clone();
+            let duration = clip_length(&media);
+            let asked = start.max(0.0);
+            let policy = resolve_add_placement(ripple, placement);
             let timeline = project.active_mut();
-            if timeline.track(&track_id).is_none() {
-                return Err(CommandError::TrackGone);
-            }
-            // Magnetic, the lane makes room; otherwise the clip takes the
-            // nearest gap it fits, never the top of another clip.
-            let start = if ripple {
-                ripple_room_for(timeline, &track_id, start, &media)
-            } else {
-                timeline.nearest_free_start(&track_id, start, clip_length(&media), &[])
-            };
+            let seat = seat_clip(timeline, mint, &track_id, asked, duration, policy)?;
             let id = mint.next("c");
-            timeline
-                .clips
-                .push(Arc::new(default_clip(id.clone(), track_id, &media, start)));
-            Ok(Outcome {
-                created_id: Some(id),
-                applied: true,
-            })
+            timeline.clips.push(Arc::new(default_clip(
+                id.clone(),
+                seat.track_id.clone(),
+                &media,
+                seat.start,
+            )));
+            Ok(seated_outcome(&id, &seat, duration))
         }
 
         Command::AddClipAtFirstFree { media_id, start } => {
@@ -62,6 +57,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -84,6 +81,8 @@ pub(super) fn apply(
                 return Ok(Outcome {
                     created_id: None,
                     applied: false,
+                
+                ..Default::default()
                 });
             }
             let start = start.max(0.0);
@@ -116,6 +115,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: first,
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -158,6 +159,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -196,6 +199,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -206,6 +211,7 @@ pub(super) fn apply(
             effect_id,
             name,
             sound,
+            scale,
         } => {
             let duration = duration
                 .unwrap_or(DEFAULT_LAYER_DURATION)
@@ -236,6 +242,11 @@ pub(super) fn apply(
                 ClipKind::Layer
             };
             let mut clip = Clip::blank(id.clone(), track_id, kind, name, start, duration);
+            clip.scale = match scale {
+                Some(value) => value.clamp(MIN_SCALE, MAX_SCALE),
+                None if !sound && looks_like_sticker(&effect_id) => 0.20,
+                None => clip.scale,
+            };
             if sound {
                 clip.filters = vec![AppliedFilter::new(effect_id)];
             } else {
@@ -245,6 +256,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -288,6 +301,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -309,6 +324,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -430,6 +447,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -481,6 +500,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: created,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -555,6 +576,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(media_id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -585,6 +608,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
@@ -731,6 +756,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(freeze_id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -768,6 +795,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(first.id),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -804,6 +833,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(first.id.clone()),
                 applied: true,
+            
+            ..Default::default()
             })
         }
 
@@ -846,10 +877,466 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
+            
+            ..Default::default()
             })
         }
 
+        Command::CopyClips { clip_ids, clip_id } => {
+            let ids = collected_ids(clip_ids, clip_id);
+            let clips: Vec<Clip> = {
+                let timeline = project.active();
+                ids.iter()
+                    .filter_map(|id| timeline.clip(id).cloned())
+                    .collect()
+            };
+            project.clipboard = clips;
+            Ok(Outcome {
+                created_id: None,
+                applied: false,
+            
+            ..Default::default()
+            })
+        }
+
+        Command::PasteClips {
+            start,
+            track_id,
+            placement,
+        } => {
+            let sources = project.clipboard.clone();
+            if sources.is_empty() {
+                return Ok(Outcome {
+                    created_id: None,
+                    applied: false,
+                    ..Default::default()
+                });
+            }
+            paste_clips(
+                project,
+                mint,
+                sources,
+                start,
+                track_id,
+                placement.unwrap_or(Placement::NewTrack),
+            )
+        }
+
+        Command::DuplicateClips {
+            clip_ids,
+            clip_id,
+            offset,
+            placement,
+        } => {
+            let ids = collected_ids(clip_ids, clip_id);
+            let sources: Vec<Clip> = {
+                let timeline = project.active();
+                ids.iter()
+                    .filter_map(|id| timeline.clip(id).cloned())
+                    .collect()
+            };
+            if sources.is_empty() {
+                return Ok(Outcome {
+                    created_id: None,
+                    applied: false,
+                
+                ..Default::default()
+                });
+            }
+            let shift = offset.unwrap_or(1.0);
+            let mut placed: Vec<Clip> = sources
+                .into_iter()
+                .map(|mut clip| {
+                    clip.start += shift;
+                    clip
+                })
+                .collect();
+            paste_prepared(
+                project,
+                mint,
+                &mut placed,
+                None,
+                placement.unwrap_or(Placement::NewTrack),
+            )
+        }
+
         _ => unreachable!("commands::apply routes only this module's commands here"),
+    }
+}
+
+fn collected_ids(clip_ids: Vec<String>, clip_id: Option<String>) -> Vec<String> {
+    let mut ids = clip_ids;
+    if let Some(id) = clip_id {
+        if !ids.iter().any(|existing| existing == &id) {
+            ids.push(id);
+        }
+    }
+    ids
+}
+
+fn paste_clips(
+    project: &mut Project,
+    mint: &mut IdMint,
+    mut sources: Vec<Clip>,
+    start: Option<f64>,
+    track_id: Option<String>,
+    placement: Placement,
+) -> Result<Outcome, CommandError> {
+    sources.sort_by(|a, b| a.start.total_cmp(&b.start));
+    if let Some(at) = start {
+        let origin = sources[0].start;
+        let shift = at - origin;
+        for clip in &mut sources {
+            clip.start += shift;
+        }
+    }
+    paste_prepared(project, mint, &mut sources, track_id.as_deref(), placement)
+}
+
+fn paste_prepared(
+    project: &mut Project,
+    mint: &mut IdMint,
+    sources: &mut [Clip],
+    track_id: Option<&str>,
+    placement: Placement,
+) -> Result<Outcome, CommandError> {
+    sources.sort_by(|a, b| a.start.total_cmp(&b.start));
+    let reference_track = sources
+        .first()
+        .map(|clip| clip.track_id.clone())
+        .unwrap_or_default();
+    let mut first_id = None;
+    let mut placed = Vec::new();
+    let mut warnings = Vec::new();
+    for clip in sources.iter_mut() {
+        let dest = {
+            let timeline = project.active();
+            resolve_paste_track(timeline, &clip.track_id, track_id, &reference_track)
+        };
+        let asked = clip.start.max(0.0);
+        let seat = seat_clip(
+            project.active_mut(),
+            mint,
+            &dest,
+            asked,
+            clip.duration,
+            placement,
+        )?;
+        clip.id = mint.next("c");
+        clip.track_id = seat.track_id.clone();
+        clip.detached_from = None;
+        clip.start = seat.start;
+        if first_id.is_none() {
+            first_id = Some(clip.id.clone());
+        }
+        placed.push(PlacedClip {
+            clip_id: clip.id.clone(),
+            track_id: clip.track_id.clone(),
+            start: clip.start,
+            end: clip.start + clip.duration,
+        });
+        if let Some(warning) = seat.warning {
+            warnings.push(warning);
+        }
+        project.active_mut().clips.push(Arc::new(clip.clone()));
+    }
+    Ok(Outcome {
+        created_id: first_id,
+        applied: true,
+        placed,
+        warnings,
+    })
+}
+
+fn resolve_add_placement(ripple: bool, placement: Option<Placement>) -> Placement {
+    match placement {
+        Some(policy) => policy,
+        None if ripple => Placement::Insert,
+        None => Placement::NewTrack,
+    }
+}
+
+struct Seat {
+    track_id: String,
+    start: f64,
+    warning: Option<String>,
+}
+
+fn seated_outcome(id: &str, seat: &Seat, duration: f64) -> Outcome {
+    Outcome {
+        created_id: Some(id.to_owned()),
+        applied: true,
+        placed: vec![PlacedClip {
+            clip_id: id.to_owned(),
+            track_id: seat.track_id.clone(),
+            start: seat.start,
+            end: seat.start + duration,
+        }],
+        warnings: seat.warning.clone().into_iter().collect(),
+    }
+}
+
+fn seat_clip(
+    timeline: &mut Timeline,
+    mint: &mut IdMint,
+    asked_track: &str,
+    start: f64,
+    duration: f64,
+    placement: Placement,
+) -> Result<Seat, CommandError> {
+    let start = start.max(0.0);
+    if timeline.track(asked_track).is_none() {
+        return Err(CommandError::TrackGone);
+    }
+    if timeline.is_free(asked_track, start, duration, &[]) {
+        return Ok(Seat {
+            track_id: asked_track.to_owned(),
+            start,
+            warning: None,
+        });
+    }
+    match placement {
+        Placement::Error => Err(CommandError::Occupied),
+        Placement::Insert => {
+            let landed = ripple_room_at(timeline, asked_track, start, duration);
+            let warning = ((landed - start).abs() > 1e-6).then(|| {
+                format!("moved from {start}s to {landed}s to insert on {asked_track}")
+            });
+            Ok(Seat {
+                track_id: asked_track.to_owned(),
+                start: landed,
+                warning,
+            })
+        }
+        Placement::Overwrite => {
+            punch_hole(timeline, mint, asked_track, start, duration);
+            Ok(Seat {
+                track_id: asked_track.to_owned(),
+                start,
+                warning: None,
+            })
+        }
+        Placement::NewTrack => {
+            let track_id = free_track_above(timeline, asked_track, start, duration)
+                .unwrap_or_else(|| fresh_track(timeline, mint));
+            Ok(Seat {
+                warning: Some(format!(
+                    "placed on {track_id} at {start}s to avoid overlap on {asked_track}"
+                )),
+                track_id,
+                start,
+            })
+        }
+    }
+}
+
+fn free_track_above(
+    timeline: &Timeline,
+    from_track: &str,
+    start: f64,
+    duration: f64,
+) -> Option<String> {
+    let idx = timeline
+        .tracks
+        .iter()
+        .position(|track| track.id == from_track)
+        .unwrap_or(0);
+    timeline
+        .tracks
+        .iter()
+        .skip(idx + 1)
+        .find(|track| timeline.is_free(&track.id, start, duration, &[]))
+        .map(|track| track.id.clone())
+}
+
+fn ripple_room_at(
+    timeline: &mut Timeline,
+    track_id: &str,
+    start: f64,
+    duration: f64,
+) -> f64 {
+    let start = timeline
+        .clips
+        .iter()
+        .filter(|clip| {
+            clip.track_id == track_id && clip.start < start && start < clip.start + clip.duration
+        })
+        .map(|clip| clip.start + clip.duration)
+        .fold(start, f64::max);
+    let end = start + duration;
+    let overlaps = timeline.clips.iter().any(|clip| {
+        clip.track_id == track_id && clip.start < end && start < clip.start + clip.duration
+    });
+    if !overlaps {
+        return start;
+    }
+    let main = timeline.background_lane().map(str::to_owned);
+    for clip in timeline.clips_where(|clip| clip.track_id == track_id && clip.start >= start) {
+        clip.start += duration;
+    }
+    follow_main(
+        timeline,
+        main.as_deref(),
+        track_id,
+        Ripple::Inserted {
+            at: start,
+            length: duration,
+        },
+    );
+    start
+}
+
+fn punch_hole(
+    timeline: &mut Timeline,
+    mint: &mut IdMint,
+    track_id: &str,
+    start: f64,
+    duration: f64,
+) {
+    let end = start + duration;
+    let ids: Vec<String> = timeline
+        .clips
+        .iter()
+        .filter(|clip| {
+            clip.track_id == track_id
+                && clip.start < end
+                && start < clip.start + clip.duration
+        })
+        .map(|clip| clip.id.clone())
+        .collect();
+    for id in ids {
+        let Some(clip) = timeline.clip(&id).cloned() else {
+            continue;
+        };
+        let c0 = clip.start;
+        let c1 = clip.start + clip.duration;
+        if c0 >= start - crate::placement::TOUCH && c1 <= end + crate::placement::TOUCH {
+            timeline.clips.retain(|clip| clip.id != id);
+            continue;
+        }
+        if c0 < start && c1 > end {
+            if let Some(tail) = split_one(timeline, mint, &id, start) {
+                trim_head_to(timeline, &tail, end);
+            }
+            continue;
+        }
+        if c0 < start && c1 > start {
+            if let Some(index) = timeline.clips.iter().position(|clip| clip.id == id) {
+                let head = timeline.clip_at_mut(index);
+                crate::speed::rewindow_clip(head, head.duration, 0.0, start - c0);
+                head.duration = (start - c0).max(crate::model::ranges::MIN_CLIP_DURATION);
+                head.fade_out = 0.0;
+                head.rewindow_keys(c1 - c0, 0.0, start - c0);
+            }
+            continue;
+        }
+        if c0 < end && c1 > end {
+            trim_head_to(timeline, &id, end);
+        }
+    }
+}
+
+fn split_one(
+    timeline: &mut Timeline,
+    mint: &mut IdMint,
+    clip_id: &str,
+    time: f64,
+) -> Option<String> {
+    let index = timeline.clips.iter().position(|clip| clip.id == clip_id)?;
+    let clip: &Clip = &timeline.clips[index];
+    let offset = time - clip.start;
+    if offset <= MIN_CLIP_DURATION || offset >= clip.duration - MIN_CLIP_DURATION {
+        return None;
+    }
+    let (head_source, mut tail_source) = split_source(clip.source_start, clip.speed, offset);
+    let whole = clip.duration;
+    let mut tail = clip.clone();
+    if let Some(consumed) = crate::speed::rewindow_clip(&mut tail, whole, offset, whole) {
+        tail_source = clip.source_start + consumed;
+    }
+    tail.id = mint.next("c");
+    tail.start = clip.start + offset;
+    tail.duration = clip.duration - offset;
+    tail.source_start = tail_source;
+    tail.transition_in = None;
+    tail.fade_in = 0.0;
+    tail.rewindow_keys(whole, offset, whole);
+    let tail_id = tail.id.clone();
+    let head = timeline.clip_at_mut(index);
+    crate::speed::rewindow_clip(head, whole, 0.0, offset);
+    head.duration = offset;
+    head.source_start = head_source;
+    head.fade_out = 0.0;
+    head.rewindow_keys(whole, 0.0, offset);
+    timeline.clips.insert(index + 1, Arc::new(tail));
+    Some(tail_id)
+}
+
+fn trim_head_to(timeline: &mut Timeline, clip_id: &str, new_start: f64) {
+    let Some(index) = timeline.clips.iter().position(|clip| clip.id == clip_id) else {
+        return;
+    };
+    let clip = timeline.clip_at_mut(index);
+    let moved = new_start - clip.start;
+    if moved <= 0.0 || moved >= clip.duration {
+        return;
+    }
+    let old = clip.duration;
+    let mut retimed = Clip::clone(clip);
+    let consumed = crate::speed::rewindow_clip(&mut retimed, old, moved, old).unwrap_or(moved * clip.speed);
+    clip.start = new_start;
+    clip.duration = (old - moved).max(crate::model::ranges::MIN_CLIP_DURATION);
+    clip.source_start = (clip.source_start + consumed).max(0.0);
+    clip.speed = retimed.speed;
+    clip.speed_curve = retimed.speed_curve;
+    clip.rewindow_keys(old, moved, old);
+}
+
+fn resolve_paste_track(
+    timeline: &Timeline,
+    original: &str,
+    track_id: Option<&str>,
+    reference: &str,
+) -> String {
+    if let Some(dest) = track_id {
+        if timeline.track(dest).is_none() {
+            return if timeline.track(original).is_some() {
+                original.to_owned()
+            } else {
+                timeline
+                    .tracks
+                    .first()
+                    .map(|track| track.id.clone())
+                    .unwrap_or_else(|| original.to_owned())
+            };
+        }
+        let src_idx = timeline
+            .tracks
+            .iter()
+            .position(|track| track.id == original)
+            .unwrap_or(0);
+        let ref_idx = timeline
+            .tracks
+            .iter()
+            .position(|track| track.id == reference)
+            .unwrap_or(0);
+        let dest_idx = timeline
+            .tracks
+            .iter()
+            .position(|track| track.id == dest)
+            .unwrap_or(0);
+        let idx = (dest_idx as i32 + (src_idx as i32 - ref_idx as i32))
+            .clamp(0, timeline.tracks.len() as i32 - 1) as usize;
+        return timeline.tracks[idx].id.clone();
+    }
+    if timeline.track(original).is_some() {
+        original.to_owned()
+    } else {
+        timeline
+            .tracks
+            .first()
+            .map(|track| track.id.clone())
+            .unwrap_or_else(|| original.to_owned())
     }
 }
 
@@ -1307,4 +1794,12 @@ pub fn consolidation_clips(
         return Err(refuse("Include both sides of a transition in the merge."));
     }
     Ok(clips)
+}
+
+/// Sticker package ids look like `marquee.sk01`, `marquee.ch01`, `marquee.de13`:
+/// the last dotted segment starts with a short sticker prefix.
+pub(super) fn looks_like_sticker(effect_id: &str) -> bool {
+    let tail = effect_id.rsplit('.').next().unwrap_or(effect_id);
+    let prefix: String = tail.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+    matches!(prefix.as_str(), "sk" | "ti" | "de" | "ch" | "st")
 }

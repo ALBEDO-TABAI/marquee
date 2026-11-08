@@ -1,0 +1,13 @@
+format = 2
+
+[effect]
+id = "marquee.talkingxf"
+name = "口播种切"
+kind = "transition"
+category = "最新"
+order = 520
+description = "Original 口播种切 transition."
+
+[transition]
+entry = "effect.wgsl"
+fallback = "cross-fade"
