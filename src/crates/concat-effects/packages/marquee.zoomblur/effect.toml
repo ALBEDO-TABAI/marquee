@@ -6,7 +6,7 @@ name = "变焦模糊"
 kind = "effect"
 category = "动感"
 order = 361
-description = "Original 变焦模糊 family look."
+description = "the picture streaked out from the middle, a zoom burst."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

@@ -6,7 +6,7 @@ name = "桶形畸变 45"
 kind = "effect"
 category = "相机"
 order = 2529
-description = "Original 桶形畸变 family look."
+description = "the picture bowed out like a wide lens, the corners pulled in."
 intensity = "amount"
 
 [[param]]

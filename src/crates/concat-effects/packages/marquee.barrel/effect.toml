@@ -6,7 +6,7 @@ name = "桶形畸变"
 kind = "effect"
 category = "相机"
 order = 332
-description = "Original 桶形畸变 family look."
+description = "the picture bowed out like a wide lens, the corners pulled in."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

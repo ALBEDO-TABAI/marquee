@@ -6,7 +6,7 @@ name = "鱼眼"
 kind = "effect"
 category = "相机"
 order = 333
-description = "Original 鱼眼 family look."
+description = "a round fisheye view, the middle swollen, the world bent into a circle on black."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

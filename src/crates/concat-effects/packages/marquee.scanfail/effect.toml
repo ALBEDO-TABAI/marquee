@@ -6,7 +6,7 @@ name = "扫描失败"
 kind = "effect"
 category = "潮酷"
 order = 386
-description = "Original 扫描失败 family look."
+description = "a scanner line sweeping down, the rows below it smeared from where it is."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

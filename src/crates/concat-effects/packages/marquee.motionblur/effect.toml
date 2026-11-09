@@ -6,7 +6,7 @@ name = "运动模糊"
 kind = "effect"
 category = "动感"
 order = 322
-description = "Original 运动模糊 family look."
+description = "the picture smeared sideways as if moving fast."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 
