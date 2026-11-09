@@ -766,6 +766,47 @@ mod tests {
         assert_eq!(drawn, cards.len(), "every card is drawn");
     }
 
+    /// Draws every transition at seven points through its cut, 0 to 1, as
+    /// card-sized JPEG frames `<id>-<step>.jpg` in `CONCAT_STRIPS_OUT`: what a
+    /// transition's shader is checked by eye against, beside its probes.
+    #[test]
+    #[ignore = "needs a GPU and writes frames to a folder of your choosing"]
+    fn draw_transition_strips() {
+        let out = PathBuf::from(std::env::var("CONCAT_STRIPS_OUT").expect("CONCAT_STRIPS_OUT"));
+        std::fs::create_dir_all(&out).expect("a folder");
+        let catalogue = Catalogue::builtin();
+        let scratch = scratch("strips");
+        let compositor = WgpuCompositor::new().expect("a GPU");
+        let mut painter = Painter::new(compositor, &still_in(&scratch).expect("the still"), 160, 160)
+            .expect("a painter");
+        let mut drawn = 0;
+        for package in catalogue.packages().filter(|package| package.transition().is_some()) {
+            for (step, progress) in [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0].into_iter().enumerate() {
+                let pass = catalogue
+                    .transition_pass(package.id(), &Default::default(), progress)
+                    .expect("a pass");
+                let card = Card {
+                    id: package.id().to_owned(),
+                    path: out.join(format!("{}-{step}.jpg", package.id())),
+                    drawing: Drawing::Cut(pass),
+                    moment: MOMENT,
+                };
+                let frame = painter.frame(&card).expect("drawn");
+                let file = std::fs::File::create(&card.path).expect("writable");
+                let mut encoder =
+                    png::Encoder::new(std::io::BufWriter::new(file), frame.width(), frame.height());
+                encoder.set_color(png::ColorType::Rgba);
+                encoder.set_depth(png::BitDepth::Eight);
+                encoder
+                    .write_header()
+                    .and_then(|mut writer| writer.write_image_data(frame.pixels()))
+                    .expect("written");
+                drawn += 1;
+            }
+        }
+        assert!(drawn > 0);
+    }
+
     /// Redraws every built-in sticker's and text animation's `preview.png`
     /// from its own shader - a sticker over nothing, transparent around
     /// it, a text animation's title on the slate - so the shelf shows

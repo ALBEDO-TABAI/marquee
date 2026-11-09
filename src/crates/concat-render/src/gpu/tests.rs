@@ -1504,6 +1504,43 @@ fn every_package_probe_holds() {
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
+/// Writes what every package probe renders, one line per probe - id,
+/// index in its file, name, and the four channels - to the file named by
+/// `CONCAT_PROBE_DUMP`: what a fixture's `expect` is checked against when
+/// it is written or corrected. `cargo test -p concat-render --lib --
+/// --ignored dump_every_probe`.
+#[test]
+#[ignore = "needs a GPU and writes a file of your choosing"]
+fn dump_every_probe() {
+    let out = std::env::var("CONCAT_PROBE_DUMP").expect("CONCAT_PROBE_DUMP");
+    let Some(mut gpu) = heavy_gpu() else { return };
+    let mut lines = String::new();
+    for package in concat_effects::Catalogue::builtin().packages() {
+        for (n, probe) in package.probes.iter().enumerate() {
+            let got = match (package.probe_pass(probe), package.probe_transition(probe)) {
+                (Some(pass), _) => {
+                    gpu.probe_clip(&[pass], probe.input, 8, probe.clip_time, probe.clip_duration)
+                }
+                (None, Some(cut)) => {
+                    gpu.probe_transition(&cut, probe.input, probe.to.unwrap_or_default(), 8, 0.0)
+                }
+                (None, None) => continue,
+            }
+            .expect("reads back");
+            lines.push_str(&format!(
+                "{}\t{n}\t{}\t{} {} {} {}\n",
+                package.id(),
+                probe.name,
+                got[0],
+                got[1],
+                got[2],
+                got[3]
+            ));
+        }
+    }
+    std::fs::write(out, lines).expect("writable");
+}
+
 /// The prelude's hue turn leaves a colour as it was when it turns it by
 /// nothing - the identity every HSL band rests on.
 #[test]
