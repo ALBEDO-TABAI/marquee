@@ -145,8 +145,9 @@ component LibraryTab inherits Rectangle {
     VerticalLayout {
         padding-top: 6px;
         padding-bottom: 6px;
-        padding-left: 6px;
-        padding-right: 6px;
+        // Nothing a side once folded, so a folded chip takes no width.
+        padding-left: root.folded ? 0px : 6px;
+        padding-right: root.folded ? 0px : 6px;
         spacing: 2px;
         alignment: center;
 
@@ -2082,13 +2083,43 @@ export component MediaPane inherits Rectangle {
         { glyph: Glyph.text-mark, label: I18n.t("mediaPane.captionsTab") },
         { glyph: Glyph.slot, label: I18n.t("mediaPane.templates") },
     ];
-    /// The chips with their words want more than the strip has: marks only.
-    /// (Each chip pads its word 6px a side; 14px of spacing in the measure
-    /// stands for that and the 2px between chips.)
-    property <bool> strip-compact: measure.preferred-width + 14px + 4px > strip.width;
-    /// How many 30px marks fit, keeping one place for 更多 when not all do.
-    property <int> strip-room: !root.strip-compact || strip.width >= 10 * 32px + 4px ? 10
-        : Math.max(1, Math.floor((strip.width - 4px - 32px) / 32px));
+    /// Labelled chips first, as Jianying draws them. Each chip pads its word
+    /// 6px a side, so it costs its word plus 12px; `lab-k` is the run of the
+    /// first k, measured from the hidden words below. The row's own 2px
+    /// padding a side and its 2px gaps are fixed: a folded chip is still an
+    /// element of the row, so with 更多 there are ten gaps, without it nine.
+    property <length> lab-room: strip.width - 4px - 10 * 2px;
+    property <length> lab-1: m0.preferred-width + 12px;
+    property <length> lab-2: root.lab-1 + m1.preferred-width + 12px;
+    property <length> lab-3: root.lab-2 + m2.preferred-width + 12px;
+    property <length> lab-4: root.lab-3 + m3.preferred-width + 12px;
+    property <length> lab-5: root.lab-4 + m4.preferred-width + 12px;
+    property <length> lab-6: root.lab-5 + m5.preferred-width + 12px;
+    property <length> lab-7: root.lab-6 + m6.preferred-width + 12px;
+    property <length> lab-8: root.lab-7 + m7.preferred-width + 12px;
+    property <length> lab-9: root.lab-8 + m8.preferred-width + 12px;
+    property <length> lab-10: root.lab-9 + m9.preferred-width + 12px;
+    /// The 更多 chip, labelled like the rest.
+    property <length> lab-more: m-more.preferred-width + 12px;
+    /// How many labelled chips fit with 更多 after them (all ten need none).
+    property <int> lab-fit: root.lab-10 + 9 * 2px + 4px <= strip.width ? 10
+        : (root.lab-1 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-2 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-3 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-4 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-5 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-6 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-7 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-8 + root.lab-more <= root.lab-room ? 1 : 0)
+        + (root.lab-9 + root.lab-more <= root.lab-room ? 1 : 0);
+    /// Words are dropped only when fewer than four pages would keep them;
+    /// until then the pages past the room fold into 更多 with their words.
+    property <bool> strip-compact: root.lab-fit < 4;
+    /// How many chips stand in the row: labelled ones, or 30px marks keeping
+    /// one place for 更多 when not all ten fit (same fixed gaps as above).
+    property <int> strip-room: !root.strip-compact ? root.lab-fit
+        : strip.width >= 10 * 30px + 9 * 2px + 4px ? 10
+        : Math.max(1, Math.floor((strip.width - 4px - 10 * 2px - 30px) / 30px));
 
     function page-current(k: int) -> bool {
         if k == 0 { return root.tab == 0; }
@@ -2228,16 +2259,18 @@ export component MediaPane inherits Rectangle {
                             self.content-x = Math.max(root.strip-floor, Math.min(0px, self.content-x));
                         }
 
-                        // The words the chips would need, measured out of sight: while
-                        // they do not fit, the chips drop to marks alone.
-                        measure := HorizontalLayout {
-                            visible: false;
-                            spacing: 14px;
-                            for page in root.pages: Text {
-                                text: page.label;
-                                font-size: Theme.fs-sm;
-                            }
-                        }
+                        // The words the chips would need, measured out of sight.
+                        m0 := Text { visible: false; text: I18n.t("common.media"); font-size: Theme.fs-sm; }
+                        m1 := Text { visible: false; text: I18n.t("common.audio"); font-size: Theme.fs-sm; }
+                        m2 := Text { visible: false; text: I18n.t("mediaPane.text"); font-size: Theme.fs-sm; }
+                        m3 := Text { visible: false; text: I18n.t("mediaPane.stickers"); font-size: Theme.fs-sm; }
+                        m4 := Text { visible: false; text: I18n.t("mediaPane.transitions"); font-size: Theme.fs-sm; }
+                        m5 := Text { visible: false; text: I18n.t("common.effects"); font-size: Theme.fs-sm; }
+                        m6 := Text { visible: false; text: I18n.t("mediaPane.filters"); font-size: Theme.fs-sm; }
+                        m7 := Text { visible: false; text: I18n.t("mediaPane.adjustments"); font-size: Theme.fs-sm; }
+                        m8 := Text { visible: false; text: I18n.t("mediaPane.captionsTab"); font-size: Theme.fs-sm; }
+                        m9 := Text { visible: false; text: I18n.t("mediaPane.templates"); font-size: Theme.fs-sm; }
+                        m-more := Text { visible: false; text: I18n.t("mediaPane.morePages"); font-size: Theme.fs-sm; }
 
                         chips := HorizontalLayout {
                             x: 0;
@@ -2339,12 +2372,12 @@ export component MediaPane inherits Rectangle {
                             folded: 9 >= root.strip-room;
                             clicked => { root.tab = 6; }
                         }
-                        // Short of room even for the marks: the pages past
-                        // it fold into this chip's list, in the same order.
-                        if root.strip-compact && root.strip-room < 10: LibraryTab {
+                        // Short of room: the pages past it fold into this
+                        // chip's list, in the same order.
+                        if root.strip-room < 10: LibraryTab {
                             glyph: Glyph.more;
                             label: I18n.t("mediaPane.morePages");
-                            compact: true;
+                            compact: root.strip-compact;
                             current: root.page-current(root.strip-room) || root.page-current(root.strip-room + 1)
                                 || root.page-current(root.strip-room + 2) || root.page-current(root.strip-room + 3)
                                 || root.page-current(root.strip-room + 4) || root.page-current(root.strip-room + 5)
