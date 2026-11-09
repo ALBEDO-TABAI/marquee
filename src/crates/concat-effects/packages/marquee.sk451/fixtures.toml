@@ -1,21 +1,19 @@
-# Loose working-space probes so SKU variants stay loadable.
+# Working-space probes: what the sticker draws over the input at the
+# middle pixel, checked against its card.
 
 [[probe]]
 name = "default"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
-tolerance = 100.0
+expect = [0.362061, 0.23291, 0.952637, 1]
 
 [[probe]]
 name = "minimum"
 at = "min"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
-tolerance = 100.0
+expect = [0.300049, 0.199951, 0.119995, 1]
 
 [[probe]]
 name = "maximum"
 at = "max"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
-tolerance = 100.0
+expect = [0.362061, 0.23291, 0.952637, 1]
