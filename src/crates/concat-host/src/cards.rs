@@ -59,6 +59,10 @@ const MOMENT: f64 = 0.9;
 /// view, the incoming one not yet past the middle.
 const CUT_AT: f32 = 0.4;
 
+/// A sticker's hover: this many moments, this far apart in seconds.
+pub const STICKER_FRAMES: usize = 14;
+const STICKER_STEP: f64 = 0.09;
+
 /// The words a text effect's card sets over the still.
 const TITLE: &str = "Big Title";
 
@@ -76,6 +80,9 @@ enum Drawing {
     },
     /// A title over the still, the pass on the title.
     Title(ShaderPass),
+    /// A sticker: the pass over nothing, on the checkerboard, so the card
+    /// is the sticker itself and not the still with something on it.
+    Sticker(ShaderPass),
     /// A cut from the still to its turned copy.
     Cut(TransitionPass),
 }
@@ -111,7 +118,9 @@ impl Card {
             )?)
         } else {
             let pass = package.pass(&set, None)?;
-            if package.category().eq_ignore_ascii_case("Text") {
+            if package.kind() == concat_effects::Kind::Sticker {
+                Drawing::Sticker(pass)
+            } else if package.category().eq_ignore_ascii_case("Text") {
                 Drawing::Title(pass)
             } else {
                 Drawing::Picture {
@@ -210,6 +219,10 @@ fn fingerprint(drawing: &Drawing, moment: f64) -> u64 {
             feed(&screen.map_or([0; 4], |[r, g, b]| [1, r, g, b]));
             pass(&mut feed, drawn);
         }
+        Drawing::Sticker(drawn) => {
+            feed(b"sticker");
+            pass(&mut feed, drawn);
+        }
         Drawing::Title(drawn) => {
             feed(b"title");
             feed(TITLE.as_bytes());
@@ -234,6 +247,8 @@ pub struct Painter {
     still: Arc<Frame>,
     turned: Arc<Frame>,
     checker: Arc<Frame>,
+    /// Nothing, the still's size: what a sticker is drawn over.
+    blank: Arc<Frame>,
     title: Option<(Arc<Frame>, Arc<RevealMap>)>,
 }
 
@@ -254,11 +269,13 @@ impl Painter {
             .ok_or_else(|| format!("{} holds no picture", still.display()))?;
         let turned = turned(&still);
         let checker = checker(still.width(), still.height());
+        let blank = Frame::transparent(still.width(), still.height());
         Ok(Painter {
             compositor,
             still: Arc::new(still),
             turned: Arc::new(turned),
             checker: Arc::new(checker),
+            blank: Arc::new(blank),
             title: None,
         })
     }
@@ -295,6 +312,7 @@ impl Painter {
                     ..FramePlan::empty(width, height)
                 })
             }
+            Drawing::Sticker(pass) => self.sticker(pass, moment, width, height),
             Drawing::Title(pass) => {
                 let (title, reveal) = self.title(width, height)?;
                 let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.still));
@@ -328,6 +346,19 @@ impl Painter {
             return Err("the GPU device was lost".to_owned());
         }
         Ok(frame)
+    }
+
+    /// A sticker's pass over nothing, on the checkerboard, at `moment`.
+    fn sticker(&mut self, pass: &ShaderPass, moment: Rational, width: u32, height: u32) -> Frame {
+        let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.checker));
+        let mut picture = PlannedLayer::picture(detached_clip(), Arc::clone(&self.blank));
+        picture.track = 1;
+        picture.effects = vec![pass.clone()];
+        self.compositor.render(&FramePlan {
+            time: moment,
+            layers: vec![ground, picture],
+            ..FramePlan::empty(width, height)
+        })
     }
 
     /// A hover sequence for `id`, drawn by the same compositor and the same
@@ -373,6 +404,20 @@ impl Painter {
                     )
                     .ok_or_else(|| "the transition's shader would not run".to_owned())?;
                 out.push(frame);
+            }
+        } else if package.kind() == concat_effects::Kind::Sticker {
+            // The sticker's own motion - breathing, turning, bouncing - over
+            // nothing, a little under two seconds of it.
+            let pass = package
+                .pass(&set, None)
+                .ok_or_else(|| format!("{id} has no shader"))?;
+            for index in 0..STICKER_FRAMES {
+                if stop() {
+                    return Err("cancelled".to_owned());
+                }
+                let moment = Rational::approximate(index as f64 * STICKER_STEP)
+                    .ok_or("the moment is not a time")?;
+                out.push(self.sticker(&pass, moment, width, height));
             }
         } else if package.kind() == concat_effects::Kind::Textanim
             || package.category().eq_ignore_ascii_case("Text")
@@ -657,6 +702,40 @@ mod tests {
         let mut drawn = 0;
         draw_all(&dir, &cards, None, |batch, _| drawn += batch.len());
         assert_eq!(drawn, cards.len(), "every card is drawn");
+    }
+
+    /// Redraws every built-in sticker's `preview.png` from its own shader,
+    /// over nothing on the checkerboard, so the shelf shows the sticker:
+    /// `CONCAT_STICKER_PREVIEWS=src/crates/concat-effects/packages cargo
+    /// test -p concat-host --lib -- --ignored draw_sticker_previews`.
+    #[test]
+    #[ignore = "needs a GPU and rewrites the sticker packages' preview.png"]
+    fn draw_sticker_previews() {
+        let root = PathBuf::from(std::env::var("CONCAT_STICKER_PREVIEWS").expect("CONCAT_STICKER_PREVIEWS"));
+        let catalogue = Catalogue::builtin();
+        let scratch = scratch("stickers");
+        let compositor = WgpuCompositor::new().expect("a GPU");
+        let mut painter = Painter::new(compositor, &still_in(&scratch).expect("the still"), 256, 256)
+            .expect("a painter");
+        let mut drawn = 0;
+        for package in catalogue.of_kind(concat_effects::Kind::Sticker) {
+            let folder = root.join(package.id());
+            if !folder.is_dir() {
+                continue;
+            }
+            let card = Card::of(catalogue, package, &scratch).expect("a sticker card");
+            let frame = painter.frame(&card).expect("drawn");
+            let file = std::fs::File::create(folder.join("preview.png")).expect("writable");
+            let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), frame.width(), frame.height());
+            encoder.set_color(png::ColorType::Rgba);
+            encoder.set_depth(png::BitDepth::Eight);
+            encoder
+                .write_header()
+                .and_then(|mut writer| writer.write_image_data(frame.pixels()))
+                .expect("written");
+            drawn += 1;
+        }
+        assert!(drawn > 300, "only {drawn} stickers drawn");
     }
 
     #[test]

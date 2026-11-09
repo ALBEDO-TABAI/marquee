@@ -8,7 +8,8 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     p = p / wobble;
     let boxp = abs(p - vec2<f32>(0.0, 0.06)) - vec2<f32>(0.62, 0.32);
     let bubble = length(max(boxp, vec2<f32>(0.0))) + min(max(boxp.x, boxp.y), 0.0) - 0.14;
-    let tail = (abs(p.x + 0.18) + (p.y + 0.42) * 1.4) - 0.12;
+    // A short tail under the bubble (uv runs down), not a wedge to the edge.
+    let tail = max(abs(p.x + 0.18) - (0.80 - p.y) * 0.45, 0.42 - p.y);
     let d = min(bubble, tail);
     let shape = 1.0 - smoothstep(-0.015, 0.02, d);
     let col = vec3<f32>(0.984, 0.573, 0.235);

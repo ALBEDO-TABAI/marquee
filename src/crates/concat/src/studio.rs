@@ -2987,7 +2987,13 @@ impl Studio {
         let preview = app.global::<Library>();
         preview.set_hover_id(id.into());
         preview.set_hover_failed(false);
+        let sticker = kind == crate::gallery::Kind::Package
+            && Catalogue::builtin()
+                .get(id)
+                .is_some_and(|package| package.kind() == PackageKind::Sticker);
         preview.set_hover_step(match kind {
+            // A sticker's frames are its own motion, sampled finely.
+            crate::gallery::Kind::Package if sticker => 90,
             crate::gallery::Kind::Package => 140,
             _ => crate::gallery::LOOP_STEP_MS as i64,
         });
