@@ -6,7 +6,7 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let aspect = frame.size.x / max(frame.size.y, 1.0);
     let p = vec2<f32>(uv.x * aspect, uv.y);
     let t = look_time();
-    let beat = pow(1.0 - fract(t * 2.0), 4.0);
+    let beat = pow(1.0 - fract(t * 2.0 + 0.25), 4.0);
     let zoom = 1.0 + 0.07 * beat * a;
     let q = (uv - vec2<f32>(0.5)) / zoom + vec2<f32>(0.5);
     let s = sample(q);
