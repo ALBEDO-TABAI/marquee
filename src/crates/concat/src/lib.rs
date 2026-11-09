@@ -36,6 +36,7 @@ mod chips;
 mod dock;
 mod fonts;
 mod format;
+mod gallery;
 mod gpu;
 mod grading;
 mod host;
@@ -1003,6 +1004,28 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     editor.on_library_add_text(on_window!(|state, preset: SharedString| {
         state.place_at_playhead(&format!("text:{preset}:Title"));
     }));
+    // No publish: a hover must not rebuild the shelves or touch the edit.
+    {
+        let preview = app.global::<Library>();
+        preview.set_reduce_motion(gallery::reduce_motion());
+        preview.on_preview_hover({
+            move |kind: SharedString, id: SharedString| {
+                Shell::with(|shell, app| {
+                    shell
+                        .studio
+                        .borrow_mut()
+                        .gallery_hover(&app, kind.as_str(), id.as_str());
+                });
+            }
+        });
+        preview.on_preview_end({
+            move || {
+                Shell::with(|shell, app| {
+                    shell.studio.borrow_mut().gallery_leave(&app);
+                });
+            }
+        });
+    }
     // A figure from the Stickers page, named in the interface's language.
     editor.on_library_add_shape(on_window!(
         |state, shape: SharedString, label: SharedString| {
@@ -2771,6 +2794,10 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     // The chosen interface scale, as soon as the window is up.
     slint::Timer::single_shot(std::time::Duration::ZERO, || {
         Shell::with(|_, app| platform::apply_ui_scale(app.window()));
+    });
+    // Title-card stills, after the loop is running so the results can land.
+    slint::Timer::single_shot(std::time::Duration::from_millis(40), || {
+        Shell::with(|shell, _| shell.studio.borrow_mut().warm_preset_cards());
     });
 
     let result = app.run();

@@ -47,7 +47,7 @@
 use std::path::{Path, PathBuf};
 
 use concat_host::AppDirs;
-use concat_project::model::{TextAlign, TextStyle};
+use concat_project::model::{TextAlign, TextFinish, TextStyle};
 use serde::Deserialize;
 
 /// One look a title can be given.
@@ -111,6 +111,10 @@ struct PresetStyle {
     stroke_width: Option<f64>,
     stroke_color: Option<String>,
     shadow: Option<bool>,
+    /// `plain`, `outline`, `heavy`, `neon`, `soft`, `comic`, `emboss`,
+    /// `stack`, `drop` or `bevel`. Absent is plain.
+    #[serde(default)]
+    finish: Option<String>,
     background: Option<String>,
     background_radius: Option<f64>,
     background_padding_x: Option<f64>,
@@ -121,6 +125,21 @@ struct PresetStyle {
     max_height: Option<f64>,
     /// Some of the words in a look of their own; see `TextStyle::runs`.
     runs: Option<Vec<concat_project::model::TextRun>>,
+}
+
+fn finish_of(name: Option<&str>) -> TextFinish {
+    match name.unwrap_or("").trim() {
+        "outline" => TextFinish::Outline,
+        "heavy" => TextFinish::Heavy,
+        "neon" => TextFinish::Neon,
+        "soft" => TextFinish::Soft,
+        "comic" => TextFinish::Comic,
+        "emboss" => TextFinish::Emboss,
+        "stack" => TextFinish::Stack,
+        "drop" => TextFinish::Drop,
+        "bevel" => TextFinish::Bevel,
+        _ => TextFinish::Plain,
+    }
 }
 
 impl PresetStyle {
@@ -150,6 +169,7 @@ impl PresetStyle {
             stroke_width: self.stroke_width.unwrap_or(0.0).max(0.0),
             stroke_color: self.stroke_color.unwrap_or(base.stroke_color),
             shadow: self.shadow.unwrap_or(true),
+            finish: finish_of(self.finish.as_deref()),
             background: self.background.unwrap_or_default(),
             background_radius: self
                 .background_radius
@@ -388,8 +408,28 @@ mod tests {
         assert_eq!(sample.name, "青焰·描边");
         assert_eq!(sample.language, "Chinese");
         assert_eq!(sample.style.color, "#E8FFFC");
+        assert_eq!(sample.style.finish, TextFinish::Outline);
+        let cyan = |suffix: &str| {
+            presets
+                .iter()
+                .find(|preset| preset.id == format!("marquee.huazi.cyan-{suffix}"))
+                .unwrap_or_else(|| panic!("cyan {suffix}"))
+                .style
+                .finish
+        };
+        assert_eq!(cyan("plain"), TextFinish::Plain);
+        assert_eq!(cyan("heavy"), TextFinish::Heavy);
+        assert_eq!(cyan("neon"), TextFinish::Neon);
+        assert_eq!(cyan("soft"), TextFinish::Soft);
+        assert_eq!(cyan("comic"), TextFinish::Comic);
+        assert_eq!(cyan("emboss"), TextFinish::Emboss);
+        assert_eq!(cyan("stack"), TextFinish::Stack);
+        assert_eq!(cyan("drop"), TextFinish::Drop);
+        assert_eq!(cyan("bevel"), TextFinish::Bevel);
         assert!(
-            presets.iter().any(|preset| preset.id == "marquee.huazi.coral-outline"),
+            presets
+                .iter()
+                .any(|preset| preset.id == "marquee.huazi.coral-outline"),
             "m4 coral outline"
         );
     }

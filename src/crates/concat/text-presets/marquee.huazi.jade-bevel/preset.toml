@@ -13,3 +13,4 @@ color = "#D1FAE5"
 strokeWidth = 0.0069
 strokeColor = "#065F46"
 shadow = true
+finish = "bevel"

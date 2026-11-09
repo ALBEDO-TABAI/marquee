@@ -13,3 +13,4 @@ color = "#FFFFFF"
 strokeWidth = 0.01265
 strokeColor = "#FF3B5C"
 shadow = false
+finish = "heavy"

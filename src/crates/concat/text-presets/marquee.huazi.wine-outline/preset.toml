@@ -13,3 +13,4 @@ color = "#FFE8EE"
 strokeWidth = 0.00805
 strokeColor = "#8E2F45"
 shadow = false
+finish = "outline"

@@ -1725,6 +1725,12 @@ impl Studio {
                     stroke: colour_of(&preset.style.stroke_color),
                     stroke_width: preset.style.stroke_width as f32,
                     align: align_of(preset.style.align),
+                    art: self
+                        .preset_art
+                        .borrow()
+                        .get(&preset.id)
+                        .cloned()
+                        .unwrap_or_default(),
                 }
             })
             .collect();
@@ -1751,15 +1757,16 @@ impl Studio {
         let packs: Vec<TemplateCardData> = templates::list(&self.host.dirs.config)
             .into_iter()
             .map(|info| TemplateCardData {
-                path: info.path.into(),
+                path: info.path.clone().into(),
                 name: info.name.into(),
-                detail: format!(
-                    "{}×{} · {}",
-                    info.width,
-                    info.height,
-                    info.slots.len()
-                )
-                .into(),
+                detail: format!("{}×{} · {}", info.width, info.height, info.slots.len()).into(),
+                poster: info
+                    .has_poster
+                    .then(|| {
+                        crate::host::image_at(&std::path::Path::new(&info.path).join("poster.jpg"))
+                    })
+                    .flatten()
+                    .unwrap_or_default(),
             })
             .collect();
         sync(&models.project_templates, packs);

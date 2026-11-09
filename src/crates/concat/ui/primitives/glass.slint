@@ -23,6 +23,9 @@ export enum GlassKind {
     regular,
     strong,
     clear,
+    /// The preview transport: one floating capsule, opaque enough to read,
+    /// with a hint of the picture under it rather than a grey smear.
+    transport,
 }
 
 export component Glass inherits Rectangle {
@@ -35,7 +38,9 @@ export component Glass inherits Rectangle {
 
     property <color> wash: root.kind == GlassKind.clear ? Theme.glass-clear
         : root.kind == GlassKind.strong ? Theme.glass-strong
+        : root.kind == GlassKind.transport ? Theme.glass-transport
         : Theme.glass;
+    property <float> frost-opacity: root.kind == GlassKind.transport ? 0.42 : 0.88;
 
     property <image> shown-frost: root.frost.width > 0 ? root.frost : GlassChrome.frost;
 
@@ -44,7 +49,7 @@ export component Glass inherits Rectangle {
         height: 100%;
         source: root.shown-frost;
         image-fit: cover;
-        opacity: 0.88;
+        opacity: root.frost-opacity;
     }
 
     Rectangle {

@@ -27,9 +27,10 @@ use concat_core::shader::RevealMap;
 use concat_export::flatten::export_base;
 use concat_export::{ClipKind, ExportClip};
 use concat_project::model::{
-    ClipKind as ModelClipKind, KeyProperty, Project, ShapeKind, ShapeStyle, TextAlign, TextStyle,
+    ClipKind as ModelClipKind, KeyProperty, Project, ShapeKind, ShapeStyle, TextAlign, TextFinish,
+    TextStyle,
 };
-use concat_text::{Align, Figure, Fonts, TitleRun, TitleStyle, WordRect};
+use concat_text::{Align, Figure, Finish, Fonts, TitleRun, TitleStyle, WordRect};
 
 use crate::dirs::AppDirs;
 
@@ -603,6 +604,21 @@ fn reveal_of(words: &[WordRect], width: u32, height: u32) -> Arc<RevealMap> {
     Arc::new(RevealMap::from_rects(width, height, &rects))
 }
 
+fn finish_of(finish: TextFinish) -> Finish {
+    match finish {
+        TextFinish::Plain => Finish::Plain,
+        TextFinish::Outline => Finish::Outline,
+        TextFinish::Heavy => Finish::Heavy,
+        TextFinish::Neon => Finish::Neon,
+        TextFinish::Soft => Finish::Soft,
+        TextFinish::Comic => Finish::Comic,
+        TextFinish::Emboss => Finish::Emboss,
+        TextFinish::Stack => Finish::Stack,
+        TextFinish::Drop => Finish::Drop,
+        TextFinish::Bevel => Finish::Bevel,
+    }
+}
+
 /// The document's style, field for field, in the painter's terms.
 fn title_style(style: &TextStyle) -> TitleStyle {
     // The words in their case, and the runs moved onto the characters
@@ -625,6 +641,7 @@ fn title_style(style: &TextStyle) -> TitleStyle {
         stroke_width: style.stroke_width,
         stroke_color: style.stroke_color.clone(),
         shadow: style.shadow,
+        finish: finish_of(style.finish),
         background: style.background.clone(),
         background_radius: style.background_radius,
         background_padding_x: style.background_padding_x,
@@ -647,6 +664,92 @@ fn title_style(style: &TextStyle) -> TitleStyle {
                 stroke_color: run.style.stroke_color,
             })
             .collect(),
+    }
+}
+
+/// One square the library can show: opaque RGBA, the look composited on
+/// the sample ground both themes use for title cards.
+#[derive(Clone)]
+pub struct CardPixels {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// Straight RGBA, `width * height * 4` bytes, opaque.
+    pub rgba: Vec<u8>,
+}
+
+/// The faces a card is painted with: the ones the app carries, not the
+/// machine's, so a card and a title on a bare install agree.
+fn card_fonts() -> &'static Fonts {
+    static FONTS: std::sync::OnceLock<Fonts> = std::sync::OnceLock::new();
+    FONTS.get_or_init(Fonts::bundled)
+}
+
+/// Paints `style` the way an inserted title is painted, then scales the
+/// em so the sample fills a square card while stroke, glow and shadow
+/// stay in proportion to that em. `before` is the same words with the
+/// treatment taken off, which a hover plays first.
+pub fn preset_card(
+    style: &TextStyle,
+    sample: &str,
+    side: u32,
+    before: bool,
+) -> Result<CardPixels, String> {
+    let mut style = style.clone();
+    if !sample.is_empty() {
+        style.content = sample.to_owned();
+    }
+    if before {
+        style.finish = TextFinish::Plain;
+        style.stroke_width = 0.0;
+        style.shadow = false;
+        style.background.clear();
+    }
+    let mut title = title_style(&style);
+    let from = title.font_size.max(0.02);
+    // Large enough that a stroke and a glow read on a shelf tile, and the
+    // same fraction for every card so the looks compare.
+    let to = 0.46;
+    let scale = to / from;
+    title.font_size = to;
+    title.stroke_width *= scale;
+    title.tracking *= scale;
+    title.background_radius *= scale;
+    title.background_padding_x *= scale;
+    title.background_padding_y *= scale;
+    title.max_width = 0.0;
+    title.max_height = 0.0;
+    let frame = concat_text::render_frame(card_fonts(), &title, side, side)
+        .map_err(|error| error.to_string())?;
+    Ok(flatten_card(frame.rgba, frame.width, frame.height))
+}
+
+/// The figure an inserted shape clip paints, on the same ground as a
+/// title card. None when `id` is not a shape the library offers.
+pub fn shape_card(id: &str, side: u32) -> Result<CardPixels, String> {
+    let style = ShapeStyle::preset(id).ok_or_else(|| format!("no shape {id}"))?;
+    let frame = concat_text::render_shape_frame(&shape_style(&style), side, side)
+        .map_err(|error| error.to_string())?;
+    Ok(flatten_card(frame.rgba, frame.width, frame.height))
+}
+
+/// Straight RGBA over the title-card ground (`#2c2c32`), opaque.
+fn flatten_card(rgba: Vec<u8>, width: u32, height: u32) -> CardPixels {
+    let mut out = vec![0u8; rgba.len()];
+    let ground = [0x2c, 0x2c, 0x32];
+    for (src, dst) in rgba.chunks_exact(4).zip(out.chunks_exact_mut(4)) {
+        let a = src[3] as f32 / 255.0;
+        for channel in 0..3 {
+            dst[channel] =
+                (src[channel] as f32 * a + ground[channel] as f32 * (1.0 - a)).round() as u8;
+        }
+        dst[3] = 255;
+    }
+    CardPixels {
+        width,
+        height,
+        rgba: out,
     }
 }
 

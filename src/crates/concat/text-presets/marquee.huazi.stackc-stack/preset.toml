@@ -13,3 +13,4 @@ color = "#FFFFFF"
 strokeWidth = 0.0023
 strokeColor = "#FF3B5C"
 shadow = true
+finish = "stack"

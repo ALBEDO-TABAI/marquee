@@ -18,9 +18,10 @@ import { Editor } from "../editor.slint";
 import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // The programme monitor: a header that says what the output is, a stage on a
-// sunken viewport, and a transport tray under it in three parts — timecode on
-// the leading edge, the buttons dead centre, the output and zoom pickers on
-// the trailing edge.
+// sunken viewport, and one floating transport capsule over the picture.
+// Timecode, the play cluster and the output controls sit in that capsule,
+// grouped, not stretched across a bar. A narrow stage stacks the time and
+// the view controls on a second row of the same capsule.
 //
 // Time is held in frames, not seconds. A monitor that cannot land on a frame
 // is not a monitor, and every rounding question disappears once the unit is
@@ -84,6 +85,9 @@ component RatioPicker inherits Rectangle {
     in-out property <int> current;
 
     callback changed(index: int);
+    /// No well until the pointer is on it or the list is open. See
+    /// NumberField's `bare`: the preview transport is one surface.
+    in property <bool> bare;
 
     // Read from the popup rather than tracked here: a click outside closes it
     // without telling us, so a hand-rolled flag goes stale.
@@ -94,7 +98,9 @@ component RatioPicker inherits Rectangle {
     width: 8px + 14px + 6px + 12px + 6px;
     height: Theme.h;
     border-radius: Theme.r;
-    background: (root.open || trigger.has-hover) ? Theme.field-hover : Theme.field;
+    background: root.bare && !root.open && !trigger.has-hover ? Colors.transparent
+        : (root.open || trigger.has-hover) ? Theme.field-hover
+        : Theme.field;
 
     animate background { duration: 120ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -1229,160 +1235,228 @@ export component PreviewPane inherits Rectangle {
                 }
             }
             }
-            // ── the transport, a clear glass bar over the picture ──
-            if !root.bare: Rectangle {
-                x: 10px;
-                y: parent.height - self.height - 10px;
-                width: parent.width - 20px;
-                height: 46px;
-                border-radius: Theme.r-xl;
+            // The transport is one capsule, sized to its controls and
+            // centred on the picture. A full-width bar read as a grey
+            // strip; the groups inside it were stretched apart, and the
+            // timecode, ratio and quality each brought their own well.
+            if !root.bare: capsule := Rectangle {
+                property <bool> stacked: parent.width < 520px;
+                property <length> capsule-h: self.stacked ? 78px : 44px;
+                x: 8px + (parent.width - 16px - self.width) / 2;
+                y: parent.height - self.capsule-h - 12px;
+                width: Math.min(parent.width - 16px, row.preferred-width);
+                height: self.capsule-h;
+                border-radius: self.capsule-h / 2;
                 background: transparent;
-                drop-shadow-blur: Theme.glass-shadow-blur;
-                drop-shadow-offset-y: Theme.glass-shadow-y;
+                drop-shadow-blur: 18px;
+                drop-shadow-offset-y: 6px;
                 drop-shadow-color: Theme.glass-shadow;
 
-                Glass {
+                Rectangle {
                     width: 100%;
                     height: 100%;
                     border-radius: parent.border-radius;
-                    kind: GlassKind.clear;
-                    frosted: true;
-                    frost: root.frost;
-                }
+                    border-width: 1px;
+                    border-color: Theme.glass-edge;
+                    clip: true;
 
-                HorizontalLayout {
-                padding-left: 10px;
-                padding-right: 10px;
-                spacing: 12px;
+                    Glass {
+                        width: 100%;
+                        height: 100%;
+                        border-radius: parent.border-radius;
+                        kind: GlassKind.transport;
+                        frosted: true;
+                        frost: root.frost;
+                    }
 
-                // Leading: where the playhead is, and how far it has to go.
-                HorizontalLayout {
-                    horizontal-stretch: 1;
-                    spacing: 8px;
-                    alignment: start;
-
-                    VerticalLayout {
+                    row := VerticalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        padding-top: 4px;
+                        padding-bottom: 4px;
+                        spacing: 2px;
                         alignment: center;
-                        NumberField {
-                            width: 116px;
-                            value <=> root.shown-frames;
-                            minimum: 0;
-                            maximum: root.playhead-free ? 1000000000 : root.total-frames;
-                            step: 1;
-                            // Scrubbing a timecode should walk frames at the
-                            // speed a hand expects, not fly a hundred at once.
-                            px-per-step: 3px;
-                            format(v) => {
-                                return Fmt.frames-timecode(v / root.frame-rate,
-                                    root.frame-rate);
+
+                        // On a narrow preview the time and the view controls
+                        // take a second row of the same capsule, so nothing
+                        // is clipped and the play cluster stays together.
+                        if capsule.stacked: HorizontalLayout {
+                            spacing: 6px;
+                            alignment: center;
+                            VerticalLayout {
+                                alignment: center;
+                                time-field := NumberField {
+                                    bare: true;
+                                    width: 104px;
+                                    value <=> root.shown-frames;
+                                    minimum: 0;
+                                    maximum: root.playhead-free ? 1000000000 : root.total-frames;
+                                    step: 1;
+                                    px-per-step: 3px;
+                                    format(v) => {
+                                        return Fmt.frames-timecode(v / root.frame-rate, root.frame-rate);
+                                    }
+                                    parse(text) => {
+                                        return Fmt.parse-frames(text, root.frame-rate);
+                                    }
+                                    changed(v) => { root.seek(v / root.frame-rate); }
+                                }
                             }
-                            parse(text) => {
-                                return Fmt.parse-frames(text, root.frame-rate);
+                            Text {
+                                text: Fmt.frames-timecode(root.duration, root.frame-rate);
+                                color: Theme.fg;
+                                font-family: Theme.font-technical;
+                                font-size: Theme.fs-sm;
+                                vertical-alignment: center;
                             }
-                            changed(v) => { root.seek(v / root.frame-rate); }
+                            Rectangle { width: 1px; height: 16px; background: Theme.glass-edge; }
+                            VerticalLayout {
+                                alignment: center;
+                                RatioPicker {
+                                    bare: true;
+                                    widths: root.ratios-w;
+                                    heights: root.ratios-h;
+                                    names: root.ratio-names;
+                                    current: root.ratio-index;
+                                    changed(index) => { root.ratio-changed(index); }
+                                }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                Select {
+                                    flat: true;
+                                    snug: true;
+                                    width: self.natural-width;
+                                    summon: Editor.summon-select;
+                                    current: root.quality-index;
+                                    options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
+                                    details: ["1:1", "1:2", "1:4"];
+                                    changed(index) => { root.quality-changed(index); }
+                                }
+                            }
+                            IconButton {
+                                glyph: Glyph.fit;
+                                label: I18n.t("previewPane.fitFramePane");
+                                enabled: !viewport.fitted;
+                                clicked => { viewport.fit(); }
+                            }
                         }
-                    }
 
-                    Text {
-                        text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
-                        color: Theme.fg-dim;
-                        font-family: Theme.font-technical;
-                        font-size: Theme.fs;
-                        vertical-alignment: center;
-                    }
-                }
+                        HorizontalLayout {
+                            spacing: capsule.stacked ? 2px : 8px;
+                            alignment: center;
 
-                // Centre: the transport itself.
-                HorizontalLayout {
-                    horizontal-stretch: 0;
-                    spacing: 2px;
-                    alignment: center;
+                            if !capsule.stacked: HorizontalLayout {
+                                spacing: 6px;
+                                alignment: center;
+                                VerticalLayout {
+                                    alignment: center;
+                                    NumberField {
+                                        bare: true;
+                                        width: 112px;
+                                        value <=> root.shown-frames;
+                                        minimum: 0;
+                                        maximum: root.playhead-free ? 1000000000 : root.total-frames;
+                                        step: 1;
+                                        px-per-step: 3px;
+                                        format(v) => {
+                                            return Fmt.frames-timecode(v / root.frame-rate, root.frame-rate);
+                                        }
+                                        parse(text) => {
+                                            return Fmt.parse-frames(text, root.frame-rate);
+                                        }
+                                        changed(v) => { root.seek(v / root.frame-rate); }
+                                    }
+                                }
+                                Text {
+                                    text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
+                                    color: Theme.fg;
+                                    font-family: Theme.font-technical;
+                                    font-size: Theme.fs;
+                                    vertical-alignment: center;
+                                }
+                                Rectangle { width: 1px; height: 18px; background: Theme.glass-edge; }
+                            }
 
-                    IconButton {
-                        glyph: Glyph.skip-back;
-                        label: I18n.t("common.goToStart");
-                        enabled: !root.at-start;
-                        clicked => { root.seek(0); }
-                    }
-                    IconButton {
-                        glyph: Glyph.step-back;
-                        label: I18n.t("previewPane.previousFrame");
-                        enabled: !root.at-start;
-                        clicked => { root.step(-1); }
-                    }
+                            HorizontalLayout {
+                                spacing: 2px;
+                                alignment: center;
+                                IconButton {
+                                    glyph: Glyph.skip-back;
+                                    label: I18n.t("common.goToStart");
+                                    enabled: !root.at-start;
+                                    idle: Theme.fg;
+                                    clicked => { root.seek(0); }
+                                }
+                                IconButton {
+                                    glyph: Glyph.step-back;
+                                    label: I18n.t("previewPane.previousFrame");
+                                    enabled: !root.at-start;
+                                    idle: Theme.fg;
+                                    clicked => { root.step(-1); }
+                                }
+                                IconButton {
+                                    glyph: root.playing ? Glyph.pause : Glyph.play;
+                                    label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
+                                    icon-size: 15px;
+                                    filled: true;
+                                    clicked => { root.play-toggled(); }
+                                }
+                                IconButton {
+                                    glyph: Glyph.step-forward;
+                                    label: I18n.t("previewPane.nextFrame");
+                                    enabled: !root.at-end;
+                                    idle: Theme.fg;
+                                    clicked => { root.step(1); }
+                                }
+                                IconButton {
+                                    glyph: Glyph.skip-forward;
+                                    label: I18n.t("common.goToEnd");
+                                    enabled: !root.at-end;
+                                    idle: Theme.fg;
+                                    clicked => { root.seek(root.duration); }
+                                }
+                            }
 
-                    // The one control you reach for without looking, so it is
-                    // the one control that carries a colour.
-                    IconButton {
-                        glyph: root.playing ? Glyph.pause : Glyph.play;
-                        label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
-                        icon-size: 16px;
-                        accent: true;
-                        clicked => { root.play-toggled(); }
-                    }
-
-                    IconButton {
-                        glyph: Glyph.step-forward;
-                        label: I18n.t("previewPane.nextFrame");
-                        enabled: !root.at-end;
-                        clicked => { root.step(1); }
-                    }
-                    IconButton {
-                        glyph: Glyph.skip-forward;
-                        label: I18n.t("common.goToEnd");
-                        enabled: !root.at-end;
-                        clicked => { root.seek(root.duration); }
-                    }
-                }
-
-                // Trailing: what the output is and how close we are looking.
-                HorizontalLayout {
-                    horizontal-stretch: 1;
-                    spacing: 6px;
-                    alignment: end;
-
-                    VerticalLayout {
-                        alignment: center;
-                        RatioPicker {
-                            widths: root.ratios-w;
-                            heights: root.ratios-h;
-                            names: root.ratio-names;
-                            current: root.ratio-index;
-                            changed(index) => { root.ratio-changed(index); }
-                        }
-                    }
-
-                    // What fraction of the frame the engine composites for the
-                    // monitor, and the reason a 4K timeline stays scrubbable
-                    // on a laptop.
-                    VerticalLayout {
-                        alignment: center;
-                        Select {
-                            snug: true;
-                            width: self.natural-width;
-                            summon: Editor.summon-select;
-                            current: root.quality-index;
-                            options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
-                            details: ["1:1", "1:2", "1:4"];
-                            changed(index) => { root.quality-changed(index); }
-                        }
-                    }
-
-                    // The one control the view needs: the way back. The
-                    // zoom itself is the wheel's, and a readout of it was
-                    // width spent on a number nobody steers by.
-                    VerticalLayout {
-                        alignment: center;
-                        IconButton {
-                            glyph: Glyph.fit;
-                            label: I18n.t("previewPane.fitFramePane");
-                            enabled: !viewport.fitted;
-                            clicked => { viewport.fit(); }
+                            if !capsule.stacked: HorizontalLayout {
+                                spacing: 4px;
+                                alignment: center;
+                                Rectangle { width: 1px; height: 18px; background: Theme.glass-edge; }
+                                VerticalLayout {
+                                    alignment: center;
+                                    RatioPicker {
+                                        bare: true;
+                                        widths: root.ratios-w;
+                                        heights: root.ratios-h;
+                                        names: root.ratio-names;
+                                        current: root.ratio-index;
+                                        changed(index) => { root.ratio-changed(index); }
+                                    }
+                                }
+                                VerticalLayout {
+                                    alignment: center;
+                                    Select {
+                                        flat: true;
+                                        snug: true;
+                                        width: self.natural-width;
+                                        summon: Editor.summon-select;
+                                        current: root.quality-index;
+                                        options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
+                                        details: ["1:1", "1:2", "1:4"];
+                                        changed(index) => { root.quality-changed(index); }
+                                    }
+                                }
+                                IconButton {
+                                    glyph: Glyph.fit;
+                                    label: I18n.t("previewPane.fitFramePane");
+                                    enabled: !viewport.fitted;
+                                    clicked => { viewport.fit(); }
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
         }
     }
 

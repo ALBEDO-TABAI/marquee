@@ -13,3 +13,4 @@ color = "#FFE8EE"
 strokeWidth = 0.0023
 strokeColor = "#8E2F45"
 shadow = false
+finish = "emboss"
