@@ -2151,8 +2151,11 @@ export component MediaPane inherits Rectangle {
     /// pane, which has the same problem for the same reason. A library
     /// dropped into a narrow seat would otherwise hand the card grid a
     /// negative width.
+    /// In a narrow seat the column gives way first, down to its minimum, so
+    /// the cards keep two across: at 240 px the 104 px column left the grid
+    /// one cramped card wide.
     property <length> sidebar: Math.max(0px,
-        Math.min(root.sidebar-w, root.width / 2));
+        Math.min(root.sidebar-w, root.width / 2, Math.max(root.min-sidebar, root.width * 0.32)));
 
     // The catalogues. The ids are written into project files, so they are
     // stable forever - pick them like you mean them. The effect artwork is a
