@@ -11,3 +11,7 @@ description = "Original 硬切 transition."
 [transition]
 entry = "effect.wgsl"
 fallback = "cross-fade"
+
+# A cut changes nothing before it: the card shows the moment after.
+[card]
+progress = 0.6

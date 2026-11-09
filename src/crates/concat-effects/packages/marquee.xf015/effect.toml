@@ -14,3 +14,6 @@ description = "Browsable transition SKU on the 基础 rail."
 entry = "effect.wgsl"
 fallback = "cross-fade"
 
+# A cut changes nothing before it: the card shows the moment after.
+[card]
+progress = 0.6
