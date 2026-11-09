@@ -260,9 +260,10 @@ impl Studio {
         let mut taken = vec![false; candidates.len()];
         let mut fills = Vec::new();
         for slot in &info.slots {
-            let found = candidates.iter().enumerate().find(|(index, (kind, _))| {
-                !taken[*index] && *kind == slot.kind
-            });
+            let found = candidates
+                .iter()
+                .enumerate()
+                .find(|(index, (kind, _))| !taken[*index] && *kind == slot.kind);
             let Some((index, (_, file))) = found else {
                 self.notify(
                     &tf(

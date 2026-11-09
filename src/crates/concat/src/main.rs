@@ -24,7 +24,11 @@ fn main() -> Result<(), slint::PlatformError> {
     // with no standard output - is not a reason to panic.
     if launch == Ok(Launch::Version) {
         use std::io::Write;
-        let _ = writeln!(std::io::stdout(), "幕次 {} (fork of Concat)", env!("CARGO_PKG_VERSION"));
+        let _ = writeln!(
+            std::io::stdout(),
+            "幕次 {} (fork of Concat)",
+            env!("CARGO_PKG_VERSION")
+        );
         return Ok(());
     }
     // The API's contract, for a client generator or the docs: no log, no

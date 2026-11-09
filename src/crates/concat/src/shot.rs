@@ -53,7 +53,9 @@ fn listen() {
             for stream in listener.incoming() {
                 let Ok(mut stream) = stream else { continue };
                 let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
-                let Ok(clone) = stream.try_clone() else { continue };
+                let Ok(clone) = stream.try_clone() else {
+                    continue;
+                };
                 let mut reader = BufReader::new(clone);
                 let mut line = String::new();
                 if reader.read_line(&mut line).is_err() {
@@ -107,7 +109,10 @@ fn apply(line: &str) -> String {
             "ok".into()
         }
         "select_clip" => {
-            let kind = value.get("kind").and_then(|v| v.as_str()).unwrap_or("video");
+            let kind = value
+                .get("kind")
+                .and_then(|v| v.as_str())
+                .unwrap_or("video");
             let wanted = match kind {
                 "audio" => ClipKind::Audio,
                 "text" => ClipKind::Text,
@@ -221,10 +226,7 @@ fn apply(line: &str) -> String {
             "ok".into()
         }
         "tooltip" => {
-            let text = value
-                .get("text")
-                .and_then(|v| v.as_str())
-                .unwrap_or("Play");
+            let text = value.get("text").and_then(|v| v.as_str()).unwrap_or("Play");
             Shell::with(|_, app| {
                 app.global::<GlassChrome>().invoke_refresh();
                 let tips = app.global::<Tips>();
@@ -243,7 +245,10 @@ fn apply(line: &str) -> String {
                 .get("message")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Project saved");
-            let failed = value.get("failed").and_then(|v| v.as_bool()).unwrap_or(false);
+            let failed = value
+                .get("failed")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             Shell::with(|shell, app| {
                 shell.studio.borrow_mut().notify(message, failed);
                 shell.studio.borrow().publish(&app, &shell.models);
@@ -271,10 +276,7 @@ fn apply(line: &str) -> String {
             }
             // Gated by CONCAT_SHOT_PORT: drives gallery hover without a pointer.
             Shell::with(|shell, app| {
-                shell
-                    .studio
-                    .borrow_mut()
-                    .gallery_hover(&app, kind, id);
+                shell.studio.borrow_mut().gallery_hover(&app, kind, id);
             });
             "ok".into()
         }
@@ -286,7 +288,11 @@ fn apply(line: &str) -> String {
                 .get("text_category")
                 .and_then(|v| v.as_i64())
                 .unwrap_or(0) as i32;
-            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_owned();
+            let id = value
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned();
             let wanted = value.get("index").and_then(|v| v.as_i64());
             let mut found: Option<usize> = wanted.map(|i| i.max(0) as usize);
             Shell::with(|_, app| {
@@ -350,7 +356,8 @@ fn apply(line: &str) -> String {
                 let editor = app.global::<Editor>();
                 editor.set_library_tab(2);
                 editor.set_library_sticker_shelf(shelf);
-                editor.set_library_sticker_token(editor.get_library_sticker_token().wrapping_add(1));
+                editor
+                    .set_library_sticker_token(editor.get_library_sticker_token().wrapping_add(1));
             });
             "ok".into()
         }
@@ -380,8 +387,14 @@ fn apply(line: &str) -> String {
         }
         // A text preset placed at the playhead, as a click on its card does.
         "add_text" => {
-            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("default");
-            let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("Title");
+            let id = value
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("default");
+            let name = value
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Title");
             let payload = format!("text:{id}:{name}");
             Shell::with(|shell, app| {
                 shell.studio.borrow_mut().place_at_playhead(&payload);
@@ -392,8 +405,16 @@ fn apply(line: &str) -> String {
         // Clicks a sticker / filter / text-animation tile without a pointer:
         // the same Editor callback the tile fires.
         "apply_filter" => {
-            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_owned();
-            let label = value.get("label").and_then(|v| v.as_str()).unwrap_or("").to_owned();
+            let id = value
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned();
+            let label = value
+                .get("label")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned();
             if id.is_empty() {
                 return "err apply_filter needs id".into();
             }

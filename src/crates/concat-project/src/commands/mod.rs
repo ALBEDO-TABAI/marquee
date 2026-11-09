@@ -13,10 +13,10 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    AppliedFilter, AudioTrack, Background, Clip, ClipAnim, ClipKind, ClipMask, ColorRange, ColorSpace, Crop, MaskShape,
-    CustomFont, Cutout, CutoutMode, Enhanced, Framing, KeyEase, KeyProperty, MediaItem, MediaKind,
-    MediaOrigin, Project, RunStyle, ShapeStyle, SpeedPoint, Stabilize, Stroke, TextStyle, Timeline,
-    Track, Transition, VideoSettings, VoiceMix,
+    AppliedFilter, AudioTrack, Background, Clip, ClipAnim, ClipKind, ClipMask, ColorRange,
+    ColorSpace, Crop, CustomFont, Cutout, CutoutMode, Enhanced, Framing, KeyEase, KeyProperty,
+    MaskShape, MediaItem, MediaKind, MediaOrigin, Project, RunStyle, ShapeStyle, SpeedPoint,
+    Stabilize, Stroke, TextStyle, Timeline, Track, Transition, VideoSettings, VoiceMix,
 };
 
 mod audio;
@@ -29,9 +29,15 @@ mod tracks;
 
 /// Fallback length for media whose container reports no duration.
 const UNKNOWN_DURATION: f64 = 5.0;
-fn default_duck_amount() -> f64 { 0.15 }
-fn default_duck_attack() -> f64 { 0.08 }
-fn default_duck_release() -> f64 { 0.2 }
+fn default_duck_amount() -> f64 {
+    0.15
+}
+fn default_duck_attack() -> f64 {
+    0.08
+}
+fn default_duck_release() -> f64 {
+    0.2
+}
 /// How long a still lasts when first placed. Editorial default, not a fact.
 const DEFAULT_IMAGE_DURATION: f64 = 5.0;
 /// How long a title lasts when first placed.
@@ -1329,7 +1335,10 @@ impl Command {
                     })
             }
             Command::AddLayerClip {
-                start, duration, scale, ..
+                start,
+                duration,
+                scale,
+                ..
             } => bad([*start]) || bad(*duration) || bad(*scale),
             Command::AddTransitionClip {
                 start, duration, ..
@@ -1339,7 +1348,10 @@ impl Command {
                 .flatten()
                 .flat_map(|point| [point.at, point.speed])),
             Command::DuckAudio {
-                amount, attack, release, ..
+                amount,
+                attack,
+                release,
+                ..
             } => bad([*amount, *attack, *release]),
             Command::SetClipKey {
                 at, value, ease, ..
@@ -1496,8 +1508,8 @@ pub fn apply(
                 applied,
                 placed,
                 warnings,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 

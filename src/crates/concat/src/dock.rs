@@ -490,11 +490,20 @@ mod saved_tests {
         let mut out = DockLayout::default();
         lay_out(&default_dock(), (0.0, 0.0, 886.0, 640.0), &mut out);
         for seat in &out.seats {
-            assert!(seat.width >= SEAT_MIN_W - 0.5, "{:?} {}", seat.kind, seat.width);
+            assert!(
+                seat.width >= SEAT_MIN_W - 0.5,
+                "{:?} {}",
+                seat.kind,
+                seat.width
+            );
         }
         let mut wide = DockLayout::default();
         lay_out(&default_dock(), (0.0, 0.0, 2546.0, 1290.0), &mut wide);
-        let inspector = wide.seats.iter().find(|s| s.kind == PaneKind::Inspector).unwrap();
+        let inspector = wide
+            .seats
+            .iter()
+            .find(|s| s.kind == PaneKind::Inspector)
+            .unwrap();
         assert!((inspector.width - (2546.0 - SEAT_GAP) * (1.0 - 0.8143)).abs() < 1.0);
     }
 

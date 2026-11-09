@@ -2652,13 +2652,10 @@ fn copy_commands(source: &Clip, placed: &Clip, track_id: &str, start: f64) -> Ve
             ripple: false,
         });
     }
-    // How long the copy should last on the timeline. `source.duration` is
-    // already that length. Multiplying by `source.speed` would turn it into
-    // source-footage seconds, but both trims below are in timeline units,
-    // and `SetClipSpeed` with `ripple: false` only writes the speed field.
-    // At 1x the product matches; at 2x it left the copy twice as long as
-    // the tail it was taken from.
-    let covered = source.duration;
+    // The footage the source covers, at normal speed: the trims run on the
+    // placed clip at 1x, and the speed command below then recomputes the
+    // length from it, so the copy lasts exactly as long as the source.
+    let covered = source.duration * source.speed;
     let tail = covered - (placed.duration - head);
     if tail.abs() > 1e-6 {
         commands.push(Command::TrimClip {

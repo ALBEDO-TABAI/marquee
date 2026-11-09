@@ -41,14 +41,14 @@ mod gpu;
 mod grading;
 mod host;
 mod i18n;
-mod shelf_names;
-mod shelf_names_hant;
 /// The iPhone's pickers and its way to Photos; see the module.
 #[cfg(target_os = "ios")]
 mod ios;
 mod keymap;
 mod meters;
 mod platform;
+mod shelf_names;
+mod shelf_names_hant;
 /// What a phone's own crate installs before the window runs: the way to
 /// the system's file picker, and where a finished export is put so the
 /// phone shows it. See `platform::pick_files_async` and

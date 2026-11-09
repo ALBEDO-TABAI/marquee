@@ -104,8 +104,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: first_sound,
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -141,8 +141,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 

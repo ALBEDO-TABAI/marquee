@@ -57,8 +57,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -81,8 +81,8 @@ pub(super) fn apply(
                 return Ok(Outcome {
                     created_id: None,
                     applied: false,
-                
-                ..Default::default()
+
+                    ..Default::default()
                 });
             }
             let start = start.max(0.0);
@@ -115,8 +115,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: first,
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -159,8 +159,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -199,8 +199,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -256,8 +256,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -301,8 +301,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -324,8 +324,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -447,8 +447,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -500,8 +500,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: created,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -576,8 +576,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(media_id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -608,8 +608,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -756,8 +756,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(freeze_id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -795,8 +795,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(first.id),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -833,8 +833,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: Some(first.id.clone()),
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -877,8 +877,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -894,8 +894,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: false,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -939,8 +939,8 @@ pub(super) fn apply(
                 return Ok(Outcome {
                     created_id: None,
                     applied: false,
-                
-                ..Default::default()
+
+                    ..Default::default()
                 });
             }
             let shift = offset.unwrap_or(1.0);
@@ -1099,9 +1099,8 @@ fn seat_clip(
         Placement::Error => Err(CommandError::Occupied),
         Placement::Insert => {
             let landed = ripple_room_at(timeline, asked_track, start, duration);
-            let warning = ((landed - start).abs() > 1e-6).then(|| {
-                format!("moved from {start}s to {landed}s to insert on {asked_track}")
-            });
+            let warning = ((landed - start).abs() > 1e-6)
+                .then(|| format!("moved from {start}s to {landed}s to insert on {asked_track}"));
             Ok(Seat {
                 track_id: asked_track.to_owned(),
                 start: landed,
@@ -1149,12 +1148,7 @@ fn free_track_above(
         .map(|track| track.id.clone())
 }
 
-fn ripple_room_at(
-    timeline: &mut Timeline,
-    track_id: &str,
-    start: f64,
-    duration: f64,
-) -> f64 {
+fn ripple_room_at(timeline: &mut Timeline, track_id: &str, start: f64, duration: f64) -> f64 {
     let start = timeline
         .clips
         .iter()
@@ -1198,9 +1192,7 @@ fn punch_hole(
         .clips
         .iter()
         .filter(|clip| {
-            clip.track_id == track_id
-                && clip.start < end
-                && start < clip.start + clip.duration
+            clip.track_id == track_id && clip.start < end && start < clip.start + clip.duration
         })
         .map(|clip| clip.id.clone())
         .collect();
@@ -1283,7 +1275,8 @@ fn trim_head_to(timeline: &mut Timeline, clip_id: &str, new_start: f64) {
     }
     let old = clip.duration;
     let mut retimed = Clip::clone(clip);
-    let consumed = crate::speed::rewindow_clip(&mut retimed, old, moved, old).unwrap_or(moved * clip.speed);
+    let consumed =
+        crate::speed::rewindow_clip(&mut retimed, old, moved, old).unwrap_or(moved * clip.speed);
     clip.start = new_start;
     clip.duration = (old - moved).max(crate::model::ranges::MIN_CLIP_DURATION);
     clip.source_start = (clip.source_start + consumed).max(0.0);
@@ -1802,7 +1795,10 @@ pub fn consolidation_clips(
 /// told by its `stk` stem rather than by the letters before a number.
 pub(super) fn looks_like_sticker(effect_id: &str) -> bool {
     let tail = effect_id.rsplit('.').next().unwrap_or(effect_id);
-    let prefix: String = tail.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+    let prefix: String = tail
+        .chars()
+        .take_while(|c| c.is_ascii_alphabetic())
+        .collect();
     matches!(prefix.as_str(), "sk" | "ti" | "de" | "ch" | "st") || prefix.starts_with("stk")
 }
 
@@ -1812,10 +1808,22 @@ mod sticker_ids {
 
     #[test]
     fn every_sticker_family_is_told_and_effects_are_not() {
-        for id in ["marquee.sk000", "marquee.ch01", "marquee.ti01", "marquee.de13", "marquee.stkheart", "marquee.stkstar"] {
+        for id in [
+            "marquee.sk000",
+            "marquee.ch01",
+            "marquee.ti01",
+            "marquee.de13",
+            "marquee.stkheart",
+            "marquee.stkstar",
+        ] {
             assert!(looks_like_sticker(id), "{id}");
         }
-        for id in ["concat.glow", "concat.spin", "marquee.tacapblur", "concat.film-grain"] {
+        for id in [
+            "concat.glow",
+            "concat.spin",
+            "marquee.tacapblur",
+            "concat.film-grain",
+        ] {
             assert!(!looks_like_sticker(id), "{id}");
         }
     }

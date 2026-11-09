@@ -566,14 +566,25 @@ mod tests {
         for y in 0..side {
             for x in 0..side {
                 let ink = (16..32).contains(&x) && (12..36).contains(&y);
-                rgba.extend_from_slice(if ink { &[0, 230, 255, 255] } else { &[44, 44, 50, 255] });
+                rgba.extend_from_slice(if ink {
+                    &[0, 230, 255, 255]
+                } else {
+                    &[44, 44, 50, 255]
+                });
             }
         }
-        let card = CardPixels { width: side, height: side, rgba };
+        let card = CardPixels {
+            width: side,
+            height: side,
+            rgba,
+        };
         let frames = card_loop(None, &card);
         assert_eq!(frames.len(), LOOP_FRAMES);
         for pair in frames.windows(2) {
-            assert_ne!(pair[0].rgba, pair[1].rgba, "two neighbouring loop frames match");
+            assert_ne!(
+                pair[0].rgba, pair[1].rgba,
+                "two neighbouring loop frames match"
+            );
         }
         assert_ne!(frames[LOOP_FRAMES - 1].rgba, frames[0].rgba);
     }

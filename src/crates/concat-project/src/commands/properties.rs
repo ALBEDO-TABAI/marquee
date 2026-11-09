@@ -108,8 +108,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -133,8 +133,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: text.runs != before,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -160,8 +160,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: text.runs != before,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -192,13 +192,16 @@ pub(super) fn apply(
                 if clear_curve || clip.speed_curve.is_some() {
                     applied |= assign(&mut clip.speed_curve, None);
                 }
-                if ripple {
-                    applied |= assign(
-                        &mut clip.duration,
-                        (source_covered / next).max(MIN_CLIP_DURATION),
-                    );
-                    make_room(timeline, &clip_id, old_end, true);
-                }
+                // The length follows the rate whether or not the lane is
+                // magnetic - the inspector's echo stretches it the same way,
+                // and a clip that kept its slot at a new rate would play
+                // other footage than the timeline shows. `ripple` only says
+                // whether what follows closes up or just gets out of the way.
+                applied |= assign(
+                    &mut clip.duration,
+                    (source_covered / next).max(MIN_CLIP_DURATION),
+                );
+                make_room(timeline, &clip_id, old_end, ripple);
             }
             Ok(Outcome {
                 created_id: None,
@@ -217,8 +220,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -236,8 +239,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -254,8 +257,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -273,8 +276,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: true,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -313,12 +316,7 @@ pub(super) fn apply(
             let frac = |time: f64| ((time - music.start) / music.duration).clamp(0.0, 1.0);
             // Keys closer than KEY_EPSILON collapse; a 0.12s attack on a
             // 78s music clip is ~0.0015 and would swallow the attack key.
-            let ats = separate_key_ats([
-                frac(down),
-                frac(win_start),
-                frac(win_end),
-                frac(up),
-            ]);
+            let ats = separate_key_ats([frac(down), frac(win_start), frac(win_end), frac(up)]);
             let timeline = project.active_mut();
             let Some(clip) = timeline.clip_mut(&music_id) else {
                 return Ok(Outcome::default());
@@ -331,8 +329,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: clip.keys != before,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -384,8 +382,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: clip.keys != before,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -402,8 +400,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -416,8 +414,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -444,8 +442,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: link.keys != before,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -466,8 +464,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -487,8 +485,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -510,18 +508,17 @@ pub(super) fn apply(
                 .unwrap_or(clip.speed)
                 .clamp(MIN_SPEED, MAX_SPEED);
             let mut applied = assign(&mut clip.speed_curve, curve) | assign(&mut clip.speed, mean);
-            if ripple {
-                applied |= assign(
-                    &mut clip.duration,
-                    (source_covered / mean).max(MIN_CLIP_DURATION),
-                );
-                make_room(timeline, &clip_id, old_end, true);
-            }
+            // As SetClipSpeed: the length follows the mean rate either way.
+            applied |= assign(
+                &mut clip.duration,
+                (source_covered / mean).max(MIN_CLIP_DURATION),
+            );
+            make_room(timeline, &clip_id, old_end, ripple);
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -554,8 +551,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
         Command::SetClipTransform {
@@ -593,8 +590,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 
@@ -630,8 +627,8 @@ pub(super) fn apply(
             Ok(Outcome {
                 created_id: None,
                 applied: *clip != before,
-            
-            ..Default::default()
+
+                ..Default::default()
             })
         }
 

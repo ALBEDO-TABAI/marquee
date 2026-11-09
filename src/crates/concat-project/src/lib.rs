@@ -32,7 +32,7 @@ pub mod speed;
 pub mod srt;
 
 pub use commands::{
-    Command, CommandError, Outcome, Placement, PlacedClip, PlayheadSide, consolidation_clips,
+    Command, CommandError, Outcome, PlacedClip, Placement, PlayheadSide, consolidation_clips,
     delete_to_playhead, why_not_merge,
 };
 pub use doc::{DOCUMENT_VERSION, DocumentSettings, document_version, from_document, to_document};
@@ -1028,7 +1028,7 @@ mod tests {
     }
 
     #[test]
-    fn slowing_a_clip_in_place_does_not_push_what_follows_it() {
+    fn slowing_a_clip_down_stretches_it_and_moves_what_it_grew_over() {
         let (mut editor, media_id, first) = fixture();
         let video = editor.project().active().tracks[0].id.clone();
         let next = lane(&mut editor, &media_id, &video, &[10.0]);
@@ -1041,9 +1041,65 @@ mod tests {
             })
             .expect("retimes");
         let clip = editor.project().active().clip(&first).unwrap();
-        assert!((clip.duration - 10.0).abs() < 1e-9, "in-place keeps the slot");
+        assert!(
+            (clip.duration - 20.0).abs() < 1e-9,
+            "10s of source at 0.5x is 20s"
+        );
         assert!((clip.speed - 0.5).abs() < 1e-9);
+        assert_eq!(start_of(&editor, &next[0]), 20.0);
+    }
+
+    /// Speeding up off the magnetic lane shortens the clip and leaves the
+    /// gap: what follows stays where it was.
+    #[test]
+    fn speeding_a_clip_up_without_ripple_shortens_it_and_leaves_the_gap() {
+        let (mut editor, media_id, first) = fixture();
+        let video = editor.project().active().tracks[0].id.clone();
+        let next = lane(&mut editor, &media_id, &video, &[10.0]);
+        editor
+            .apply(Command::SetClipSpeed {
+                clip_id: first.clone(),
+                ripple: false,
+                clear_curve: false,
+                speed: 2.0,
+            })
+            .expect("retimes");
+        let clip = editor.project().active().clip(&first).unwrap();
+        assert!(
+            (clip.duration - 5.0).abs() < 1e-9,
+            "10s of source at 2x is 5s"
+        );
         assert_eq!(start_of(&editor, &next[0]), 10.0);
+    }
+
+    /// A curve's mean rate sets the length the same way, ripple or not.
+    #[test]
+    fn a_speed_curve_stretches_the_clip_by_its_mean() {
+        let (mut editor, _media_id, first) = fixture();
+        let before = editor.project().active().clip(&first).unwrap().clone();
+        let covered = before.duration * before.speed;
+        let curve = vec![
+            crate::model::SpeedPoint {
+                at: 0.0,
+                speed: 2.0,
+                slope: None,
+            },
+            crate::model::SpeedPoint {
+                at: 1.0,
+                speed: 2.0,
+                slope: None,
+            },
+        ];
+        editor
+            .apply(Command::SetClipSpeedCurve {
+                clip_id: first.clone(),
+                ripple: false,
+                curve: Some(curve),
+            })
+            .expect("curves");
+        let clip = editor.project().active().clip(&first).unwrap();
+        assert!((clip.duration - covered / clip.speed).abs() < 1e-9);
+        assert!(clip.duration < before.duration);
     }
 
     #[test]
@@ -2391,7 +2447,7 @@ mod tests {
                     clip_id: clip_id.clone(),
                     ripple,
                     speed: 2.0,
-                clear_curve: false,
+                    clear_curve: false,
                 })
                 .expect("speeds up");
             editor
@@ -2427,11 +2483,8 @@ mod tests {
                     "a gap further down the lane is kept"
                 );
             } else {
-                assert!(
-                    (ramped.duration - 10.0).abs() < 1e-9,
-                    "in-place speed keeps the timeline duration"
-                );
-                assert_eq!((next, later), (10.0, 25.0), "neighbours stay put");
+                assert!(end < 5.0, "the clip got shorter here too");
+                assert_eq!((next, later), (10.0, 25.0), "a plain retime leaves the gap");
             }
             assert!(editor.undo(), "undoes");
             assert!(editor.undo(), "undoes");
@@ -4135,7 +4188,7 @@ mod tests {
                     Command::SetClipSpeed {
                         clip_id,
                         ripple: false,
-                clear_curve: false,
+                        clear_curve: false,
                         speed: 2.0,
                     },
                 ],
@@ -4791,7 +4844,7 @@ mod tests {
                     Command::SetClipSpeed {
                         clip_id,
                         ripple: false,
-                clear_curve: false,
+                        clear_curve: false,
                         speed: 2.0,
                     },
                 ],
@@ -6102,7 +6155,11 @@ mod tests {
             .expect("id");
         // Stretch the placed clip to the file's 78s (AddClip uses media duration).
         let placed = editor.project().active().clip(&music).unwrap();
-        assert!((placed.duration - 78.0).abs() < 1e-6, "got {}", placed.duration);
+        assert!(
+            (placed.duration - 78.0).abs() < 1e-6,
+            "got {}",
+            placed.duration
+        );
         editor
             .apply(Command::DuckAudio {
                 music_id: music.clone(),
@@ -6118,7 +6175,11 @@ mod tests {
             .iter()
             .filter(|key| key.property == crate::model::KeyProperty::Volume)
             .collect();
-        assert_eq!(keys.len(), 4, "expected attack + hold + hold + release, got {keys:?}");
+        assert_eq!(
+            keys.len(),
+            4,
+            "expected attack + hold + hold + release, got {keys:?}"
+        );
         let gap = crate::model::KEY_EPSILON;
         for pair in keys.windows(2) {
             assert!(
@@ -6161,7 +6222,10 @@ mod tests {
             .expect("ducks");
         assert!(!outcome.applied);
         assert!(
-            outcome.warnings.iter().any(|warning| warning.contains("do not overlap")),
+            outcome
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("do not overlap")),
             "{:?}",
             outcome.warnings
         );
@@ -6213,11 +6277,21 @@ mod tests {
             .expect("set speed");
         assert!(!kept.applied);
         assert!(
-            kept.warnings.iter().any(|warning| warning.contains("speedCurve kept")),
+            kept.warnings
+                .iter()
+                .any(|warning| warning.contains("speedCurve kept")),
             "{:?}",
             kept.warnings
         );
-        assert!(editor.project().active().clip(&clip_id).unwrap().speed_curve.is_some());
+        assert!(
+            editor
+                .project()
+                .active()
+                .clip(&clip_id)
+                .unwrap()
+                .speed_curve
+                .is_some()
+        );
 
         let cleared = editor
             .apply(Command::SetClipSpeed {
@@ -6315,7 +6389,15 @@ mod tests {
     #[test]
     fn mask_keys_enable_a_default_mask() {
         let (mut editor, _, clip_id) = fixture();
-        assert!(editor.project().active().clip(&clip_id).unwrap().mask.is_none());
+        assert!(
+            editor
+                .project()
+                .active()
+                .clip(&clip_id)
+                .unwrap()
+                .mask
+                .is_none()
+        );
         editor
             .apply(Command::SetClipKey {
                 clip_id: clip_id.clone(),
@@ -6407,20 +6489,18 @@ mod tests {
     fn duplicate_clips_keeps_start_plus_offset_and_moves_to_a_free_track() {
         let (mut editor, _, track_id, clip_id) = editor_with_clip("/cafe.mp4", 8.0, 8.0);
         let outcome = editor
-            .apply(serde_json::from_value(json!({
-                "op": "duplicateClips",
-                "clipIds": [clip_id],
-                "offset": 2.0
-            }))
-            .expect("duplicate"))
+            .apply(
+                serde_json::from_value(json!({
+                    "op": "duplicateClips",
+                    "clipIds": [clip_id],
+                    "offset": 2.0
+                }))
+                .expect("duplicate"),
+            )
             .expect("duplicates");
         assert_eq!(outcome.placed.len(), 1);
         let placed = &outcome.placed[0];
-        assert!(
-            (placed.start - 10.0).abs() < 1e-6,
-            "start {}",
-            placed.start
-        );
+        assert!((placed.start - 10.0).abs() < 1e-6, "start {}", placed.start);
         assert!((placed.end - 18.0).abs() < 1e-6);
         assert_ne!(placed.track_id, track_id);
         assert!(!outcome.warnings.is_empty(), "{:?}", outcome.warnings);
@@ -6436,19 +6516,23 @@ mod tests {
     fn paste_and_add_clip_report_where_they_land() {
         let (mut editor, media_id, track_id, clip_id) = editor_with_clip("/cafe.mp4", 8.0, 8.0);
         editor
-            .apply(serde_json::from_value(json!({
-                "op": "copyClips",
-                "clipIds": [clip_id]
-            }))
-            .expect("copy"))
+            .apply(
+                serde_json::from_value(json!({
+                    "op": "copyClips",
+                    "clipIds": [clip_id]
+                }))
+                .expect("copy"),
+            )
             .expect("copies");
         let pasted = editor
-            .apply(serde_json::from_value(json!({
-                "op": "pasteClips",
-                "start": 8.0,
-                "trackId": track_id
-            }))
-            .expect("paste"))
+            .apply(
+                serde_json::from_value(json!({
+                    "op": "pasteClips",
+                    "start": 8.0,
+                    "trackId": track_id
+                }))
+                .expect("paste"),
+            )
             .expect("pastes");
         assert_eq!(pasted.placed.len(), 1);
         assert!((pasted.placed[0].start - 8.0).abs() < 1e-6);
@@ -6536,8 +6620,9 @@ mod tests {
             .cloned()
             .collect();
         assert!(
-            clips.iter().any(|clip| (clip.start - 10.0).abs() < 1e-6
-                && (clip.duration - 4.0).abs() < 1e-6)
+            clips
+                .iter()
+                .any(|clip| (clip.start - 10.0).abs() < 1e-6 && (clip.duration - 4.0).abs() < 1e-6)
         );
         assert!(
             clips
@@ -6574,5 +6659,4 @@ mod tests {
             shifted.start
         );
     }
-
 }

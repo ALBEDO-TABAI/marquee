@@ -20,7 +20,8 @@ fn chinese() -> bool {
 fn traditional() -> bool {
     let tag = crate::i18n::current();
     let tag = tag.as_str();
-    tag.starts_with("zh") && (tag.contains("Hant") || tag.contains("TW") || tag.contains("HK") || tag.contains("MO"))
+    tag.starts_with("zh")
+        && (tag.contains("Hant") || tag.contains("TW") || tag.contains("HK") || tag.contains("MO"))
 }
 
 /// A shelf word as this interface reads it: Simplified, as written, or in
@@ -40,10 +41,12 @@ fn hant(words: &str) -> String {
     }
     words
         .chars()
-        .map(|c| match CHARS.binary_search_by(|(simplified, _)| simplified.cmp(&c)) {
-            Ok(at) => CHARS[at].1,
-            Err(_) => c,
-        })
+        .map(
+            |c| match CHARS.binary_search_by(|(simplified, _)| simplified.cmp(&c)) {
+                Ok(at) => CHARS[at].1,
+                Err(_) => c,
+            },
+        )
         .collect()
 }
 
@@ -223,7 +226,11 @@ mod tests {
             if !package.kind().is_visual() || !meta.id.starts_with("concat.") {
                 continue;
             }
-            assert!(name_zh(&meta.id).is_some(), "{} has no Chinese name", meta.id);
+            assert!(
+                name_zh(&meta.id).is_some(),
+                "{} has no Chinese name",
+                meta.id
+            );
             if !meta.category.is_empty() {
                 assert!(
                     category_zh(&meta.category).is_some() || !meta.category.is_ascii(),
