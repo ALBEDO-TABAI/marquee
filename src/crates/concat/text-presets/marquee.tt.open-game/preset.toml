@@ -6,7 +6,7 @@ sample = "文字"
 
 [style]
 content = "开场标题"
-fontFamily = "Noto Serif CJK SC"
+fontFamily = "Noto Sans CJK SC"
 fontWeight = 700
 fontSize = 0.1
 color = "#F3E8FF"

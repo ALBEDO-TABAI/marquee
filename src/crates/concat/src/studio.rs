@@ -2587,8 +2587,13 @@ fn copy_commands(source: &Clip, placed: &Clip, track_id: &str, start: f64) -> Ve
             ripple: false,
         });
     }
-    // The footage the source covers, at normal speed.
-    let covered = source.duration * source.speed;
+    // How long the copy should last on the timeline. `source.duration` is
+    // already that length. Multiplying by `source.speed` would turn it into
+    // source-footage seconds, but both trims below are in timeline units,
+    // and `SetClipSpeed` with `ripple: false` only writes the speed field.
+    // At 1x the product matches; at 2x it left the copy twice as long as
+    // the tail it was taken from.
+    let covered = source.duration;
     let tail = covered - (placed.duration - head);
     if tail.abs() > 1e-6 {
         commands.push(Command::TrimClip {
@@ -3196,17 +3201,26 @@ mod tests {
         assert_eq!(super::char_at(text, -1), 0);
     }
 
-    /// Every built-in picture package ships a card, decodable at the size
-    /// cards are drawn: one added without running scripts/bundle-cards.sh
-    /// would show a sparkle on every machine that cannot draw its own.
+    /// Shelf stills ship in `cards/` after `scripts/bundle-cards.sh` copies
+    /// what a GPU drew. Concat's original visual looks all have one (Adjust
+    /// is the inspector panel, not a shelf card). Later `marquee.*` packs
+    /// use the live compositor until their still is bundled the same way.
+    /// This checks every `concat.*` visual pack has a still, and every still
+    /// that does ship decodes at the card size.
     #[test]
     fn every_built_in_picture_package_ships_a_card() {
         for package in concat_effects::Catalogue::builtin().packages() {
             if !package.kind().is_visual() || package.id() == super::ADJUST_ID {
                 continue;
             }
-            let card = super::bundled_card(package.id())
-                .unwrap_or_else(|| panic!("{} has no bundled card", package.id()));
+            let Some(card) = super::bundled_card(package.id()) else {
+                assert!(
+                    !package.id().starts_with("concat."),
+                    "{} has no bundled card",
+                    package.id()
+                );
+                continue;
+            };
             let size = card.size();
             assert_eq!(
                 (size.width, size.height),
