@@ -922,7 +922,7 @@ component LiveArt inherits Rectangle {
     property <bool> late;
     changed mine => { root.late = false; root.tick = 0; }
     wait := Timer {
-        interval: 300ms;
+        interval: 600ms;
         running: root.mine && Library.hover-loading && root.n == 0 && !root.late;
         triggered => { root.late = true; }
     }
@@ -1885,6 +1885,9 @@ export component MediaPane inherits Rectangle {
     in property <int> scroll-token;
     in property <int> reveal-index;
     in property <int> reveal-token;
+    in property <int> sticker-shelf-want;
+    in property <int> sticker-shelf-token;
+    changed sticker-shelf-token => { root.sticker-shelf = root.sticker-shelf-want; }
     property <length> jump-y;
     property <int> jump-tok;
     changed scroll-token => {

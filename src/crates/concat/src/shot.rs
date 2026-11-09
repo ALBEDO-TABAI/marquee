@@ -345,6 +345,16 @@ fn apply(line: &str) -> String {
             }
         }
         // The page offset directly, in logical pixels from the top.
+        "sticker_shelf" => {
+            let shelf = value.get("shelf").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            Shell::with(|_, app| {
+                let editor = app.global::<Editor>();
+                editor.set_library_tab(2);
+                editor.set_library_sticker_shelf(shelf);
+                editor.set_library_sticker_token(editor.get_library_sticker_token().wrapping_add(1));
+            });
+            "ok".into()
+        }
         "scroll" => {
             let y = value.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
             Shell::with(|_, app| {

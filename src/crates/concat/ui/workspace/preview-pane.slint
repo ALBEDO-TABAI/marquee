@@ -48,8 +48,8 @@ component RatioGlyph inherits Rectangle {
     in property <float> ratio-w: 16;
     in property <float> ratio-h: 9;
     in property <brush> tint: Theme.fg-dim;
-    /// A size that is none of the presets: the same outline, corners only.
-    in property <bool> dashed;
+    /// A size that is none of the presets: its outline, marked with a dot.
+    in property <bool> custom;
 
     property <float> scale: 14 / Math.max(root.ratio-w, root.ratio-h);
 
@@ -62,31 +62,19 @@ component RatioGlyph inherits Rectangle {
         y: (parent.height - self.height) / 2;
         width: Math.round(root.ratio-w * root.scale) * 1px;
         height: Math.round(root.ratio-h * root.scale) * 1px;
-        border-width: root.dashed ? 0px : 1px;
+        border-width: 1px;
         border-color: root.tint;
         border-radius: 2px;
 
-        // A custom size: the outline's four corners only.
-        for corner in (root.dashed ? 4 : 0): Rectangle {
-            property <length> arm: Math.min(4px, parent.width / 2 - 1px);
-            property <bool> right: Math.mod(corner, 2) == 1;
-            property <bool> low: corner >= 2;
-            width: parent.width;
-            height: parent.height;
-            Rectangle {
-                x: parent.right ? parent.width - parent.arm : 0px;
-                y: parent.low ? parent.height - 1px : 0px;
-                width: parent.arm;
-                height: 1px;
-                background: root.tint;
-            }
-            Rectangle {
-                x: parent.right ? parent.width - 1px : 0px;
-                y: parent.low ? parent.height - Math.min(4px, parent.height / 2 - 1px) : 0px;
-                width: 1px;
-                height: Math.min(4px, parent.height / 2 - 1px);
-                background: root.tint;
-            }
+        // A custom size: the output's own outline with a dot in it, so it
+        // reads as "this shape, not one of the presets".
+        if root.custom: Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 2px;
+            height: 2px;
+            border-radius: 1px;
+            background: root.tint;
         }
     }
 }
@@ -152,7 +140,7 @@ component RatioPicker inherits Rectangle {
                 ratio-w: root.custom ? Math.max(1, root.custom-w) : root.widths[root.current];
                 ratio-h: root.custom ? Math.max(1, root.custom-h) : root.heights[root.current];
                 tint: Theme.fg;
-                dashed: root.custom;
+                custom: root.custom;
             }
         }
 

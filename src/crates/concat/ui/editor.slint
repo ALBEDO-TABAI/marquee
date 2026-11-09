@@ -256,6 +256,10 @@ export global Editor {
     /// top, on each change of the token (CONCAT_SHOT_PORT `reveal`).
     in-out property <int> library-reveal-index;
     in-out property <int> library-reveal-token;
+    /// The stickers page's sub-shelf (0 stickers, 1 shapes), set when the
+    /// token bumps. CONCAT_SHOT_PORT only.
+    in-out property <int> library-sticker-shelf;
+    in-out property <int> library-sticker-token;
     /// Bumped to show the preview transport again (pointer near it, or the
     /// CONCAT_SHOT_PORT `transport` hook) while playback has hidden it.
     in-out property <int> transport-wake;

@@ -454,12 +454,10 @@ fn render_hover(
     match job.kind {
         Kind::Text => {
             let style = job.style.as_ref().ok_or("the look has no style")?;
-            let before = concat_host::titles::preset_card(style, &job.sample, TEXT_SIDE, true)?;
-            if stop() {
-                return Err("cancelled".to_owned());
-            }
+            // One paint, the finished look: the loop's entrance scales and
+            // fades it in, so the first frames arrive in one render's time.
             let after = concat_host::titles::preset_card(style, &job.sample, TEXT_SIDE, false)?;
-            Ok((card_loop(Some(&before), &after), true))
+            Ok((card_loop(None, &after), true))
         }
         Kind::Shape => {
             let card = concat_host::titles::shape_card(&job.id, TEXT_SIDE)?;
