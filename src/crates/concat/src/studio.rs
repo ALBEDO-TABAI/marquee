@@ -1524,11 +1524,13 @@ fn shelves(
         if meta.id == ADJUST_ID || !keep(package) {
             continue;
         }
-        let category = if meta.category.is_empty() {
-            "Other".to_owned()
+        // The rail by the word it is shown as, so two spellings of one
+        // shelf (Dissolve, 叠化) are one rail and not two.
+        let category = crate::shelf_names::category(if meta.category.is_empty() {
+            "Other"
         } else {
-            meta.category.clone()
-        };
+            &meta.category
+        });
         // Shelf and package names come from the manifests in English and
         // are looked up like any other string, so a locale can carry them.
         let group = match groups.iter().position(|held| *held == category) {
@@ -1541,7 +1543,7 @@ fn shelves(
         // The shelves are built from every package and only the entries are
         // narrowed: a strip that lost a segment because a search matched
         // nothing on it would move under the pointer as you typed.
-        let name = meta.name.clone();
+        let name = crate::shelf_names::name(package);
         let description = meta.description.clone();
         let starred = favourites.iter().any(|held| held == &meta.id);
         let shown = if view.favourites {
@@ -1550,7 +1552,9 @@ fn shelves(
             // Across every shelf while a query is live. Someone typing
             // "echo" wants the echo, not the echo that happens to be filed
             // where they were already looking.
-            name.to_lowercase().contains(&query) || description.to_lowercase().contains(&query)
+            name.to_lowercase().contains(&query)
+                || meta.name.to_lowercase().contains(&query)
+                || description.to_lowercase().contains(&query)
         } else if !view.category.is_empty() {
             package.matches_category(&view.category)
         } else if view.group >= 0 {
@@ -2255,7 +2259,7 @@ fn chain_rows(chain: &[AppliedFilter]) -> (Vec<AppliedEntryData>, Vec<AppliedPar
         rows.push(AppliedEntryData {
             id: entry.id.as_str().into(),
             name: package
-                .map(|package| package.manifest.effect.name.clone())
+                .map(crate::shelf_names::name)
                 .unwrap_or_else(|| label_of(&entry.id))
                 .into(),
             on: entry.enabled,
@@ -2686,7 +2690,7 @@ fn upgraded_effects(pairs: &[(String, String)]) -> Vec<String> {
         .map(|(old, new)| {
             let new = catalogue
                 .get(new)
-                .map(|package| package.manifest.effect.name.clone())
+                .map(crate::shelf_names::name)
                 .unwrap_or_else(|| label_of(new));
             format!("{} → {new}", label_of(old))
         })

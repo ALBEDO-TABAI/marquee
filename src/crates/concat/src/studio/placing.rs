@@ -575,7 +575,7 @@ impl Studio {
     pub fn apply_transition(&mut self, id: &str) {
         let label = Catalogue::builtin()
             .get(id)
-            .map(|package| package.manifest.effect.name.clone())
+            .map(crate::shelf_names::name)
             .unwrap_or_default();
         let duration = f64::from(TRANSITION_DURATION);
         let at = match self.transition_cut() {

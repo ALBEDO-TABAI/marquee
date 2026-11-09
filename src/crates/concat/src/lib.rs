@@ -41,6 +41,7 @@ mod gpu;
 mod grading;
 mod host;
 mod i18n;
+mod shelf_names;
 /// The iPhone's pickers and its way to Photos; see the module.
 #[cfg(target_os = "ios")]
 mod ios;

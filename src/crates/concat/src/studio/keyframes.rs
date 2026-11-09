@@ -910,7 +910,7 @@ impl Studio {
         let transition = clip.transition_in.as_ref().expect("held to one");
         let name = Catalogue::builtin()
             .get(&transition.id)
-            .map(|package| package.manifest.effect.name.clone())
+            .map(crate::shelf_names::name)
             .unwrap_or_else(|| label_of(&transition.id));
         crate::ui::SelectedTransitionData {
             present: true,
@@ -1076,7 +1076,7 @@ impl Studio {
                 .transition_in
                 .as_ref()
                 .and_then(|transition| Catalogue::builtin().get(&transition.id))
-                .map(|package| package.manifest.effect.name.clone())
+                .map(crate::shelf_names::name)
                 .unwrap_or_default()
                 .into(),
             transition_duration: clip
