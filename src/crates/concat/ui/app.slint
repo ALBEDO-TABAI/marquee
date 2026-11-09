@@ -521,7 +521,9 @@ export component App inherits Window {
     property <int> keyboard-menu: -1;
     property <int> keyboard-menu-token;
     property <bool> menu-by-keyboard;
-    function open-menu-from-keys(index: int) {
+    // Public for the CONCAT_SHOT_PORT capture hook (shot.rs), which opens a
+    // menu where a person would see it, under its label.
+    public function open-menu-from-keys(index: int) {
         root.keyboard-menu = index;
         root.keyboard-menu-token += 1;
     }

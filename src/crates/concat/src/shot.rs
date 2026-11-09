@@ -204,13 +204,12 @@ fn apply(line: &str) -> String {
             "ok".into()
         }
         "menu" => {
-            Shell::with(|shell, app| {
-                {
-                    let mut state = shell.studio.borrow_mut();
-                    state.open_menu = value.get("index").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-                    state.menu_bar_token = state.menu_bar_token.saturating_add(1);
-                }
-                shell.studio.borrow().publish(&app, &shell.models);
+            // Through the strip, as the keyboard opens one: the menu is then
+            // placed under its own label, where a click would put it.
+            let index = value.get("index").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            Shell::with(|_, app| {
+                app.global::<GlassChrome>().invoke_refresh();
+                app.invoke_open_menu_from_keys(index);
             });
             "ok".into()
         }
