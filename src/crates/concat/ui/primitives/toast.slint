@@ -85,12 +85,15 @@ export component ToastLayer inherits Rectangle {
     }
 
     Rectangle {
-        // Centred under the title bar, over the panes' headers: in the
+        // Centred, under the panes' headers: in the
         // bottom-right corner it sat on the inspector's footer and covered
         // its button (the GPU-fallback notice hid 修改 for 6 s). The 12px it
         // is pulled up by when it is away is the drop.
         x: (root.width - self.width) / 2;
-        y: 44px - (root.shown ? 0px : 12px);
+        // Below the title bar and the pane headers (36px + 8px + the
+        // 52px header row), over the top margin of the picture: it covers
+        // no control and no readout while it is up.
+        y: 104px - (root.shown ? 0px : 12px);
         // Capped at a readable measure, then the label wraps: a notice is a
         // sentence, and one stretched across the window - or cut off at its
         // end - is not read. A failure keeps room for its copy chip.
