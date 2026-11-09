@@ -198,6 +198,7 @@
   "common.right": "右",
   "common.rotation": "旋转",
   "common.saved": "已保存",
+  "common.unsavedChanges": "未保存",
   "common.scale": "缩放",
   "common.script": "文稿",
   "common.searchKind": "搜索{0}",

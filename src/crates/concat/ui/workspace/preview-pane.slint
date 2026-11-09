@@ -1235,59 +1235,101 @@ export component PreviewPane inherits Rectangle {
                 }
             }
             }
-            // The transport is one capsule, sized to its controls and
-            // centred on the picture. A full-width bar read as a grey
-            // strip; the groups inside it were stretched apart, and the
-            // timecode, ratio and quality each brought their own well.
-            if !root.bare: capsule := Rectangle {
-                property <bool> stacked: parent.width < 520px;
-                property <length> capsule-h: self.stacked ? 78px : 44px;
-                x: 8px + (parent.width - 16px - self.width) / 2;
-                y: parent.height - self.capsule-h - 12px;
-                width: Math.min(parent.width - 16px, row.preferred-width);
-                height: self.capsule-h;
-                border-radius: self.capsule-h / 2;
-                background: transparent;
-                drop-shadow-blur: 18px;
-                drop-shadow-offset-y: 6px;
-                drop-shadow-color: Theme.glass-shadow;
+            // The transport is one floating capsule over the bottom of the
+            // picture, inset by `margin` on every side so it never touches or
+            // crosses the pane's edge. Three groups: the time readout, the
+            // play cluster centred, the view controls at the right. When the
+            // three do not fit on one line the play cluster takes its own row
+            // above the other two, inside the same capsule. While playing it
+            // fades out after a pause and comes back when the pointer nears
+            // the bottom of the picture (or `Editor.transport-wake` bumps).
+            if !root.bare: transport := Rectangle {
+                width: parent.width;
+                height: parent.height;
 
-                Rectangle {
-                    width: 100%;
-                    height: 100%;
-                    border-radius: parent.border-radius;
-                    border-width: 1px;
-                    border-color: Theme.glass-edge;
-                    clip: true;
+                property <length> margin: 16px;
+                property <length> pad: 14px;
+                property <length> gap: 16px;
+                property <length> avail: Math.max(0px, self.width - 2 * self.margin);
+                property <length> side: Math.max(time-group.preferred-width, view-group.preferred-width);
+                property <length> single-w: 2 * self.side + play-group.preferred-width
+                    + 2 * self.gap + 2 * self.pad;
+                property <bool> stacked: self.single-w > self.avail;
+                property <length> stacked-w: Math.min(self.avail,
+                    Math.max(play-group.preferred-width,
+                        time-group.preferred-width + view-group.preferred-width + self.gap)
+                    + 2 * self.pad);
+                property <length> capsule-h: self.stacked ? 80px : 44px;
 
-                    Glass {
+                property <bool> awake: true;
+                property <bool> playing: root.playing;
+                changed playing => { self.awake = true; }
+                property <int> wake-token: Editor.transport-wake;
+                changed wake-token => { self.awake = true; }
+                property <bool> shown: !root.playing || self.awake || wake.has-hover;
+
+                idle := Timer {
+                    interval: 2500ms;
+                    running: root.playing && transport.awake && !wake.has-hover;
+                    triggered => { transport.awake = false; }
+                }
+
+                // Only while playing, so editing a grip near the bottom of a
+                // still picture is never shadowed by it.
+                wake := TouchArea {
+                    enabled: root.playing;
+                    x: 0;
+                    y: parent.height - transport.capsule-h - transport.margin - 48px;
+                    width: parent.width;
+                    height: transport.capsule-h + transport.margin + 48px;
+                }
+
+                capsule := Rectangle {
+                    width: transport.stacked ? transport.stacked-w : transport.single-w;
+                    height: transport.capsule-h;
+                    x: (parent.width - self.width) / 2;
+                    y: parent.height - self.height - transport.margin;
+                    border-radius: self.height / 2;
+                    background: transparent;
+                    drop-shadow-blur: 18px;
+                    drop-shadow-offset-y: 6px;
+                    drop-shadow-color: Theme.glass-shadow;
+                    opacity: transport.shown ? 1.0 : 0.0;
+                    visible: self.opacity > 0.01;
+                    animate opacity { duration: 220ms; easing: ease-in-out; }
+
+                    Rectangle {
                         width: 100%;
                         height: 100%;
                         border-radius: parent.border-radius;
-                        kind: GlassKind.transport;
-                        frosted: true;
-                        frost: root.frost;
-                    }
+                        border-width: 1px;
+                        border-color: Theme.glass-edge;
+                        clip: true;
 
-                    row := VerticalLayout {
-                        padding-left: 8px;
-                        padding-right: 8px;
-                        padding-top: 4px;
-                        padding-bottom: 4px;
-                        spacing: 2px;
-                        alignment: center;
+                        Glass {
+                            width: 100%;
+                            height: 100%;
+                            border-radius: parent.border-radius;
+                            kind: GlassKind.transport;
+                            frosted: true;
+                            frost: root.frost;
+                        }
 
-                        // On a narrow preview the time and the view controls
-                        // take a second row of the same capsule, so nothing
-                        // is clipped and the play cluster stays together.
-                        if capsule.stacked: HorizontalLayout {
-                            spacing: 6px;
-                            alignment: center;
+                        // Current time bright, total dim, one readout.
+                        time-group := HorizontalLayout {
+                            x: transport.pad;
+                            y: transport.stacked
+                                ? parent.height - 6px - 32px
+                                : (parent.height - 32px) / 2;
+                            width: self.preferred-width;
+                            height: 32px;
+                            spacing: 2px;
+                            alignment: start;
                             VerticalLayout {
                                 alignment: center;
-                                time-field := NumberField {
+                                NumberField {
                                     bare: true;
-                                    width: 104px;
+                                    width: 92px;
                                     value <=> root.shown-frames;
                                     minimum: 0;
                                     maximum: root.playhead-free ? 1000000000 : root.total-frames;
@@ -1303,13 +1345,67 @@ export component PreviewPane inherits Rectangle {
                                 }
                             }
                             Text {
-                                text: Fmt.frames-timecode(root.duration, root.frame-rate);
-                                color: Theme.fg;
+                                text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
+                                color: Theme.fg-dim;
                                 font-family: Theme.font-technical;
                                 font-size: Theme.fs-sm;
                                 vertical-alignment: center;
                             }
-                            Rectangle { width: 1px; height: 16px; background: Theme.glass-edge; }
+                        }
+
+                        play-group := HorizontalLayout {
+                            x: (parent.width - self.width) / 2;
+                            y: transport.stacked ? 6px : (parent.height - 32px) / 2;
+                            width: self.preferred-width;
+                            height: 32px;
+                            spacing: 2px;
+                            alignment: center;
+                            IconButton {
+                                glyph: Glyph.skip-back;
+                                label: I18n.t("common.goToStart");
+                                enabled: !root.at-start;
+                                idle: Theme.fg;
+                                clicked => { root.seek(0); }
+                            }
+                            IconButton {
+                                glyph: Glyph.step-back;
+                                label: I18n.t("previewPane.previousFrame");
+                                enabled: !root.at-start;
+                                idle: Theme.fg;
+                                clicked => { root.step(-1); }
+                            }
+                            IconButton {
+                                glyph: root.playing ? Glyph.pause : Glyph.play;
+                                label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
+                                icon-size: 15px;
+                                filled: true;
+                                clicked => { root.play-toggled(); }
+                            }
+                            IconButton {
+                                glyph: Glyph.step-forward;
+                                label: I18n.t("previewPane.nextFrame");
+                                enabled: !root.at-end;
+                                idle: Theme.fg;
+                                clicked => { root.step(1); }
+                            }
+                            IconButton {
+                                glyph: Glyph.skip-forward;
+                                label: I18n.t("common.goToEnd");
+                                enabled: !root.at-end;
+                                idle: Theme.fg;
+                                clicked => { root.seek(root.duration); }
+                            }
+                        }
+
+                        view-group := HorizontalLayout {
+                            x: parent.width - transport.pad - self.width;
+                            y: transport.stacked
+                                ? parent.height - 6px - 32px
+                                : (parent.height - 32px) / 2;
+                            width: self.preferred-width;
+                            height: 32px;
+                            spacing: 2px;
+                            alignment: end;
                             VerticalLayout {
                                 alignment: center;
                                 RatioPicker {
@@ -1339,119 +1435,6 @@ export component PreviewPane inherits Rectangle {
                                 label: I18n.t("previewPane.fitFramePane");
                                 enabled: !viewport.fitted;
                                 clicked => { viewport.fit(); }
-                            }
-                        }
-
-                        HorizontalLayout {
-                            spacing: capsule.stacked ? 2px : 8px;
-                            alignment: center;
-
-                            if !capsule.stacked: HorizontalLayout {
-                                spacing: 6px;
-                                alignment: center;
-                                VerticalLayout {
-                                    alignment: center;
-                                    NumberField {
-                                        bare: true;
-                                        width: 112px;
-                                        value <=> root.shown-frames;
-                                        minimum: 0;
-                                        maximum: root.playhead-free ? 1000000000 : root.total-frames;
-                                        step: 1;
-                                        px-per-step: 3px;
-                                        format(v) => {
-                                            return Fmt.frames-timecode(v / root.frame-rate, root.frame-rate);
-                                        }
-                                        parse(text) => {
-                                            return Fmt.parse-frames(text, root.frame-rate);
-                                        }
-                                        changed(v) => { root.seek(v / root.frame-rate); }
-                                    }
-                                }
-                                Text {
-                                    text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
-                                    color: Theme.fg;
-                                    font-family: Theme.font-technical;
-                                    font-size: Theme.fs;
-                                    vertical-alignment: center;
-                                }
-                                Rectangle { width: 1px; height: 18px; background: Theme.glass-edge; }
-                            }
-
-                            HorizontalLayout {
-                                spacing: 2px;
-                                alignment: center;
-                                IconButton {
-                                    glyph: Glyph.skip-back;
-                                    label: I18n.t("common.goToStart");
-                                    enabled: !root.at-start;
-                                    idle: Theme.fg;
-                                    clicked => { root.seek(0); }
-                                }
-                                IconButton {
-                                    glyph: Glyph.step-back;
-                                    label: I18n.t("previewPane.previousFrame");
-                                    enabled: !root.at-start;
-                                    idle: Theme.fg;
-                                    clicked => { root.step(-1); }
-                                }
-                                IconButton {
-                                    glyph: root.playing ? Glyph.pause : Glyph.play;
-                                    label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
-                                    icon-size: 15px;
-                                    filled: true;
-                                    clicked => { root.play-toggled(); }
-                                }
-                                IconButton {
-                                    glyph: Glyph.step-forward;
-                                    label: I18n.t("previewPane.nextFrame");
-                                    enabled: !root.at-end;
-                                    idle: Theme.fg;
-                                    clicked => { root.step(1); }
-                                }
-                                IconButton {
-                                    glyph: Glyph.skip-forward;
-                                    label: I18n.t("common.goToEnd");
-                                    enabled: !root.at-end;
-                                    idle: Theme.fg;
-                                    clicked => { root.seek(root.duration); }
-                                }
-                            }
-
-                            if !capsule.stacked: HorizontalLayout {
-                                spacing: 4px;
-                                alignment: center;
-                                Rectangle { width: 1px; height: 18px; background: Theme.glass-edge; }
-                                VerticalLayout {
-                                    alignment: center;
-                                    RatioPicker {
-                                        bare: true;
-                                        widths: root.ratios-w;
-                                        heights: root.ratios-h;
-                                        names: root.ratio-names;
-                                        current: root.ratio-index;
-                                        changed(index) => { root.ratio-changed(index); }
-                                    }
-                                }
-                                VerticalLayout {
-                                    alignment: center;
-                                    Select {
-                                        flat: true;
-                                        snug: true;
-                                        width: self.natural-width;
-                                        summon: Editor.summon-select;
-                                        current: root.quality-index;
-                                        options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
-                                        details: ["1:1", "1:2", "1:4"];
-                                        changed(index) => { root.quality-changed(index); }
-                                    }
-                                }
-                                IconButton {
-                                    glyph: Glyph.fit;
-                                    label: I18n.t("previewPane.fitFramePane");
-                                    enabled: !viewport.fitted;
-                                    clicked => { viewport.fit(); }
-                                }
                             }
                         }
                     }

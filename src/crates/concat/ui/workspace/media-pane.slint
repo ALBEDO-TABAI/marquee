@@ -1287,8 +1287,10 @@ export component ShelfGrid inherits Rectangle {
     in property <string> auditioning;
     callback auditioned(id: string);
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     /// Name-only cards, half the height: for a shelf whose entries have no
     /// picture - sound. A picture shelf keeps its card shape while a card
     /// is still being drawn, its glyph standing in.
@@ -1337,8 +1339,10 @@ component AdjustmentShelf inherits Rectangle {
     /// What the lane calls the layer, in the interface's language.
     property <string> name: I18n.t("mediaPane.adjustment");
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1618,8 +1622,10 @@ export component PresetGrid inherits Rectangle {
 
     callback applied(id: string);
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1782,8 +1788,10 @@ export component ShapeGrid inherits Rectangle {
             commands: "M3 12h18 M9 6l-6 6 6 6 M15 6l6 6-6 6" },
     ];
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1862,6 +1870,31 @@ export component MediaPane inherits Rectangle {
     in property <[string]> caption-languages;
     /// See Editor.captions-jump-token: turn to Text & Captions > Captions.
     in property <int> captions-jump-token;
+    /// See Editor.library-scroll-y.
+    in property <length> scroll-y;
+    in property <int> scroll-token;
+    in property <int> reveal-index;
+    in property <int> reveal-token;
+    property <length> jump-y;
+    property <int> jump-tok;
+    changed scroll-token => {
+        root.jump-y = root.scroll-y;
+        root.jump-tok += 1;
+    }
+    // The shelves' grid arithmetic (8px page padding, 6px gap, 60px tiles,
+    // a square and a 14px name under it); the searched shelves start below
+    // their search row.
+    changed reveal-token => {
+        root.jump-y = root.reveal-y(root.reveal-index);
+        root.jump-tok += 1;
+    }
+    pure function reveal-y(index: int) -> length {
+        let w = Math.max(0px, pages.width - 16px);
+        let cols = Math.max(1, Math.floor((w + 6px) / 66px));
+        let card = (w - (cols - 1) * 6px) / cols;
+        let header = (root.tab == 3 || root.tab == 4 || root.tab == 5) ? Theme.h + 14px : 0px;
+        return header + Math.floor(index / cols) * (card + 24px);
+    }
     changed captions-jump-token => {
         root.tab = 1;
         root.captions-open = true;
@@ -2615,6 +2648,8 @@ export component MediaPane inherits Rectangle {
             }
 
             pages := PaneScroll {
+                jump-to: root.jump-y;
+                jump-token: root.jump-tok;
                 x: root.sidebar + 1px;
                 width: Math.max(0px, parent.width - root.sidebar - 1px);
                 height: parent.height;

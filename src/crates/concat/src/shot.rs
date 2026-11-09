@@ -279,6 +279,113 @@ fn apply(line: &str) -> String {
             });
             "ok".into()
         }
+        // Scroll the shelf so a tile is near the top: by `id` within the
+        // shelf `tab` / `text_category` names, or by `index`.
+        "reveal" => {
+            let tab = value.get("tab").and_then(|v| v.as_i64()).unwrap_or(1) as i32;
+            let text_category = value
+                .get("text_category")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0) as i32;
+            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_owned();
+            let wanted = value.get("index").and_then(|v| v.as_i64());
+            let mut found: Option<usize> = wanted.map(|i| i.max(0) as usize);
+            Shell::with(|_, app| {
+                use slint::Model;
+                let editor = app.global::<Editor>();
+                editor.set_library_tab(tab);
+                editor.set_library_text_category(text_category);
+                if found.is_none() && !id.is_empty() {
+                    found = match (tab, text_category) {
+                        (1, 3) => editor
+                            .get_catalogue_textanims()
+                            .iter()
+                            .position(|e| e.id.as_str() == id),
+                        (1, 1) => editor
+                            .get_language_presets()
+                            .iter()
+                            .position(|p| p.id.as_str() == id),
+                        (1, 4) => editor
+                            .get_template_presets()
+                            .iter()
+                            .position(|p| p.id.as_str() == id),
+                        (1, _) => editor
+                            .get_style_presets()
+                            .iter()
+                            .position(|p| p.id.as_str() == id),
+                        (2, _) => editor
+                            .get_catalogue_stickers()
+                            .iter()
+                            .position(|e| e.id.as_str() == id),
+                        (3, _) => editor
+                            .get_catalogue_transitions()
+                            .iter()
+                            .position(|e| e.id.as_str() == id),
+                        (4, _) => editor
+                            .get_catalogue_effects()
+                            .iter()
+                            .position(|e| e.id.as_str() == id),
+                        (5, _) => editor
+                            .get_catalogue_filters()
+                            .iter()
+                            .position(|e| e.id.as_str() == id),
+                        _ => None,
+                    };
+                }
+                if let Some(index) = found {
+                    editor.set_library_reveal_index(index as i32);
+                    editor.set_library_reveal_token(
+                        editor.get_library_reveal_token().wrapping_add(1),
+                    );
+                }
+            });
+            match found {
+                Some(index) => format!("ok {index}"),
+                None => format!("err no {id} on tab {tab}"),
+            }
+        }
+        // The page offset directly, in logical pixels from the top.
+        "scroll" => {
+            let y = value.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+            Shell::with(|_, app| {
+                let editor = app.global::<Editor>();
+                editor.set_library_scroll_y(y);
+                editor.set_library_scroll_token(editor.get_library_scroll_token().wrapping_add(1));
+            });
+            "ok".into()
+        }
+        // `wake` shows the transport again; `play` toggles playback.
+        "transport" => {
+            let wake = value.get("wake").and_then(|v| v.as_bool()).unwrap_or(false);
+            let play = value.get("play").and_then(|v| v.as_bool()).unwrap_or(false);
+            Shell::with(|_, app| {
+                let editor = app.global::<Editor>();
+                if wake {
+                    editor.set_transport_wake(editor.get_transport_wake().wrapping_add(1));
+                }
+                if play {
+                    editor.invoke_play_toggled();
+                }
+            });
+            "ok".into()
+        }
+        // A text preset placed at the playhead, as a click on its card does.
+        "add_text" => {
+            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("default");
+            let name = value.get("name").and_then(|v| v.as_str()).unwrap_or("Title");
+            let payload = format!("text:{id}:{name}");
+            Shell::with(|shell, app| {
+                shell.studio.borrow_mut().place_at_playhead(&payload);
+                shell.studio.borrow().publish(&app, &shell.models);
+            });
+            "ok".into()
+        }
+        // Moves the playhead, in seconds.
+        "seek" => {
+            let at = value.get("at").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+            Shell::with(|_, app| app.global::<Editor>().invoke_seek(at));
+            "ok".into()
+        }
         "leave" => {
             Shell::with(|shell, app| {
                 shell.studio.borrow_mut().gallery_leave(&app);
