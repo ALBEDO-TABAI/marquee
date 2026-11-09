@@ -14,7 +14,14 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let tail = max(abs(p.x + 0.18) - (0.80 - p.y) * 0.45, 0.42 - p.y);
     let d = min(bubble, tail);
     let shape = 1.0 - smoothstep(-0.015, 0.02, d);
-    let col = vec3<f32>(0.004, 0.725, 0.776);
+    // 互动: someone is typing - three dots inside the bubble rise in turn.
+    var dots = 0.0;
+    for (var n = 0; n < 3; n = n + 1) {
+        let x = (f32(n) - 1.0) * 0.3;
+        let lift = 0.06 * max(sin(frame.clip_time * 6.0 - f32(n) * 0.9), 0.0);
+        dots = max(dots, 1.0 - smoothstep(0.075, 0.09, length(p - vec2<f32>(x, 0.06 - lift))));
+    }
+    let col = mix(vec3<f32>(0.004, 0.725, 0.776), vec3<f32>(1.0), dots); // typing
     // Straight alpha, laid over what is beneath: on a see-through card
     // the antialiased edge keeps the sticker's colour rather than greying
     // towards the black of an empty pixel. Over a picture it is the same mix.

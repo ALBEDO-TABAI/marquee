@@ -6,7 +6,7 @@ name = "圆环贴"
 kind = "sticker"
 category = "涂鸦"
 order = 701
-description = "Original parametric sticker: 圆环贴."
+description = "圆环贴: a hand-drawn doodle - a boiling marker outline over a light wash."
 intensity = "amount"
 
 [[param]]

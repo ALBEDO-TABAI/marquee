@@ -6,7 +6,7 @@ name = "爆炸贴"
 kind = "sticker"
 category = "涂鸦"
 order = 707
-description = "Original parametric sticker: 爆炸贴."
+description = "爆炸贴: a hand-drawn doodle - a boiling marker outline over a light wash."
 intensity = "amount"
 
 [[param]]

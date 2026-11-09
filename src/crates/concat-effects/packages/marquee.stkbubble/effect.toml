@@ -6,7 +6,7 @@ name = "会话框"
 kind = "sticker"
 category = "互动"
 order = 709
-description = "Original parametric sticker: 会话框."
+description = "会话框: a chat bubble with the typing dots rising in turn."
 intensity = "amount"
 
 [[param]]
