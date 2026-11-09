@@ -55,9 +55,9 @@ use concat_project::Command;
 use concat_project::model::VideoSettings;
 
 pub use message::{
-    API_VERSION, ApiError, Dirs, Done, ErrorCode, Event, ExportSpec, Fill, JobState, JobStatus,
-    CaptionSegment, PackageInfo, ParamInfo, Picture, Reply, Request, Response, Started, TextPresetInfo,
-    VersionInfo, Written,
+    API_VERSION, ApiError, CaptionSegment, Dirs, Done, ErrorCode, Event, ExportSpec, Fill,
+    JobState, JobStatus, PackageInfo, ParamInfo, Picture, Reply, Request, Response, Started,
+    TextPresetInfo, VersionInfo, Written,
 };
 
 /// The export sheet's middle quality, and what an export gets when the
@@ -471,9 +471,10 @@ impl Api {
             }
             Request::MediaImport { path, file } => view(self.import(&path, &file)?),
             Request::CatalogueList { kind } => Ok(Reply::Packages(catalogue(kind.as_deref())?)),
-            Request::PresetList { category, query } => {
-                Ok(Reply::Presets(list_presets(category.as_deref(), query.as_deref())?))
-            }
+            Request::PresetList { category, query } => Ok(Reply::Presets(list_presets(
+                category.as_deref(),
+                query.as_deref(),
+            )?)),
             Request::CaptionsTranscribe {
                 file,
                 model,
@@ -526,7 +527,6 @@ impl Api {
             }
         }
     }
-
 
     /// [`Request::CaptionsTranscribe`]: download the named whisper.cpp model
     /// if needed, then return timed cues. `base` is multilingual (Chinese).
@@ -1159,7 +1159,6 @@ fn catalogue(kind: Option<&str>) -> Result<Vec<PackageInfo>, ApiError> {
     Ok(packages)
 }
 
-
 /// [`Request::PresetList`]: 花字, 文字模板 and the other title looks,
 /// scanned from the checkout's `text-presets/` and the user's config
 /// overlay. Category is derived from the id prefix so callers do not have
@@ -1183,7 +1182,8 @@ fn list_presets(
     let mut presets = Vec::new();
     let mut seen = std::collections::HashSet::new();
     for root in roots {
-        let entries = std::fs::read_dir(&root).map_err(|error| ApiError::failed(error.to_string()))?;
+        let entries =
+            std::fs::read_dir(&root).map_err(|error| ApiError::failed(error.to_string()))?;
         for entry in entries.flatten() {
             let path = entry.path();
             let file = if path.is_dir() {
@@ -1229,7 +1229,11 @@ fn list_presets(
                 category: bucket.to_owned(),
                 language,
                 sample,
-                path: file.parent().unwrap_or(&file).to_string_lossy().into_owned(),
+                path: file
+                    .parent()
+                    .unwrap_or(&file)
+                    .to_string_lossy()
+                    .into_owned(),
             });
         }
     }
@@ -1677,7 +1681,8 @@ mod tests {
         assert!(huazi.len() >= 322);
         let hit = list_presets(Some("huazi"), Some("珊瑚")).expect("search");
         assert!(
-            hit.iter().any(|row| row.id == "marquee.huazi.coral-outline"),
+            hit.iter()
+                .any(|row| row.id == "marquee.huazi.coral-outline"),
             "{hit:?}"
         );
         assert!(hit.iter().all(|row| row.category == "huazi"));
@@ -2010,10 +2015,7 @@ mod tests {
         }))
         .expect("file alias");
         match (by_path, by_file) {
-            (
-                crate::Request::MediaProbe { path: a },
-                crate::Request::MediaProbe { path: b },
-            ) => {
+            (crate::Request::MediaProbe { path: a }, crate::Request::MediaProbe { path: b }) => {
                 assert_eq!(a, "/tmp/a.mp4");
                 assert_eq!(b, "/tmp/a.mp4");
             }
@@ -2030,5 +2032,4 @@ mod tests {
         assert_eq!(spec.normalize, None);
         assert!(spec.normalize.unwrap_or(true));
     }
-
 }

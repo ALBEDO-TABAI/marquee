@@ -13,8 +13,8 @@ use schemars::{JsonSchema, SchemaGenerator, generate::SchemaSettings};
 use serde_json::{Map, Value, json};
 
 use crate::message::{
-    API_VERSION, ApiError, Done, ErrorCode, Event, JobStatus, PackageInfo, Picture, Request,
-    Started, VersionInfo, Written,
+    API_VERSION, ApiError, CaptionSegment, Done, ErrorCode, Event, JobStatus, PackageInfo, Picture,
+    Request, Started, TextPresetInfo, VersionInfo, Written,
 };
 
 /// Where the published document lives: the website (ConcatApp/website)
@@ -83,6 +83,8 @@ fn reply_schema(method: &str, generator: &mut SchemaGenerator) -> Option<Value> 
         "media.probe" => of::<MediaSummary>(generator),
         "catalogue.list" => of::<Vec<PackageInfo>>(generator),
         "template.list" => of::<Vec<TemplateInfo>>(generator),
+        "presets.list" => of::<Vec<TextPresetInfo>>(generator),
+        "captions.transcribe" => of::<Vec<CaptionSegment>>(generator),
         "template.save" => of::<TemplateInfo>(generator),
         "export.run" => of::<Started>(generator),
         "export.status" => of::<JobStatus>(generator),
