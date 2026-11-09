@@ -108,6 +108,27 @@ export global Library {
     /// A package was starred or unstarred. Not per shelf: a star is a fact
     /// about the package, and it is remembered across sessions.
     callback favourite(id: string, on: bool);
+    /// The pointer entered a shelf tile. `kind` is `text`, `shape` or
+    /// `package`. Rust paints a real preview into `hover-frames`.
+    callback preview-hover(kind: string, id: string);
+    /// The pointer left. The in-flight paint is dropped.
+    callback preview-end();
+    /// The tile `hover-frames` belong to. Empty when the pointer is elsewhere.
+    in-out property <string> hover-id;
+    /// Frames in play order.
+    in-out property <[image]> hover-frames;
+    /// Cycle them; every hover sequence loops now, but a failed or single
+    /// frame does not.
+    in-out property <bool> hover-cycle;
+    /// Time between hover frames: text and shape loops run finer than a
+    /// package's few rendered moments.
+    in-out property <duration> hover-step: 140ms;
+    /// A preview was asked for and has not arrived.
+    in-out property <bool> hover-loading;
+    /// The preview could not be painted. The still stays.
+    in-out property <bool> hover-failed;
+    /// The platform asked for less motion: shelves keep their stills.
+    in-out property <bool> reduce-motion;
 
     pure public function view(shelf: int) -> LibraryViewData {
         if (Library.views.length < 4) {

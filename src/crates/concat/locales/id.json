@@ -198,6 +198,7 @@
   "common.right": "Kanan",
   "common.rotation": "Rotasi",
   "common.saved": "tersimpan",
+  "common.unsavedChanges": "perubahan belum disimpan",
   "common.scale": "Skala",
   "common.script": "Naskah",
   "common.searchKind": "Cari {0}",

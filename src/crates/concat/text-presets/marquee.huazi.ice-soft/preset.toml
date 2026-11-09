@@ -13,3 +13,4 @@ color = "#E8F6FF"
 strokeWidth = 0.00345
 strokeColor = "#4AA3D9"
 shadow = true
+finish = "soft"

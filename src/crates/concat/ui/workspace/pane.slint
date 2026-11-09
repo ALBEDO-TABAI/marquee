@@ -100,6 +100,11 @@ export component PaneScroll inherits Rectangle {
     /// finger has no wheel, and this is the sheet a phone reads its
     /// Settings in.
     in property <bool> finger;
+    /// A scroll asked for from outside: `jump-to` from the top, applied on
+    /// each change of `jump-token`.
+    in property <length> jump-to;
+    in property <int> jump-token;
+    changed jump-token => { root.offset = -root.jump-to; }
 
     // The offset is clamped on read rather than only on write, so a pane that
     // shrinks under the content — or content that gets shorter — cannot leave

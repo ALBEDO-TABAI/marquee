@@ -1983,6 +1983,45 @@ pub struct TextRun {
     pub style: RunStyle,
 }
 
+/// How a title's fill, outline and shadow are drawn. `Plain` is the
+/// historical look: an optional hard outline and one soft black drop.
+/// The other finishes are the flower-text treatments — the same colours
+/// and stroke width, drawn so an outline, a glow, a neon tube, an emboss,
+/// an echo and a long shadow are different pictures. A document that does
+/// not name one is plain, which is what every title was.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TextFinish {
+    /// A stroke around the fill, and no drop.
+    Outline,
+    /// A stroke thick enough to read as a second shape.
+    Heavy,
+    /// A bright core, a coloured tube, and a tight coloured glow.
+    Neon,
+    /// A wide coloured glow and almost no hard edge.
+    Soft,
+    /// A hard offset duplicate, the way a comic's shadow is cut.
+    Comic,
+    /// A light edge one way and a dark edge the other.
+    Emboss,
+    /// Several fading copies stepping away from the fill.
+    Stack,
+    /// A long solid extrusion away from the fill.
+    Drop,
+    /// A short light edge and a short dark edge, with a stroke between.
+    Bevel,
+    /// Fill, plus the outline and the soft drop when those are on.
+    /// Unknown names from a newer document read as this too.
+    #[default]
+    #[serde(other)]
+    Plain,
+}
+
+fn finish_plain(finish: &TextFinish) -> bool {
+    *finish == TextFinish::Plain
+}
+
 /// A title's styling. Sizes are fractions of the frame, so a title composed
 /// against 1080p lands correctly exported at 4K. A style arriving in a
 /// command needs only the fields it changes; the rest are the default's, so
@@ -2025,7 +2064,13 @@ pub struct TextStyle {
     /// Outline colour, only visible when `stroke_width` is non-zero.
     pub stroke_color: String,
     /// A drop shadow for legibility over footage. On by default.
+    /// Ignored when [`TextFinish`] draws the shadow itself.
     pub shadow: bool,
+    /// Which treatment draws the fill, outline and shadow. Absent in a
+    /// document is [`TextFinish::Plain`], the look titles had before
+    /// flower-text finishes existed.
+    #[serde(default, skip_serializing_if = "finish_plain")]
+    pub finish: TextFinish,
     /// A solid background behind the text, `#rrggbb[aa]`; its alpha is the
     /// background's opacity. Empty string for none. The painter and older
     /// comments call it the plate.
@@ -2126,6 +2171,7 @@ impl Default for TextStyle {
             stroke_width: 0.0,
             stroke_color: "#000000".to_owned(),
             shadow: true,
+            finish: TextFinish::Plain,
             background: String::new(),
             background_radius: 0.0135,
             background_padding_x: 0.0315,
@@ -2347,8 +2393,15 @@ impl ClipAnim {
     }
 
     /// Names the inspector's 入场/出场 list understands, `""` first.
-    pub const INTRO: &'static [&'static str] =
-        &["", "fade", "slideUp", "slideDown", "slideLeft", "slideRight", "zoomIn"];
+    pub const INTRO: &'static [&'static str] = &[
+        "",
+        "fade",
+        "slideUp",
+        "slideDown",
+        "slideLeft",
+        "slideRight",
+        "zoomIn",
+    ];
 
     /// Names the inspector's 组合 list understands.
     pub const COMBO: &'static [&'static str] = &["", "pulse", "breathe", "float"];
@@ -2356,7 +2409,11 @@ impl ClipAnim {
     /// Hold every duration to a usable window.
     pub fn tidy(mut self) -> Self {
         fn secs(value: f64, fallback: f64) -> f64 {
-            if value.is_finite() { value.clamp(0.05, 8.0) } else { fallback }
+            if value.is_finite() {
+                value.clamp(0.05, 8.0)
+            } else {
+                fallback
+            }
         }
         self.intro_secs = secs(self.intro_secs, 0.4);
         self.outro_secs = secs(self.outro_secs, 0.4);

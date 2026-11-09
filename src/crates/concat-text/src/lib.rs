@@ -71,6 +71,35 @@ pub enum Align {
     Right,
 }
 
+/// How the fill, outline and shadow are drawn. [`Finish::Plain`] is the
+/// historical painter: an optional stroke and one soft black drop. The
+/// other variants are the flower-text treatments, and they are what a
+/// library card, a hover preview and an inserted title all ask for.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Finish {
+    /// Fill, plus the outline and the soft drop when those are on.
+    #[default]
+    Plain,
+    /// A stroke around the fill, and no drop.
+    Outline,
+    /// A stroke thick enough to read as a second shape.
+    Heavy,
+    /// A bright core, a coloured tube, and a tight coloured glow.
+    Neon,
+    /// A wide coloured glow and almost no hard edge.
+    Soft,
+    /// A hard offset duplicate.
+    Comic,
+    /// A light edge one way and a dark edge the other.
+    Emboss,
+    /// Several fading copies stepping away from the fill.
+    Stack,
+    /// A long solid extrusion away from the fill.
+    Drop,
+    /// A short light edge and a short dark edge, with a stroke between.
+    Bevel,
+}
+
 /// Everything about a title's look. Mirrors the document's text style field
 /// for field so the host can copy it across; this crate does not depend on
 /// the document.
@@ -98,8 +127,11 @@ pub struct TitleStyle {
     pub stroke_width: f64,
     /// Outline colour.
     pub stroke_color: String,
-    /// A soft drop shadow behind the words.
+    /// A soft drop shadow behind the words. Ignored unless
+    /// [`Finish::Plain`]: the other finishes draw their own shadow.
     pub shadow: bool,
+    /// Which treatment draws the fill, outline and shadow.
+    pub finish: Finish,
     /// A plate behind the block, `#rrggbb[aa]`; empty for none.
     pub background: String,
     /// The plate's corner radius as a fraction of frame height; zero is
@@ -1654,6 +1686,266 @@ impl Ink {
     }
 }
 
+fn look_edge(look: &Look) -> Color {
+    look.edge.unwrap_or(look.fill)
+}
+
+/// How far past the fill a treatment reaches, in pixels, so the canvas
+/// grows to hold a glow or a long shadow instead of cutting it.
+fn finish_spread(finish: Finish, em: f32) -> f32 {
+    let em = em.max(1.0);
+    match finish {
+        Finish::Plain => 0.0,
+        Finish::Outline => em * 0.14,
+        Finish::Heavy => em * 0.24,
+        Finish::Neon => em * 0.55,
+        Finish::Soft => em * 0.85,
+        Finish::Comic => em * 0.32,
+        Finish::Emboss => em * 0.18,
+        Finish::Stack => em * 0.50,
+        Finish::Drop => em * 0.80,
+        Finish::Bevel => em * 0.20,
+    }
+}
+
+/// `color` moved toward white (`toward` > 0) or black (`toward` < 0), at
+/// `alpha`. The flower-text treatments are built from the fill and the
+/// stroke, not from a second palette.
+fn tone(color: Color, toward: f32, alpha: u8) -> Color {
+    let ch = |c: f32| {
+        let v = if toward >= 0.0 {
+            c + (1.0 - c) * toward
+        } else {
+            c * (1.0 + toward)
+        };
+        (v.clamp(0.0, 1.0) * 255.0).round() as u8
+    };
+    Color::from_rgba8(ch(color.red()), ch(color.green()), ch(color.blue()), alpha)
+}
+
+fn stamp_words(
+    canvas: &mut Pixmap,
+    words: &[(usize, Path)],
+    looks: &[Look],
+    delta: (f32, f32),
+    shift: (f32, f32),
+    color_of: impl Fn(&Look) -> Color,
+) {
+    let mut paint = Paint {
+        anti_alias: true,
+        ..Paint::default()
+    };
+    let offset = Transform::from_translate(delta.0 + shift.0, delta.1 + shift.1);
+    for (look, path) in words {
+        paint.set_color(color_of(&looks[*look]));
+        canvas.fill_path(path, &paint, FillRule::Winding, offset, None);
+    }
+}
+
+fn stroke_words(
+    canvas: &mut Pixmap,
+    words: &[(usize, Path)],
+    looks: &[Look],
+    width: f32,
+    shift: (f32, f32),
+    color_of: impl Fn(&Look) -> Color,
+) {
+    if width <= 0.0 {
+        return;
+    }
+    let stroke = Stroke {
+        width,
+        line_join: LineJoin::Round,
+        line_cap: LineCap::Round,
+        ..Stroke::default()
+    };
+    let mut paint = Paint {
+        anti_alias: true,
+        ..Paint::default()
+    };
+    let placed = Transform::from_translate(shift.0, shift.1);
+    for (look, path) in words {
+        paint.set_color(color_of(&looks[*look]));
+        canvas.stroke_path(path, &paint, &stroke, placed, None);
+    }
+}
+
+fn fill_words(
+    canvas: &mut Pixmap,
+    words: &[(usize, Path)],
+    looks: &[Look],
+    shift: (f32, f32),
+    color_of: impl Fn(&Look) -> Color,
+) {
+    stamp_words(canvas, words, looks, (0.0, 0.0), shift, color_of);
+}
+
+/// The words filled, blurred, and laid under whatever is painted next.
+fn glow_words(
+    canvas: &mut Pixmap,
+    words: &[(usize, Path)],
+    looks: &[Look],
+    radius: f32,
+    delta: (f32, f32),
+    shift: (f32, f32),
+    color_of: impl Fn(&Look) -> Color,
+) {
+    let Some(mut layer) = Pixmap::new(canvas.width(), canvas.height()) else {
+        return;
+    };
+    stamp_words(&mut layer, words, looks, delta, shift, color_of);
+    let radius = radius.round().max(1.0) as usize;
+    blur(&mut layer, radius);
+    canvas.draw_pixmap(
+        0,
+        0,
+        layer.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+}
+
+/// A flower-text treatment. The stroke width is a fraction of the frame,
+/// the same number the plain painter uses; a treatment that would
+/// otherwise vanish at a small size has a minimum in ems, so a card and
+/// a 1080p title of the same look agree about which treatment it is.
+fn paint_finish(
+    canvas: &mut Pixmap,
+    words: &[(usize, Path)],
+    looks: &[Look],
+    finish: Finish,
+    em: f32,
+    stroke_w: f32,
+    shift: (f32, f32),
+) {
+    if words.is_empty() || finish == Finish::Plain {
+        return;
+    }
+    // Visible thickness. The stroke is drawn at twice that, as the plain
+    // painter does, so only the outer half shows past the fill.
+    let outline = |min_ratio: f32| {
+        let ratio = if em > 1.0 { stroke_w / em } else { 0.0 };
+        em * ratio.max(min_ratio) * 2.0
+    };
+    match finish {
+        Finish::Plain => {}
+        Finish::Outline => {
+            stroke_words(canvas, words, looks, outline(0.075), shift, look_edge);
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Heavy => {
+            stroke_words(canvas, words, looks, outline(0.16), shift, look_edge);
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Neon => {
+            glow_words(canvas, words, looks, em * 0.22, (0.0, 0.0), shift, |look| {
+                tone(look_edge(look), 0.0, 210)
+            });
+            glow_words(canvas, words, looks, em * 0.08, (0.0, 0.0), shift, |look| {
+                tone(look_edge(look), 0.15, 255)
+            });
+            stroke_words(canvas, words, looks, outline(0.055), shift, look_edge);
+            fill_words(canvas, words, looks, shift, |look| {
+                tone(look.fill, 0.35, 255)
+            });
+        }
+        Finish::Soft => {
+            glow_words(canvas, words, looks, em * 0.40, (0.0, 0.0), shift, |look| {
+                tone(look_edge(look), 0.1, 150)
+            });
+            glow_words(canvas, words, looks, em * 0.14, (0.0, 0.0), shift, |look| {
+                tone(look_edge(look), 0.25, 200)
+            });
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Comic => {
+            stamp_words(
+                canvas,
+                words,
+                looks,
+                (em * 0.14, em * 0.14),
+                shift,
+                |look| tone(look_edge(look), -0.35, 255),
+            );
+            stroke_words(canvas, words, looks, outline(0.09), shift, look_edge);
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Emboss => {
+            stamp_words(
+                canvas,
+                words,
+                looks,
+                (-em * 0.07, -em * 0.07),
+                shift,
+                |look| tone(look.fill, 0.55, 255),
+            );
+            stamp_words(
+                canvas,
+                words,
+                looks,
+                (em * 0.08, em * 0.08),
+                shift,
+                |look| tone(look_edge(look), -0.45, 255),
+            );
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Stack => {
+            for (step, alpha) in [(4.0, 70u8), (3.0, 110), (2.0, 160), (1.0, 210)] {
+                let d = em * 0.09 * step;
+                stamp_words(canvas, words, looks, (d, d), shift, |look| {
+                    tone(look_edge(look), -0.1, alpha)
+                });
+            }
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Drop => {
+            // The copies are painted on their own layer and blurred a hair,
+            // so the extrusion reads as one shadow rather than a stack of
+            // hard edges.
+            if let Some(mut layer) = Pixmap::new(canvas.width(), canvas.height()) {
+                for step in (1..=28).rev() {
+                    let d = em * 0.022 * step as f32;
+                    stamp_words(&mut layer, words, looks, (d, d), shift, |look| {
+                        tone(look_edge(look), -0.2, 255)
+                    });
+                }
+                blur(&mut layer, (em * 0.015).round().max(1.0) as usize);
+                canvas.draw_pixmap(
+                    0,
+                    0,
+                    layer.as_ref(),
+                    &PixmapPaint::default(),
+                    Transform::identity(),
+                    None,
+                );
+            }
+            stroke_words(canvas, words, looks, outline(0.04), shift, look_edge);
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+        Finish::Bevel => {
+            stamp_words(
+                canvas,
+                words,
+                looks,
+                (-em * 0.055, -em * 0.055),
+                shift,
+                |look| tone(look.fill, 0.7, 255),
+            );
+            stamp_words(
+                canvas,
+                words,
+                looks,
+                (em * 0.055, em * 0.055),
+                shift,
+                |look| tone(look_edge(look), -0.4, 255),
+            );
+            stroke_words(canvas, words, looks, outline(0.05), shift, look_edge);
+            fill_words(canvas, words, looks, shift, |look| look.fill);
+        }
+    }
+}
+
 /// The canvas with the title on it, the block, and every word's box on the
 /// canvas in reading order.
 fn paint(
@@ -1924,9 +2216,17 @@ fn paint(
             0.0
         };
         ink.add(path.bounds(), (0.0, 0.0), edge + 1.0);
-        if style.shadow {
-            // The blur is a box run twice, so it spreads twice its radius.
-            ink.add(path.bounds(), shadow_offset, 2.0 * shadow_blur as f32 + 1.0);
+        if style.finish == Finish::Plain {
+            if style.shadow {
+                // The blur is a box run twice, so it spreads twice its radius.
+                ink.add(path.bounds(), shadow_offset, 2.0 * shadow_blur as f32 + 1.0);
+            }
+        } else {
+            // The treatment reaches past the fill: a glow, an echo, a long
+            // shadow. Measured on both diagonals so neither end is cut.
+            let spread = finish_spread(style.finish, em);
+            ink.add(path.bounds(), (spread, spread), spread + 1.0);
+            ink.add(path.bounds(), (-spread, -spread), spread + 1.0);
         }
     }
     for (row, line) in lines.iter().enumerate() {
@@ -1986,57 +2286,69 @@ fn paint(
         }
     }
 
-    // The shadow: the words again, offset down and right, black, blurred on
-    // a layer of their own and laid under the real words - every look's
-    // under all of them, one shadow for the title.
-    if style.shadow
-        && !words.is_empty()
-        && let Some(mut layer) = Pixmap::new(canvas.width(), canvas.height())
-    {
-        let mut shade = Paint {
-            anti_alias: true,
-            ..Paint::default()
-        };
-        shade.set_color(Color::from_rgba8(0, 0, 0, 150));
-        let offset =
-            Transform::from_translate(shadow_offset.0 + shift_x, shadow_offset.1 + shift_y);
-        for (_, path) in &words {
-            layer.fill_path(path, &shade, FillRule::Winding, offset, None);
+    if style.finish == Finish::Plain {
+        // The shadow: the words again, offset down and right, black, blurred on
+        // a layer of their own and laid under the real words - every look's
+        // under all of them, one shadow for the title.
+        if style.shadow
+            && !words.is_empty()
+            && let Some(mut layer) = Pixmap::new(canvas.width(), canvas.height())
+        {
+            let mut shade = Paint {
+                anti_alias: true,
+                ..Paint::default()
+            };
+            shade.set_color(Color::from_rgba8(0, 0, 0, 150));
+            let offset =
+                Transform::from_translate(shadow_offset.0 + shift_x, shadow_offset.1 + shift_y);
+            for (_, path) in &words {
+                layer.fill_path(path, &shade, FillRule::Winding, offset, None);
+            }
+            blur(&mut layer, shadow_blur);
+            canvas.draw_pixmap(
+                0,
+                0,
+                layer.as_ref(),
+                &PixmapPaint::default(),
+                Transform::identity(),
+                None,
+            );
         }
-        blur(&mut layer, shadow_blur);
-        canvas.draw_pixmap(
-            0,
-            0,
-            layer.as_ref(),
-            &PixmapPaint::default(),
-            Transform::identity(),
-            None,
-        );
-    }
 
-    // The outline, under the fill so only its outer half shows - which is
-    // why it is drawn at twice the asked-for width. Every look's outline
-    // goes down before any fill, so one word's outline never covers its
-    // neighbour's letters.
-    if stroke_w > 0.0 {
-        let stroke = Stroke {
-            width: stroke_w * 2.0,
-            line_join: LineJoin::Round,
-            line_cap: LineCap::Round,
-            ..Stroke::default()
-        };
-        for (look, path) in &words {
-            if let Some(edge) = looks[*look].edge {
-                paint.set_color(edge);
-                canvas.stroke_path(path, &paint, &stroke, shift, None);
+        // The outline, under the fill so only its outer half shows - which is
+        // why it is drawn at twice the asked-for width. Every look's outline
+        // goes down before any fill, so one word's outline never covers its
+        // neighbour's letters.
+        if stroke_w > 0.0 {
+            let stroke = Stroke {
+                width: stroke_w * 2.0,
+                line_join: LineJoin::Round,
+                line_cap: LineCap::Round,
+                ..Stroke::default()
+            };
+            for (look, path) in &words {
+                if let Some(edge) = looks[*look].edge {
+                    paint.set_color(edge);
+                    canvas.stroke_path(path, &paint, &stroke, shift, None);
+                }
             }
         }
-    }
 
-    // The words, each look in its own colour.
-    for (look, path) in &words {
-        paint.set_color(looks[*look].fill);
-        canvas.fill_path(path, &paint, FillRule::Winding, shift, None);
+        // The words, each look in its own colour.
+        for (look, path) in &words {
+            paint.set_color(looks[*look].fill);
+            canvas.fill_path(path, &paint, FillRule::Winding, shift, None);
+        }
+    } else {
+        paint_finish(
+            &mut canvas,
+            &words,
+            &looks,
+            style.finish,
+            em,
+            stroke_w,
+            (shift_x, shift_y),
+        );
     }
 
     // The glyphs that paint their own colours - an emoji's picture, a
@@ -2195,6 +2507,7 @@ mod tests {
             stroke_width: 0.0,
             stroke_color: "#000000".to_owned(),
             shadow: true,
+            finish: Finish::Plain,
             background: String::new(),
             background_radius: 0.0135,
             background_padding_x: 0.0315,
@@ -2256,8 +2569,16 @@ mod tests {
     fn union_rects(rects: &[WordRect]) -> WordRect {
         let left = rects.iter().map(|r| r.x).min().unwrap_or(0);
         let top = rects.iter().map(|r| r.y).min().unwrap_or(0);
-        let right = rects.iter().map(|r| r.x + r.width as i32).max().unwrap_or(0);
-        let bottom = rects.iter().map(|r| r.y + r.height as i32).max().unwrap_or(0);
+        let right = rects
+            .iter()
+            .map(|r| r.x + r.width as i32)
+            .max()
+            .unwrap_or(0);
+        let bottom = rects
+            .iter()
+            .map(|r| r.y + r.height as i32)
+            .max()
+            .unwrap_or(0);
         WordRect {
             x: left,
             y: top,
@@ -2353,8 +2674,15 @@ mod tests {
         let ink = |frame: &RenderedFrame, range: std::ops::Range<usize>| {
             pixels_in(frame, union_rects(&frame.words[range]), is_white)
         };
-        assert!(ink(&after, 0..5) > ink(&before, 0..5), "the run gained its rule");
-        assert_eq!(ink(&after, 5..10), ink(&before, 5..10), "its neighbour did not");
+        assert!(
+            ink(&after, 0..5) > ink(&before, 0..5),
+            "the run gained its rule"
+        );
+        assert_eq!(
+            ink(&after, 5..10),
+            ink(&before, 5..10),
+            "its neighbour did not"
+        );
 
         styled.runs = vec![TitleRun {
             start: 0,
@@ -2363,7 +2691,10 @@ mod tests {
             ..TitleRun::default()
         }];
         let bold = render_frame(&fonts, &styled, 1920, 1080).expect("renders");
-        assert!(ink(&bold, 0..5) > ink(&before, 0..5), "a heavier face, more ink");
+        assert!(
+            ink(&bold, 0..5) > ink(&before, 0..5),
+            "a heavier face, more ink"
+        );
         assert!(
             union_rects(&bold.words[0..5]).width > union_rects(&before.words[0..5]).width,
             "and wider"
@@ -3347,5 +3678,163 @@ mod tests {
             picture > 50,
             "{picture} coloured pixels: the emoji came out in colour"
         );
+    }
+
+    /// The ten flower-text treatments are one painter. Each must come out
+    /// a different picture from the others, and the named ones — outline,
+    /// glow, neon, emboss, echo, long shadow — must differ in the way
+    /// their names say, not only by a pixel of anti-aliasing.
+    #[test]
+    fn flower_text_finishes_paint_different_pictures() {
+        let fonts = Fonts::bundled();
+        let paint = |finish: Finish| {
+            let mut styled = style("花字");
+            styled.font_family = "Noto Sans CJK SC".to_owned();
+            styled.font_size = 0.46;
+            styled.font_weight = 700.0;
+            styled.color = "#E8FFFC".to_owned();
+            styled.stroke_color = "#01B9C6".to_owned();
+            styled.stroke_width = 0.028;
+            styled.shadow = false;
+            styled.finish = finish;
+            render_frame(&fonts, &styled, 320, 200).expect("a flower-text frame")
+        };
+        let finishes = [
+            Finish::Plain,
+            Finish::Outline,
+            Finish::Heavy,
+            Finish::Neon,
+            Finish::Soft,
+            Finish::Comic,
+            Finish::Emboss,
+            Finish::Stack,
+            Finish::Drop,
+            Finish::Bevel,
+        ];
+        let frames: Vec<RenderedFrame> = finishes.iter().copied().map(paint).collect();
+        for (i, a) in frames.iter().enumerate() {
+            for b in frames.iter().skip(i + 1) {
+                assert_ne!(
+                    a.rgba, b.rgba,
+                    "{:?} and another finish painted the same pixels",
+                    finishes[i]
+                );
+            }
+        }
+        if let Ok(dir) = std::env::var("MARQUEE_DUMP_HOVER") {
+            let dir = std::path::PathBuf::from(dir);
+            let _ = std::fs::create_dir_all(&dir);
+            for (finish, frame) in finishes.iter().zip(frames.iter()) {
+                let path = dir.join(format!("flower-{finish:?}.ppm"));
+                let mut body = format!("P6\n{} {}\n255\n", frame.width, frame.height).into_bytes();
+                for pixel in frame.rgba.chunks_exact(4) {
+                    body.extend_from_slice(&pixel[..3]);
+                }
+                std::fs::write(path, body).expect("write flower finish sample");
+            }
+        }
+        /// Soft halo pixels, saturated cyan pixels, and the ink's box.
+        fn measure(frame: &RenderedFrame) -> (usize, usize, i32, i32) {
+            let (w, h) = (frame.width as i32, frame.height as i32);
+            let mut soft = 0usize;
+            let mut cyan = 0usize;
+            let (mut min_x, mut min_y) = (w, h);
+            let (mut max_x, mut max_y) = (0i32, 0i32);
+            for y in 0..h {
+                for x in 0..w {
+                    let i = ((y * w + x) * 4) as usize;
+                    let (r, g, b, a) = (
+                        frame.rgba[i],
+                        frame.rgba[i + 1],
+                        frame.rgba[i + 2],
+                        frame.rgba[i + 3],
+                    );
+                    if a > 24 {
+                        min_x = min_x.min(x);
+                        min_y = min_y.min(y);
+                        max_x = max_x.max(x);
+                        max_y = max_y.max(y);
+                    }
+                    if (20..210).contains(&a) {
+                        soft += 1;
+                    }
+                    if a > 40 && r < 90 && g > 110 && b > 110 {
+                        cyan += 1;
+                    }
+                }
+            }
+            let span = (max_x - min_x).max(0) + (max_y - min_y).max(0);
+            (soft, cyan, span, max_x + max_y)
+        }
+        let stats: Vec<_> = frames.iter().map(measure).collect();
+        let at = |finish: Finish| stats[finishes.iter().position(|f| *f == finish).unwrap()];
+        let plain = at(Finish::Plain);
+        let outline = at(Finish::Outline);
+        let heavy = at(Finish::Heavy);
+        let neon = at(Finish::Neon);
+        let soft = at(Finish::Soft);
+        let comic = at(Finish::Comic);
+        let emboss = at(Finish::Emboss);
+        let stack = at(Finish::Stack);
+        let drop = at(Finish::Drop);
+        let bevel = at(Finish::Bevel);
+        assert!(
+            outline.1 > plain.1 + 40,
+            "outline should add a cyan stroke, plain {plain:?} outline {outline:?}"
+        );
+        assert!(
+            heavy.1 > outline.1,
+            "a heavy stroke covers more cyan than a plain outline, heavy {heavy:?} outline {outline:?}"
+        );
+        assert!(
+            neon.0 > outline.0 * 2,
+            "neon is a glow, not only a stroke, neon {neon:?} outline {outline:?}"
+        );
+        assert!(
+            soft.0 > neon.0 && soft.2 > outline.2,
+            "a soft glow spreads further than neon, soft {soft:?} neon {neon:?}"
+        );
+        assert!(
+            comic.3 > plain.3 && comic.2 > plain.2,
+            "a comic shadow steps down-right, comic {comic:?} plain {plain:?}"
+        );
+        assert!(
+            stack.2 > comic.2,
+            "an echo reaches further than one comic offset, stack {stack:?} comic {comic:?}"
+        );
+        assert!(
+            drop.2 > stack.2 && drop.2 > emboss.2 + 20,
+            "a long shadow is the longest extrusion, drop {drop:?} stack {stack:?} emboss {emboss:?}"
+        );
+        assert!(
+            emboss.2 < drop.2 && bevel.2 < drop.2,
+            "emboss and bevel stay on the letter, emboss {emboss:?} bevel {bevel:?} drop {drop:?}"
+        );
+        assert!(
+            emboss.0 + bevel.0 > plain.0,
+            "emboss and bevel add edge pixels, emboss {emboss:?} bevel {bevel:?} plain {plain:?}"
+        );
+        // Optional evidence: CONCAT_CARD_DIR=/tmp/cards writes one PPM per
+        // treatment. Not part of the assertion.
+        if let Ok(dir) = std::env::var("CONCAT_CARD_DIR") {
+            let _ = std::fs::create_dir_all(&dir);
+            let names = [
+                "plain", "outline", "heavy", "neon", "soft", "comic", "emboss", "stack", "drop",
+                "bevel",
+            ];
+            for (name, frame) in names.iter().zip(&frames) {
+                let path = std::path::Path::new(&dir).join(format!("{name}.ppm"));
+                let mut bytes = format!("P6\n{} {}\n255\n", frame.width, frame.height).into_bytes();
+                let ground = [0x2c_u8, 0x2c, 0x32];
+                for px in frame.rgba.chunks_exact(4) {
+                    let a = px[3] as f32 / 255.0;
+                    for channel in 0..3 {
+                        let v = px[channel] as f32 * a + ground[channel] as f32 * (1.0 - a);
+                        bytes.push(v.round() as u8);
+                    }
+                }
+                let _ = std::fs::write(path, bytes);
+            }
+        }
     }
 }

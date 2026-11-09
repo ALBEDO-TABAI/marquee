@@ -198,6 +198,7 @@
   "common.right": "Rechts",
   "common.rotation": "Rotatie",
   "common.saved": "opgeslagen",
+  "common.unsavedChanges": "niet-opgeslagen wijzigingen",
   "common.scale": "Schaal",
   "common.script": "Tekst",
   "common.searchKind": "Zoeken: {0}",

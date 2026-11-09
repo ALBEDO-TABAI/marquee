@@ -18,9 +18,10 @@ import { Editor } from "../editor.slint";
 import { GlassChrome } from "../primitives/glass-frost.slint";
 
 // The programme monitor: a header that says what the output is, a stage on a
-// sunken viewport, and a transport tray under it in three parts — timecode on
-// the leading edge, the buttons dead centre, the output and zoom pickers on
-// the trailing edge.
+// sunken viewport, and one floating transport capsule over the picture.
+// Timecode, the play cluster and the output controls sit in that capsule,
+// grouped, not stretched across a bar. A narrow stage stacks the time and
+// the view controls on a second row of the same capsule.
 //
 // Time is held in frames, not seconds. A monitor that cannot land on a frame
 // is not a monitor, and every rounding question disappears once the unit is
@@ -47,6 +48,8 @@ component RatioGlyph inherits Rectangle {
     in property <float> ratio-w: 16;
     in property <float> ratio-h: 9;
     in property <brush> tint: Theme.fg-dim;
+    /// A size that is none of the presets: its outline, marked with a dot.
+    in property <bool> custom;
 
     property <float> scale: 14 / Math.max(root.ratio-w, root.ratio-h);
 
@@ -62,6 +65,17 @@ component RatioGlyph inherits Rectangle {
         border-width: 1px;
         border-color: root.tint;
         border-radius: 2px;
+
+        // A custom size: the output's own outline with a dot in it, so it
+        // reads as "this shape, not one of the presets".
+        if root.custom: Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 2px;
+            height: 2px;
+            border-radius: 1px;
+            background: root.tint;
+        }
     }
 }
 
@@ -82,8 +96,15 @@ component RatioPicker inherits Rectangle {
     in property <[int]> heights;
     in property <[string]> names;
     in-out property <int> current;
+    /// The output's own size, drawn when it is none of the presets.
+    in property <int> custom-w: 16;
+    in property <int> custom-h: 9;
+    property <bool> custom: root.current < 0 || root.current >= root.widths.length;
 
     callback changed(index: int);
+    /// No well until the pointer is on it or the list is open. See
+    /// NumberField's `bare`: the preview transport is one surface.
+    in property <bool> bare;
 
     // Read from the popup rather than tracked here: a click outside closes it
     // without telling us, so a hand-rolled flag goes stale.
@@ -94,7 +115,9 @@ component RatioPicker inherits Rectangle {
     width: 8px + 14px + 6px + 12px + 6px;
     height: Theme.h;
     border-radius: Theme.r;
-    background: (root.open || trigger.has-hover) ? Theme.field-hover : Theme.field;
+    background: root.bare && !root.open && !trigger.has-hover ? Colors.transparent
+        : (root.open || trigger.has-hover) ? Theme.field-hover
+        : Theme.field;
 
     animate background { duration: 120ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -114,9 +137,10 @@ component RatioPicker inherits Rectangle {
         VerticalLayout {
             alignment: center;
             RatioGlyph {
-                ratio-w: root.widths[root.current];
-                ratio-h: root.heights[root.current];
+                ratio-w: root.custom ? Math.max(1, root.custom-w) : root.widths[root.current];
+                ratio-h: root.custom ? Math.max(1, root.custom-h) : root.heights[root.current];
                 tint: Theme.fg;
+                custom: root.custom;
             }
         }
 
@@ -883,12 +907,11 @@ export component PreviewPane inherits Rectangle {
         // ── the viewport ─────────────────────────────────────────────────
         viewport := Rectangle {
             vertical-stretch: 1;
-            // Sunken, and darker than the header and transport either side of
-            // it. A monitor's ground should fall away from the chrome around
-            // it rather than sit level with it — the darker the surround, the
-            // less the picture has to fight to be the brightest thing in the
-            // pane.
-            background: Theme.well;
+            // The pane's own surface, not a sunken well: the picture letter-
+            // boxes on the same panel colour as the media and details panes,
+            // so the preview reads as one panel rather than a black box set
+            // into one. The stage keeps its own hairline to mark the frame.
+            background: transparent;
             clip: true;
 
             // Less air on a phone, where the pane is the screen's width and
@@ -1229,160 +1252,234 @@ export component PreviewPane inherits Rectangle {
                 }
             }
             }
-            // ── the transport, a clear glass bar over the picture ──
-            if !root.bare: Rectangle {
-                x: 10px;
-                y: parent.height - self.height - 10px;
-                width: parent.width - 20px;
-                height: 46px;
-                border-radius: Theme.r-xl;
-                background: transparent;
-                drop-shadow-blur: Theme.glass-shadow-blur;
-                drop-shadow-offset-y: Theme.glass-shadow-y;
-                drop-shadow-color: Theme.glass-shadow;
+            // The transport is one floating capsule over the bottom of the
+            // picture, inset by `margin` on every side so it never touches or
+            // crosses the pane's edge. Three groups: the time readout, the
+            // play cluster centred, the view controls at the right. When the
+            // three do not fit on one line the play cluster takes its own row
+            // above the other two, inside the same capsule. While playing it
+            // fades out after a pause and comes back when the pointer nears
+            // the bottom of the picture (or `Editor.transport-wake` bumps).
+            if !root.bare: transport := Rectangle {
+                width: parent.width;
+                height: parent.height;
 
-                Glass {
-                    width: 100%;
-                    height: 100%;
-                    border-radius: parent.border-radius;
-                    kind: GlassKind.clear;
-                    frosted: true;
-                    frost: root.frost;
+                property <length> margin: 12px;
+                property <length> pad: 12px;
+                property <length> gap: 20px;
+                property <length> line-h: 26px;
+                property <length> avail: Math.max(0px, self.width - 2 * self.margin);
+                property <length> side: Math.max(time-group.preferred-width, view-group.preferred-width);
+                // Play centred on the capsule when both sides fit evenly;
+                // otherwise centred in the room between the side groups.
+                property <length> even-w: 2 * self.side + play-group.preferred-width
+                    + 2 * self.gap + 2 * self.pad;
+                property <length> tight-w: time-group.preferred-width + play-group.preferred-width
+                    + view-group.preferred-width + 2 * self.gap + 2 * self.pad;
+                property <bool> even: self.even-w <= self.avail;
+                property <length> single-w: self.even ? self.even-w : self.tight-w;
+                property <bool> stacked: self.single-w > self.avail;
+                property <length> stacked-w: Math.min(self.avail,
+                    Math.max(play-group.preferred-width,
+                        time-group.preferred-width + view-group.preferred-width + self.gap)
+                    + 2 * self.pad);
+                property <length> capsule-h: self.stacked ? 2 * self.line-h + 16px : 38px;
+
+                property <bool> awake: true;
+                property <bool> playing: root.playing;
+                changed playing => { self.awake = true; }
+                property <int> wake-token: Editor.transport-wake;
+                changed wake-token => { self.awake = true; }
+                property <bool> shown: !root.playing || self.awake || wake.has-hover;
+
+                idle := Timer {
+                    interval: 2500ms;
+                    running: root.playing && transport.awake && !wake.has-hover;
+                    triggered => { transport.awake = false; }
                 }
 
-                HorizontalLayout {
-                padding-left: 10px;
-                padding-right: 10px;
-                spacing: 12px;
+                // Only while playing, so editing a grip near the bottom of a
+                // still picture is never shadowed by it.
+                wake := TouchArea {
+                    enabled: root.playing;
+                    x: 0;
+                    y: parent.height - transport.capsule-h - transport.margin - 48px;
+                    width: parent.width;
+                    height: transport.capsule-h + transport.margin + 48px;
+                }
 
-                // Leading: where the playhead is, and how far it has to go.
-                HorizontalLayout {
-                    horizontal-stretch: 1;
-                    spacing: 8px;
-                    alignment: start;
+                capsule := Rectangle {
+                    width: transport.stacked ? transport.stacked-w : transport.single-w;
+                    height: transport.capsule-h;
+                    x: (parent.width - self.width) / 2;
+                    y: parent.height - self.height - transport.margin;
+                    border-radius: self.height / 2;
+                    background: transparent;
+                    drop-shadow-blur: 14px;
+                    drop-shadow-offset-y: 4px;
+                    drop-shadow-color: Theme.glass-shadow;
+                    opacity: transport.shown ? 1.0 : 0.0;
+                    visible: self.opacity > 0.01;
+                    animate opacity { duration: 220ms; easing: ease-in-out; }
 
-                    VerticalLayout {
-                        alignment: center;
-                        NumberField {
-                            width: 116px;
-                            value <=> root.shown-frames;
-                            minimum: 0;
-                            maximum: root.playhead-free ? 1000000000 : root.total-frames;
-                            step: 1;
-                            // Scrubbing a timecode should walk frames at the
-                            // speed a hand expects, not fly a hundred at once.
-                            px-per-step: 3px;
-                            format(v) => {
-                                return Fmt.frames-timecode(v / root.frame-rate,
-                                    root.frame-rate);
+                    Rectangle {
+                        width: 100%;
+                        height: 100%;
+                        border-radius: parent.border-radius;
+                        border-width: 1px;
+                        border-color: Theme.glass-edge;
+                        clip: true;
+
+                        Glass {
+                            width: 100%;
+                            height: 100%;
+                            border-radius: parent.border-radius;
+                            kind: GlassKind.transport;
+                            frosted: true;
+                            frost: root.frost;
+                        }
+
+                        // Current time bright, total dim, one readout.
+                        time-group := HorizontalLayout {
+                            x: transport.pad;
+                            y: transport.stacked
+                                ? parent.height - 5px - transport.line-h
+                                : (parent.height - transport.line-h) / 2;
+                            width: self.preferred-width;
+                            height: transport.line-h;
+                            spacing: 2px;
+                            alignment: start;
+                            VerticalLayout {
+                                alignment: center;
+                                NumberField {
+                                    bare: true;
+                                    width: 76px;
+                                    text-size: Theme.fs-sm;
+                                    value <=> root.shown-frames;
+                                    minimum: 0;
+                                    maximum: root.playhead-free ? 1000000000 : root.total-frames;
+                                    step: 1;
+                                    px-per-step: 3px;
+                                    format(v) => {
+                                        return Fmt.frames-timecode(v / root.frame-rate, root.frame-rate);
+                                    }
+                                    parse(text) => {
+                                        return Fmt.parse-frames(text, root.frame-rate);
+                                    }
+                                    changed(v) => { root.seek(v / root.frame-rate); }
+                                }
                             }
-                            parse(text) => {
-                                return Fmt.parse-frames(text, root.frame-rate);
+                            Text {
+                                text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
+                                color: Theme.fg-dim;
+                                font-family: Theme.font-technical;
+                                font-size: Theme.fs-xs;
+                                vertical-alignment: center;
                             }
-                            changed(v) => { root.seek(v / root.frame-rate); }
                         }
-                    }
 
-                    Text {
-                        text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
-                        color: Theme.fg-dim;
-                        font-family: Theme.font-technical;
-                        font-size: Theme.fs;
-                        vertical-alignment: center;
-                    }
-                }
-
-                // Centre: the transport itself.
-                HorizontalLayout {
-                    horizontal-stretch: 0;
-                    spacing: 2px;
-                    alignment: center;
-
-                    IconButton {
-                        glyph: Glyph.skip-back;
-                        label: I18n.t("common.goToStart");
-                        enabled: !root.at-start;
-                        clicked => { root.seek(0); }
-                    }
-                    IconButton {
-                        glyph: Glyph.step-back;
-                        label: I18n.t("previewPane.previousFrame");
-                        enabled: !root.at-start;
-                        clicked => { root.step(-1); }
-                    }
-
-                    // The one control you reach for without looking, so it is
-                    // the one control that carries a colour.
-                    IconButton {
-                        glyph: root.playing ? Glyph.pause : Glyph.play;
-                        label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
-                        icon-size: 16px;
-                        accent: true;
-                        clicked => { root.play-toggled(); }
-                    }
-
-                    IconButton {
-                        glyph: Glyph.step-forward;
-                        label: I18n.t("previewPane.nextFrame");
-                        enabled: !root.at-end;
-                        clicked => { root.step(1); }
-                    }
-                    IconButton {
-                        glyph: Glyph.skip-forward;
-                        label: I18n.t("common.goToEnd");
-                        enabled: !root.at-end;
-                        clicked => { root.seek(root.duration); }
-                    }
-                }
-
-                // Trailing: what the output is and how close we are looking.
-                HorizontalLayout {
-                    horizontal-stretch: 1;
-                    spacing: 6px;
-                    alignment: end;
-
-                    VerticalLayout {
-                        alignment: center;
-                        RatioPicker {
-                            widths: root.ratios-w;
-                            heights: root.ratios-h;
-                            names: root.ratio-names;
-                            current: root.ratio-index;
-                            changed(index) => { root.ratio-changed(index); }
+                        play-group := HorizontalLayout {
+                            x: transport.stacked || transport.even ? (parent.width - self.width) / 2
+                                : transport.pad + time-group.width
+                                    + (parent.width - 2 * transport.pad - time-group.width - view-group.width - self.width) / 2;
+                            y: transport.stacked ? 5px : (parent.height - transport.line-h) / 2;
+                            width: self.preferred-width;
+                            height: transport.line-h;
+                            spacing: 2px;
+                            alignment: center;
+                            IconButton {
+                                glyph: Glyph.skip-back;
+                                compact: true;
+                                icon-size: 12px;
+                                label: I18n.t("common.goToStart");
+                                enabled: !root.at-start;
+                                idle: Theme.fg;
+                                clicked => { root.seek(0); }
+                            }
+                            IconButton {
+                                glyph: Glyph.step-back;
+                                compact: true;
+                                icon-size: 12px;
+                                label: I18n.t("previewPane.previousFrame");
+                                enabled: !root.at-start;
+                                idle: Theme.fg;
+                                clicked => { root.step(-1); }
+                            }
+                            IconButton {
+                                glyph: root.playing ? Glyph.pause : Glyph.play;
+                                label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
+                                icon-size: 11px;
+                                filled: true;
+                                compact: true;
+                                clicked => { root.play-toggled(); }
+                            }
+                            IconButton {
+                                glyph: Glyph.step-forward;
+                                compact: true;
+                                icon-size: 12px;
+                                label: I18n.t("previewPane.nextFrame");
+                                enabled: !root.at-end;
+                                idle: Theme.fg;
+                                clicked => { root.step(1); }
+                            }
+                            IconButton {
+                                glyph: Glyph.skip-forward;
+                                compact: true;
+                                icon-size: 12px;
+                                label: I18n.t("common.goToEnd");
+                                enabled: !root.at-end;
+                                idle: Theme.fg;
+                                clicked => { root.seek(root.duration); }
+                            }
                         }
-                    }
 
-                    // What fraction of the frame the engine composites for the
-                    // monitor, and the reason a 4K timeline stays scrubbable
-                    // on a laptop.
-                    VerticalLayout {
-                        alignment: center;
-                        Select {
-                            snug: true;
-                            width: self.natural-width;
-                            summon: Editor.summon-select;
-                            current: root.quality-index;
-                            options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
-                            details: ["1:1", "1:2", "1:4"];
-                            changed(index) => { root.quality-changed(index); }
-                        }
-                    }
-
-                    // The one control the view needs: the way back. The
-                    // zoom itself is the wheel's, and a readout of it was
-                    // width spent on a number nobody steers by.
-                    VerticalLayout {
-                        alignment: center;
-                        IconButton {
-                            glyph: Glyph.fit;
-                            label: I18n.t("previewPane.fitFramePane");
-                            enabled: !viewport.fitted;
-                            clicked => { viewport.fit(); }
+                        view-group := HorizontalLayout {
+                            x: parent.width - transport.pad - self.width;
+                            y: transport.stacked
+                                ? parent.height - 5px - transport.line-h
+                                : (parent.height - transport.line-h) / 2;
+                            width: self.preferred-width;
+                            height: transport.line-h;
+                            spacing: 2px;
+                            alignment: end;
+                            VerticalLayout {
+                                alignment: center;
+                                RatioPicker {
+                                    bare: true;
+                                    widths: root.ratios-w;
+                                    heights: root.ratios-h;
+                                    names: root.ratio-names;
+                                    current: root.ratio-index;
+                                    custom-w: root.output-width;
+                                    custom-h: root.output-height;
+                                    changed(index) => { root.ratio-changed(index); }
+                                }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                Select {
+                                    flat: true;
+                                    snug: true;
+                                    width: self.natural-width;
+                                    summon: Editor.summon-select;
+                                    current: root.quality-index;
+                                    options: [I18n.t("common.full"), I18n.t("previewPane.half"), I18n.t("previewPane.quarter")];
+                                    details: ["1:1", "1:2", "1:4"];
+                                    changed(index) => { root.quality-changed(index); }
+                                }
+                            }
+                            IconButton {
+                                glyph: Glyph.fit;
+                                compact: true;
+                                icon-size: 12px;
+                                label: I18n.t("previewPane.fitFramePane");
+                                enabled: !viewport.fitted;
+                                clicked => { viewport.fit(); }
+                            }
                         }
                     }
                 }
             }
-        }
         }
     }
 

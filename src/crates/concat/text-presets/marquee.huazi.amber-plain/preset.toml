@@ -13,3 +13,4 @@ color = "#FEF3C7"
 strokeWidth = 0.0
 strokeColor = "#92400E"
 shadow = false
+finish = "plain"

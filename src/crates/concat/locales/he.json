@@ -198,6 +198,7 @@
   "common.right": "ימין",
   "common.rotation": "סיבוב",
   "common.saved": "נשמר",
+  "common.unsavedChanges": "שינויים שלא נשמרו",
   "common.scale": "קנה מידה",
   "common.script": "תסריט",
   "common.searchKind": "חיפוש {0}",

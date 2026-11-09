@@ -248,6 +248,21 @@ export global Editor {
     /// Library shelf shown in the media pane (0 media, 8 audio, 1 text, …).
     in-out property <int> library-tab;
     in-out property <int> library-text-category;
+    /// Where the library page should scroll to, applied when the token
+    /// changes. Written by the CONCAT_SHOT_PORT hook (`reveal`).
+    in-out property <length> library-scroll-y;
+    in-out property <int> library-scroll-token;
+    /// Scroll the current shelf so tile `library-reveal-index` is near the
+    /// top, on each change of the token (CONCAT_SHOT_PORT `reveal`).
+    in-out property <int> library-reveal-index;
+    in-out property <int> library-reveal-token;
+    /// The stickers page's sub-shelf (0 stickers, 1 shapes), set when the
+    /// token bumps. CONCAT_SHOT_PORT only.
+    in-out property <int> library-sticker-shelf;
+    in-out property <int> library-sticker-token;
+    /// Bumped to show the preview transport again (pointer near it, or the
+    /// CONCAT_SHOT_PORT `transport` hook) while playback has hidden it.
+    in-out property <int> transport-wake;
     /// Bumped to open the preview quality Select for a screenshot.
     in-out property <int> summon-select;
     /// `audio` picks the chain: the sound's, or the picture's. A parameter

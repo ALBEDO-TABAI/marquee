@@ -362,6 +362,18 @@ pub fn on_ui(body: impl FnOnce(&mut Studio, &App, &Models) + Send + 'static) {
     on_ui_gated(None, body);
 }
 
+/// [`on_ui`] without a publish. For a paint that only updates a shelf
+/// image or a hover sequence: publishing the whole window for each tile
+/// would stall the pointer.
+pub fn on_ui_quiet(body: impl FnOnce(&mut Studio, &App, &Models) + Send + 'static) {
+    let _ = slint::invoke_from_event_loop(move || {
+        Shell::with(|shell, app| {
+            let mut studio = shell.studio.borrow_mut();
+            body(&mut studio, &app, &shell.models);
+        });
+    });
+}
+
 /// [`on_ui`] for a report about the open project - a job's progress -
 /// made in `epoch` (see [`project_epoch`]): dropped once that project has
 /// closed, like a [`spawn_in_project`] result.
@@ -500,9 +512,7 @@ pub fn frost_rgba(pixels: &[u8], width: u32, height: u32) -> slint::Image {
     box_blur_rgba(&mut small, tw, th, 2);
     box_blur_rgba(&mut small, tw, th, 2);
     saturate_rgba(&mut small, 1.85);
-    slint::Image::from_rgba8(slint::SharedPixelBuffer::clone_from_slice(
-        &small, tw, th,
-    ))
+    slint::Image::from_rgba8(slint::SharedPixelBuffer::clone_from_slice(&small, tw, th))
 }
 
 fn box_blur_rgba(px: &mut [u8], w: u32, h: u32, radius: i32) {

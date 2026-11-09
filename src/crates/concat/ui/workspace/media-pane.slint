@@ -44,6 +44,8 @@ export struct TextPresetData {
     language: string,
     /// What the card draws in the look: "Aa", or a word of its own writing.
     sample: string,
+    /// The look painted by the title painter. Empty until that still arrives.
+    art: image,
     family: string,
     weight: int,
     italic: bool,
@@ -61,6 +63,9 @@ export struct TemplateCardData {
     path: string,
     name: string,
     detail: string,
+    /// A frame of the recipe, when the bundle has one. Empty otherwise:
+    /// the card stays a name, and nothing is invented in its place.
+    poster: image,
 }
 
 export struct MediaItemData {
@@ -890,6 +895,101 @@ component MediaGrid inherits Rectangle {
     }
 }
 
+// The picture a shelf tile shows, and the real preview that replaces it
+// while the pointer is on the tile. The frames come from the same painters
+// an inserted clip uses. Leaving, or moving to another tile, drops them.
+component LiveArt inherits Rectangle {
+    in property <string> kind;
+    in property <string> id;
+    in property <image> still;
+    in property <bool> hover;
+    in property <bool> enabled: true;
+    /// The frame already includes its ground, so it is fitted whole.
+    in property <bool> fit-whole: false;
+
+    property <int> tick: 0;
+    // `hover-id` is the source of truth: the pointer writes it through
+    // `changed hover`, and CONCAT_SHOT_PORT can write it without a pointer.
+    property <bool> mine: root.enabled && Library.hover-id == root.id;
+    property <int> n: root.mine ? Library.hover-frames.length : 0;
+    property <bool> hold: !Library.hover-cycle || Library.reduce-motion;
+    property <int> shown: root.n == 0 ? -1
+        : root.hold ? Math.min(root.tick, root.n - 1)
+        : Math.mod(root.tick, root.n);
+
+    // The loading ring only after a full second: the still is already the
+    // real look, so a cached or merely slow-ish sequence swaps in over it
+    // without a flash; the ring is for a paint that is really stuck.
+    property <bool> late;
+    changed mine => { root.late = false; root.tick = 0; }
+    wait := Timer {
+        interval: 1000ms;
+        running: root.mine && Library.hover-loading && root.n == 0 && !root.late;
+        triggered => { root.late = true; }
+    }
+
+    changed hover => {
+        root.tick = 0;
+        if (root.hover && root.enabled && root.id != "") {
+            Library.preview-hover(root.kind, root.id);
+        } else if (Library.hover-id == root.id) {
+            Library.preview-end();
+        }
+    }
+
+    play := Timer {
+        interval: Library.hover-step;
+        running: root.mine && root.n > 1 && !Library.reduce-motion
+            && (Library.hover-cycle || root.tick + 1 < root.n);
+        triggered => { root.tick += 1; }
+    }
+
+    if root.shown < 0 && root.still.width > 0 && !root.fit-whole: Image {
+        width: 100%;
+        height: 100%;
+        source: root.still;
+        image-fit: cover;
+    }
+    if root.shown < 0 && root.still.width > 0 && root.fit-whole: Image {
+        width: 100%;
+        height: 100%;
+        source: root.still;
+        image-fit: contain;
+    }
+    if root.shown >= 0 && !root.fit-whole: Image {
+        width: 100%;
+        height: 100%;
+        source: Library.hover-frames[root.shown];
+        image-fit: cover;
+    }
+    if root.shown >= 0 && root.fit-whole: Image {
+        width: 100%;
+        height: 100%;
+        source: Library.hover-frames[root.shown];
+        image-fit: contain;
+    }
+
+    // Loading is a small ring, not a fake shimmer of the effect.
+    if root.mine && root.late && Library.hover-loading && root.n == 0: Rectangle {
+        x: parent.width - 22px;
+        y: 6px;
+        width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        border-width: 2px;
+        border-color: Theme.on-scrim;
+        background: Theme.scrim;
+    }
+    if root.mine && Library.hover-failed && root.n == 0: Rectangle {
+        x: 6px;
+        y: parent.height - 12px;
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+        background: Theme.danger;
+    }
+}
+
 // ── the catalogue pages ──────────────────────────────────────────────────────
 
 // One entry of the transitions or effects catalogue. Display data only: the
@@ -936,12 +1036,6 @@ component CatalogueCard inherits Rectangle {
     /// and a name in a box says it in a third of the room.
     in property <bool> compact;
 
-    property <float> sweep: card.has-hover ? 1.0 : 0.0;
-    animate sweep { duration: 1.2s; easing: ease-in-out; iteration-count: -1; }
-
-    property <float> shimmer: card.has-hover ? 1.0 : 0.0;
-    animate shimmer { duration: 1.5s; easing: ease-in-out; iteration-count: -1; }
-
     opacity: drag.dragging ? 0.45 : 1.0;
 
     drag := DragArea {
@@ -979,13 +1073,16 @@ component CatalogueCard inherits Rectangle {
                     ? Theme.line-strong : Theme.line;
                 clip: true;
 
-                if root.item.art.width > 0: Image {
+                LiveArt {
                     x: 0;
                     y: 0;
                     width: parent.width;
                     height: parent.height;
-                    source: root.item.art;
-                    image-fit: cover;
+                    kind: "package";
+                    id: root.item.id;
+                    still: root.item.art;
+                    hover: card.has-hover && !root.compact;
+                    enabled: root.item.enabled;
                 }
 
                 if root.compact: Text {
@@ -1008,37 +1105,6 @@ component CatalogueCard inherits Rectangle {
                     glyph: root.item.glyph;
                     size: 22px;
                     tint: Theme.fg-dim;
-                }
-
-                // Transitions: animated sweep line / wipe overlay across card image
-                if (root.glyph == Glyph.transition || root.item.glyph == Glyph.transition) && card.has-hover: Rectangle {
-                    x: 0;
-                    y: 0;
-                    width: parent.width * root.sweep;
-                    height: parent.height;
-                    background: Theme.accent-soft;
-
-                    Rectangle {
-                        x: parent.width - 2px;
-                        y: 0;
-                        width: 2px;
-                        height: parent.height;
-                        background: Theme.accent;
-                    }
-                }
-
-                // Effects: subtle live shimmer effect on hover across thumbnail
-                if (root.glyph == Glyph.sparkle || root.item.glyph == Glyph.sparkle) && card.has-hover: Rectangle {
-                    x: -parent.width + (2 * parent.width * root.shimmer);
-                    y: 0;
-                    width: parent.width;
-                    height: parent.height;
-                    background: @linear-gradient(90deg,
-                        transparent 0%,
-                        transparent 25%,
-                        Theme.accent-soft 50%,
-                        transparent 75%,
-                        transparent 100%);
                 }
 
                 if !root.item.enabled: Rectangle {
@@ -1161,9 +1227,24 @@ component PresetCard inherits Rectangle {
                     font-italic: root.preset.italic;
                     font-size: root.sample-size;
                     stroke: root.preset.stroke;
-                    stroke-width: root.preset.stroke-width > 0 ? 1px : 0px;
+                    // The real treatment is the painted still. A one-pixel
+                    // stroke here made every flower-text card the same glow.
+                    stroke-width: 0px;
                     horizontal-alignment: center;
                     overflow: elide;
+                    visible: root.preset.art.width == 0;
+                }
+
+                LiveArt {
+                    x: 0;
+                    y: 0;
+                    width: parent.width;
+                    height: parent.height;
+                    kind: "text";
+                    id: root.preset.id;
+                    still: root.preset.art;
+                    hover: touch.has-hover;
+                    fit-whole: true;
                 }
 
                 if touch.has-hover: Rectangle {
@@ -1217,8 +1298,10 @@ export component ShelfGrid inherits Rectangle {
     in property <string> auditioning;
     callback auditioned(id: string);
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     /// Name-only cards, half the height: for a shelf whose entries have no
     /// picture - sound. A picture shelf keeps its card shape while a card
     /// is still being drawn, its glyph standing in.
@@ -1267,8 +1350,10 @@ component AdjustmentShelf inherits Rectangle {
     /// What the lane calls the layer, in the interface's language.
     property <string> name: I18n.t("mediaPane.adjustment");
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1548,8 +1633,10 @@ export component PresetGrid inherits Rectangle {
 
     callback applied(id: string);
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1630,6 +1717,17 @@ component ShapeCard inherits Rectangle {
                     stroke-line-join: round;
                 }
 
+                LiveArt {
+                    x: 0;
+                    y: 0;
+                    width: parent.width;
+                    height: parent.height;
+                    kind: "shape";
+                    id: root.shape.id;
+                    hover: touch.has-hover;
+                    fit-whole: true;
+                }
+
                 if touch.has-hover: Rectangle {
                     x: parent.width - self.width - 4px;
                     y: parent.height - self.height - 4px;
@@ -1701,8 +1799,10 @@ export component ShapeGrid inherits Rectangle {
             commands: "M3 12h18 M9 6l-6 6 6 6 M15 6l6 6-6 6" },
     ];
 
-    property <length> gap: 8px;
-    property <length> min-card: 108px;
+    // Jianying-like: three or four small square tiles across a default
+    // panel, not one large card a row.
+    property <length> gap: 6px;
+    property <length> min-card: 60px;
     property <int> cols: Math.max(1,
         Math.floor((root.width + root.gap) / (root.min-card + root.gap)));
     property <length> card-w: (root.width - (root.cols - 1) * root.gap) / root.cols;
@@ -1781,6 +1881,34 @@ export component MediaPane inherits Rectangle {
     in property <[string]> caption-languages;
     /// See Editor.captions-jump-token: turn to Text & Captions > Captions.
     in property <int> captions-jump-token;
+    /// See Editor.library-scroll-y.
+    in property <length> scroll-y;
+    in property <int> scroll-token;
+    in property <int> reveal-index;
+    in property <int> reveal-token;
+    in property <int> sticker-shelf-want;
+    in property <int> sticker-shelf-token;
+    changed sticker-shelf-token => { root.sticker-shelf = root.sticker-shelf-want; }
+    property <length> jump-y;
+    property <int> jump-tok;
+    changed scroll-token => {
+        root.jump-y = root.scroll-y;
+        root.jump-tok += 1;
+    }
+    // The shelves' grid arithmetic (8px page padding, 6px gap, 60px tiles,
+    // a square and a 14px name under it); the searched shelves start below
+    // their search row.
+    changed reveal-token => {
+        root.jump-y = root.reveal-y(root.reveal-index);
+        root.jump-tok += 1;
+    }
+    pure function reveal-y(index: int) -> length {
+        let w = Math.max(0px, pages.width - 16px);
+        let cols = Math.max(1, Math.floor((w + 6px) / 66px));
+        let card = (w - (cols - 1) * 6px) / cols;
+        let header = (root.tab == 3 || root.tab == 4 || root.tab == 5) ? Theme.h + 14px : 0px;
+        return header + Math.floor(index / cols) * (card + 24px);
+    }
     changed captions-jump-token => {
         root.tab = 1;
         root.captions-open = true;
@@ -2534,6 +2662,8 @@ export component MediaPane inherits Rectangle {
             }
 
             pages := PaneScroll {
+                jump-to: root.jump-y;
+                jump-token: root.jump-tok;
                 x: root.sidebar + 1px;
                 width: Math.max(0px, parent.width - root.sidebar - 1px);
                 height: parent.height;
@@ -2972,19 +3102,33 @@ export component MediaPane inherits Rectangle {
                             border-width: 1px;
                             border-color: pack-touch.has-hover ? Theme.line-strong : Theme.line;
                             background: pack-touch.has-hover ? Theme.field-hover : Theme.field;
+                            clip: true;
+
+                            if pack.poster.width > 0: Image {
+                                width: 100%;
+                                height: 100%;
+                                source: pack.poster;
+                                image-fit: cover;
+                            }
+                            if pack.poster.width > 0: Rectangle {
+                                y: parent.height - 36px;
+                                width: 100%;
+                                height: 36px;
+                                background: Theme.scrim;
+                            }
 
                             VerticalLayout {
                                 padding: 10px;
                                 spacing: 4px;
                                 Text {
                                     text: pack.name;
-                                    color: Theme.fg;
+                                    color: pack.poster.width > 0 ? Theme.on-scrim : Theme.fg;
                                     font-size: Theme.fs;
                                     overflow: elide;
                                 }
                                 Text {
                                     text: pack.detail;
-                                    color: Theme.fg-muted;
+                                    color: pack.poster.width > 0 ? Theme.on-scrim : Theme.fg-muted;
                                     font-size: Theme.fs-sm;
                                     overflow: elide;
                                 }

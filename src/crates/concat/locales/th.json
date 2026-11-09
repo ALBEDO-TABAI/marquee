@@ -198,6 +198,7 @@
   "common.right": "ขวา",
   "common.rotation": "การหมุน",
   "common.saved": "บันทึกแล้ว",
+  "common.unsavedChanges": "การเปลี่ยนแปลงที่ยังไม่บันทึก",
   "common.scale": "สเกล",
   "common.script": "สคริปต์",
   "common.searchKind": "ค้นหา{0}",

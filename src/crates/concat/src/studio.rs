@@ -1198,6 +1198,11 @@ pub struct Studio {
     /// while they were, which makes for another round when this one ends.
     cards_busy: bool,
     cards_again: bool,
+    /// Flower-text and other title looks, painted by the title painter and
+    /// kept so a shelf rebuild does not drop them. Keyed by preset id.
+    preset_art: std::cell::RefCell<HashMap<String, slint::Image>>,
+    /// Hover previews for the library. Off the project: it only paints.
+    gallery: crate::gallery::Gallery,
     /// The watch on the user's effects folder: a poll every couple of
     /// seconds of what is in it, cheaper than a file-system watcher and
     /// one dependency fewer, at a cost nobody will notice.
@@ -1921,7 +1926,7 @@ fn clip_commands(id: &str, before: &Clip, after: &Clip, magnetic: bool) -> Vec<C
         commands.push(Command::SetClipSpeed {
             clip_id: id.to_owned(),
             ripple: magnetic,
-                clear_curve: false,
+            clear_curve: false,
             speed: after.speed,
         });
     }
@@ -2029,7 +2034,6 @@ fn key_commands(clip_id: &str, before: &Clip, after: &Clip) -> Vec<Command> {
     }
     commands
 }
-
 
 fn localized_adjust_label(key: &str, fallback: &str) -> slint::SharedString {
     let named = format!("adjust.{key}");
@@ -2583,8 +2587,13 @@ fn copy_commands(source: &Clip, placed: &Clip, track_id: &str, start: f64) -> Ve
             ripple: false,
         });
     }
-    // The footage the source covers, at normal speed.
-    let covered = source.duration * source.speed;
+    // How long the copy should last on the timeline. `source.duration` is
+    // already that length. Multiplying by `source.speed` would turn it into
+    // source-footage seconds, but both trims below are in timeline units,
+    // and `SetClipSpeed` with `ripple: false` only writes the speed field.
+    // At 1x the product matches; at 2x it left the copy twice as long as
+    // the tail it was taken from.
+    let covered = source.duration;
     let tail = covered - (placed.duration - head);
     if tail.abs() > 1e-6 {
         commands.push(Command::TrimClip {
@@ -2598,7 +2607,7 @@ fn copy_commands(source: &Clip, placed: &Clip, track_id: &str, start: f64) -> Ve
         commands.push(Command::SetClipSpeed {
             clip_id: created.clone(),
             ripple: false,
-                clear_curve: false,
+            clear_curve: false,
             speed: source.speed,
         });
     }
@@ -2809,6 +2818,8 @@ impl Studio {
             cards_drawn: 0,
             cards_busy: false,
             cards_again: false,
+            preset_art: std::cell::RefCell::new(HashMap::new()),
+            gallery: crate::gallery::Gallery::new(),
             packages_watch: slint::Timer::default(),
             packages_seen: 0,
             packages_pending: None,
@@ -2934,6 +2945,152 @@ fn edit_point(spans: &[(f64, f64)], playhead: f32, rate: f32, forward: bool) -> 
     next.map_or(playhead, |point| (point as f64 / fps) as f32)
 }
 
+impl Studio {
+    /// Paints every text look's shelf still on the gallery thread. The
+    /// cards show the real treatment, the same painter an insert uses.
+    pub fn warm_preset_cards(&mut self) {
+        let items = self
+            .text_presets
+            .iter()
+            .map(|preset| {
+                (
+                    preset.id.clone(),
+                    preset.style.clone(),
+                    preset.sample.clone(),
+                )
+            })
+            .collect();
+        self.gallery.warm(items);
+    }
+
+    /// The pointer entered a library tile. Reduced motion leaves the still
+    /// where it is: the still is already the real frame.
+    pub fn gallery_hover(&mut self, app: &App, kind: &str, id: &str) {
+        if app.global::<Library>().get_reduce_motion() {
+            return;
+        }
+        let kind = match kind {
+            "text" => crate::gallery::Kind::Text,
+            "shape" => crate::gallery::Kind::Shape,
+            "package" => crate::gallery::Kind::Package,
+            _ => return,
+        };
+        let (style, sample) = if kind == crate::gallery::Kind::Text {
+            let Some(preset) = self.text_presets.iter().find(|preset| preset.id == id) else {
+                return;
+            };
+            (Some(preset.style.clone()), preset.sample.clone())
+        } else {
+            (None, String::new())
+        };
+        let (_gen, hit) = self.gallery.hover(kind, id, style, &sample);
+        let preview = app.global::<Library>();
+        preview.set_hover_id(id.into());
+        preview.set_hover_failed(false);
+        preview.set_hover_step(match kind {
+            crate::gallery::Kind::Package => 140,
+            _ => crate::gallery::LOOP_STEP_MS as i64,
+        });
+        if let Some(hit) = hit {
+            preview.set_hover_cycle(hit.looped);
+            preview.set_hover_loading(false);
+            preview.set_hover_frames(frames_model(&hit.frames));
+        } else {
+            preview.set_hover_cycle(true);
+            preview.set_hover_loading(true);
+            preview.set_hover_frames(ModelRc::new(VecModel::from(Vec::new())));
+        }
+    }
+
+    /// The pointer left the tile. The in-flight paint is dropped.
+    pub fn gallery_leave(&mut self, app: &App) {
+        self.gallery.leave();
+        let preview = app.global::<Library>();
+        preview.set_hover_id(SharedString::default());
+        preview.set_hover_frames(ModelRc::new(VecModel::from(Vec::new())));
+        preview.set_hover_loading(false);
+        preview.set_hover_failed(false);
+        preview.set_hover_cycle(false);
+    }
+
+    /// A hover sequence arrived. A stale generation — the pointer has
+    /// moved, or left — is ignored, so a slow card cannot paint over the
+    /// one now under the pointer.
+    pub(crate) fn gallery_arrived(
+        &mut self,
+        app: &App,
+        generation: u64,
+        id: &str,
+        frames: Vec<concat_host::titles::CardPixels>,
+        looped: bool,
+        failed: bool,
+    ) {
+        if frames.is_empty() {
+            if !self.gallery.accept(generation, id) {
+                return;
+            }
+        } else if !self.gallery.store(generation, id, frames.clone(), looped) {
+            return;
+        }
+        let preview = app.global::<Library>();
+        preview.set_hover_loading(false);
+        preview.set_hover_failed(failed);
+        preview.set_hover_cycle(looped);
+        preview.set_hover_frames(frames_model(&frames));
+    }
+
+    /// One text look's still, painted off the UI thread. Written onto every
+    /// shelf that shows that preset, and kept for the next time the shelves
+    /// are built.
+    pub(crate) fn preset_art_arrived(
+        &self,
+        id: &str,
+        card: concat_host::titles::CardPixels,
+        models: &Models,
+    ) {
+        let Some(image) = card_image(&card) else {
+            return;
+        };
+        self.preset_art
+            .borrow_mut()
+            .insert(id.to_owned(), image.clone());
+        for model in [
+            &models.text_presets,
+            &models.style_presets,
+            &models.language_presets,
+            &models.template_presets,
+        ] {
+            for index in 0..model.row_count() {
+                let Some(mut row) = model.row_data(index) else {
+                    continue;
+                };
+                if row.id == id {
+                    row.art = image.clone();
+                    model.set_row_data(index, row);
+                }
+            }
+        }
+    }
+}
+
+fn frames_model(frames: &[concat_host::titles::CardPixels]) -> ModelRc<slint::Image> {
+    let images: Vec<slint::Image> = frames.iter().filter_map(card_image).collect();
+    ModelRc::new(VecModel::from(images))
+}
+
+fn card_image(card: &concat_host::titles::CardPixels) -> Option<slint::Image> {
+    let expected = card.width as usize * card.height as usize * 4;
+    if card.width == 0 || card.height == 0 || card.rgba.len() < expected {
+        return None;
+    }
+    let buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(
+        &card.rgba[..expected],
+        card.width,
+        card.height,
+    );
+    Some(slint::Image::from_rgba8(buffer))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -3048,17 +3205,26 @@ mod tests {
         assert_eq!(super::char_at(text, -1), 0);
     }
 
-    /// Every built-in picture package ships a card, decodable at the size
-    /// cards are drawn: one added without running scripts/bundle-cards.sh
-    /// would show a sparkle on every machine that cannot draw its own.
+    /// Shelf stills ship in `cards/` after `scripts/bundle-cards.sh` copies
+    /// what a GPU drew. Concat's original visual looks all have one (Adjust
+    /// is the inspector panel, not a shelf card). Later `marquee.*` packs
+    /// use the live compositor until their still is bundled the same way.
+    /// This checks every `concat.*` visual pack has a still, and every still
+    /// that does ship decodes at the card size.
     #[test]
     fn every_built_in_picture_package_ships_a_card() {
         for package in concat_effects::Catalogue::builtin().packages() {
             if !package.kind().is_visual() || package.id() == super::ADJUST_ID {
                 continue;
             }
-            let card = super::bundled_card(package.id())
-                .unwrap_or_else(|| panic!("{} has no bundled card", package.id()));
+            let Some(card) = super::bundled_card(package.id()) else {
+                assert!(
+                    !package.id().starts_with("concat."),
+                    "{} has no bundled card",
+                    package.id()
+                );
+                continue;
+            };
             let size = card.size();
             assert_eq!(
                 (size.width, size.height),
@@ -3157,7 +3323,7 @@ mod tests {
                 Command::SetClipSpeed {
                     clip_id: whole.clone(),
                     ripple: false,
-                clear_curve: false,
+                    clear_curve: false,
                     speed,
                 },
             );

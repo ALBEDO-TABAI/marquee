@@ -6,7 +6,7 @@ sample = "文字"
 
 [style]
 content = "引语"
-fontFamily = "Noto Serif CJK SC"
+fontFamily = "Noto Sans CJK SC"
 fontWeight = 700
 fontSize = 0.05556
 color = "#FFFFFF"

@@ -41,7 +41,7 @@ then frosted and stored on the `GlassChrome` global.
 
 | Surface | Treatment | Why |
 |---|---|---|
-| Preview transport (play, step, timecode, ratio, quality, fit) | **Glass, clear + frost** | Floats over the picture. Moved onto the bottom of the viewport as a pill. |
+| Preview transport (play, step, timecode, ratio, quality, fit) | **Glass, transport + light frost** | One capsule, sized to its controls and centred on the picture. `glass-transport` (about 0.84 dark / 0.94 light) so time and icons stay legible; frost at 0.42 so a black frame does not average into a grey bar. Controls inside are bare until hovered. Narrow previews stack time and view controls on a second row of the same capsule. |
 | Preview zoom / ratio chips | **Glass** (they live on that transport; ratio list is a glass popup) | Overlay / popover over content. |
 | Preview stage / well | **Solid** (`Theme.well` / `Theme.stage`) | The picture itself; glass would veil it. |
 | Title bar | **Glass-strong** wash | Chrome strip over the page. No frost (nothing pictorial behind it). |

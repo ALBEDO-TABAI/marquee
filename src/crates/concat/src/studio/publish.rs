@@ -53,9 +53,9 @@ impl Studio {
     pub fn publish_status(&self, app: &App) {
         app.set_project_status(
             if self.dirty {
-                "unsaved changes"
+                crate::i18n::t("common.unsavedChanges")
             } else {
-                "saved"
+                crate::i18n::t("common.saved")
             }
             .into(),
         );

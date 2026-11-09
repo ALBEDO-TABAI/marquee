@@ -330,6 +330,133 @@ impl Painter {
         Ok(frame)
     }
 
+    /// A hover sequence for `id`, drawn by the same compositor and the same
+    /// sample picture as the shelf's still. A filter or effect starts from
+    /// the sample with the package taken off, then the package at several
+    /// moments. A text animation starts from the bare title. A transition
+    /// is the cut from its start to its end. `stop` is checked between
+    /// frames so a pointer that has moved on does not finish the old one.
+    pub fn preview(
+        &mut self,
+        catalogue: &Catalogue,
+        id: &str,
+        stop: &dyn Fn() -> bool,
+    ) -> Result<Vec<Frame>, String> {
+        let package = catalogue
+            .get(id)
+            .ok_or_else(|| format!("no package {id}"))?;
+        if !package.kind().is_visual() {
+            return Err("nothing to preview".to_owned());
+        }
+        let settings = package.manifest.card.clone().unwrap_or_default();
+        let mut set = package.params_at(At::Default);
+        set.extend(settings.params.clone());
+        let (width, height) = (self.still.width(), self.still.height());
+        let mut out = Vec::new();
+        if package.transition().is_some() {
+            for progress in [0.0_f64, 0.2, 0.4, 0.6, 0.8, 1.0] {
+                if stop() {
+                    return Err("cancelled".to_owned());
+                }
+                let pass = catalogue
+                    .transition_pass(id, &settings.params, progress)
+                    .ok_or_else(|| format!("{id} has no transition"))?;
+                let frame = self
+                    .compositor
+                    .combine(
+                        width,
+                        height,
+                        progress as f32,
+                        &self.still,
+                        &self.turned,
+                        &pass,
+                    )
+                    .ok_or_else(|| "the transition's shader would not run".to_owned())?;
+                out.push(frame);
+            }
+        } else if package.kind() == concat_effects::Kind::Textanim
+            || package.category().eq_ignore_ascii_case("Text")
+        {
+            let pass = package
+                .pass(&set, None)
+                .ok_or_else(|| format!("{id} has no shader"))?;
+            let (title, reveal) = self.title(width, height)?;
+            let overscan =
+                (title.width() as f32 / width as f32).max(title.height() as f32 / height as f32);
+            for (index, moment) in [0.0_f64, 0.0, 0.3, 0.6, 0.9, 1.2].into_iter().enumerate() {
+                if stop() {
+                    return Err("cancelled".to_owned());
+                }
+                let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.still));
+                let mut words = PlannedLayer::picture(detached_clip(), Arc::clone(&title));
+                words.track = 1;
+                words.overscan = overscan;
+                if index > 0 {
+                    let mut pass = pass.clone();
+                    pass.reveal_map = Some(Arc::clone(&reveal));
+                    words.effects = vec![pass];
+                }
+                let time = Rational::approximate(moment).ok_or("the moment is not a time")?;
+                out.push(self.compositor.render(&FramePlan {
+                    time,
+                    layers: vec![ground, words],
+                    ..FramePlan::empty(width, height)
+                }));
+            }
+        } else {
+            let pass = package
+                .pass(&set, None)
+                .ok_or_else(|| format!("{id} has no shader"))?;
+            let subject = match settings.screen_rgb() {
+                Some(colour) => Arc::new(screened(&self.still, colour)),
+                None => Arc::clone(&self.still),
+            };
+            // The look breathes: its intensity knob runs from the card's
+            // setting up to the top of its range and back, so a quiet look
+            // (a glow, a grade) is plain to see on a small tile. A package
+            // without one keeps its setting and shows its motion over time.
+            let ramp = package.manifest.effect.intensity.as_ref().and_then(|key: &String| {
+                let param = package.manifest.param(key)?;
+                let from = set.get(key).copied().unwrap_or(param.default);
+                let to = if (param.max - from).abs() > f64::EPSILON { param.max } else { param.min };
+                Some((key.clone(), from, to))
+            });
+            let levels = [0.0_f64, 0.0, 0.35, 0.7, 1.0, 1.0, 0.7, 0.35, 0.1];
+            for (index, level) in levels.into_iter().enumerate() {
+                if stop() {
+                    return Err("cancelled".to_owned());
+                }
+                let moment = index as f64 * 0.2;
+                let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.checker));
+                let mut picture = PlannedLayer::picture(detached_clip(), Arc::clone(&subject));
+                picture.track = 1;
+                if index > 0 {
+                    let pass = match &ramp {
+                        Some((key, from, to)) => {
+                            let mut at = set.clone();
+                            at.insert(key.clone(), from + (to - from) * level);
+                            package
+                                .pass(&at, None)
+                                .ok_or_else(|| format!("{id} has no shader"))?
+                        }
+                        None => pass.clone(),
+                    };
+                    picture.effects = vec![pass];
+                }
+                let time = Rational::approximate(moment).ok_or("the moment is not a time")?;
+                out.push(self.compositor.render(&FramePlan {
+                    time,
+                    layers: vec![ground, picture],
+                    ..FramePlan::empty(width, height)
+                }));
+            }
+        }
+        if self.compositor.lost() {
+            return Err("the GPU device was lost".to_owned());
+        }
+        Ok(out)
+    }
+
     /// The title a text effect's card treats, set once: white words with a
     /// shadow, centred, over nothing, and the order its words reveal in.
     fn title(&mut self, width: u32, height: u32) -> Result<(Arc<Frame>, Arc<RevealMap>), String> {
@@ -349,6 +476,7 @@ impl Painter {
             stroke_width: 0.0,
             stroke_color: "#000000".to_owned(),
             shadow: true,
+            finish: concat_text::Finish::Plain,
             background: String::new(),
             background_radius: 0.0,
             background_padding_x: 0.0,

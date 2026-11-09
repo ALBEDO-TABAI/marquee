@@ -13,3 +13,4 @@ color = "#FFFFFF"
 strokeWidth = 0.00575
 strokeColor = "#FF3B5C"
 shadow = true
+finish = "drop"

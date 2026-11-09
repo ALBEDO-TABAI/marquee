@@ -36,6 +36,12 @@ export component NumberField inherits Rectangle {
     in property <bool> keyframe;
     in-out property <bool> keyframed;
     in property <bool> enabled: true;
+    /// No fill until the field is hovered or editing. For a control that
+    /// sits on a surface which is already the control's ground — the
+    /// preview transport — so it does not read as a second well.
+    in property <bool> bare;
+    /// The digits' size; the preview's glass readout runs a step smaller.
+    in property <length> text-size: Theme.fs;
     /// The corners, a side at a time; see Field.
     in property <length> radius-left: Theme.r;
     in property <length> radius-right: Theme.r;
@@ -60,7 +66,7 @@ export component NumberField inherits Rectangle {
 
     height: Theme.h;
     min-width: 44px;
-    horizontal-stretch: 1;
+    horizontal-stretch: root.bare ? 0 : 1;
     border-top-left-radius: root.radius-left;
     border-bottom-left-radius: root.radius-left;
     border-top-right-radius: root.radius-right;
@@ -68,7 +74,9 @@ export component NumberField inherits Rectangle {
     // The unit segment is square-cornered; the field's own radius cuts it.
     clip: root.unit != "";
     opacity: root.enabled ? 1.0 : 0.45;
-    background: (ti.has-focus || (scrub.has-hover && root.enabled)) ? Theme.field-hover : Theme.field;
+    background: root.bare && !ti.has-focus && !(scrub.has-hover && root.enabled) ? Colors.transparent
+        : (ti.has-focus || (scrub.has-hover && root.enabled)) ? Theme.field-hover
+        : Theme.field;
 
     animate background { duration: 120ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -118,7 +126,7 @@ export component NumberField inherits Rectangle {
             // A number, so the technical face — this is the control the rest
             // of the app reaches for whenever it needs a dimension typed.
             font-family: Theme.font-technical;
-            font-size: Theme.fs;
+            font-size: root.text-size;
             single-line: true;
             enabled: root.enabled;
             vertical-alignment: center;
