@@ -1310,6 +1310,73 @@ mod tests {
     use super::*;
     use concat_project::model::KeyEase;
 
+    /// No two names draw one look. A package that shares its shader, its
+    /// defaults and its card with a differently named one is a placeholder
+    /// that never got a drawing of its own - the 375 looks that shipped as
+    /// five shaders. A strength preset (`x`, `x25` … `x85`) shares the shader
+    /// at another default and passes on its own; the same look listed again
+    /// on another shelf, under its own or a shelf's name, is declared here.
+    #[test]
+    fn no_two_names_draw_the_same_look() {
+        const SAME_LOOK: &[&[&str]] = &[
+            // Transitions on 热门 or 基础 as well as their own shelf.
+            &["marquee.filmxf", "marquee.xf026"],
+            &["marquee.grainxf", "marquee.xf023"],
+            &["marquee.xf000", "marquee.xf022", "marquee.xf008"],
+            &["marquee.xf001", "marquee.xf024", "marquee.xf010"],
+            &["marquee.xf009", "marquee.xf025"],
+            &["marquee.cartoonxf", "marquee.xf103"],
+            &["marquee.perspectivexf", "marquee.xf105"],
+            &["marquee.montagexf", "marquee.xf096"],
+            &["marquee.xf007", "marquee.xf110", "marquee.xf108"],
+            &["marquee.xf005", "marquee.xf099"],
+            &["marquee.xf011", "marquee.xf027"],
+            &["marquee.xf012", "marquee.xf032"],
+            &["marquee.xf002", "marquee.xf028"],
+            &["marquee.cross-soft", "marquee.talkingxf"],
+            // The doodle stickers again as the shelves' numbered stickers.
+            &["marquee.sk000", "marquee.stkcircle"],
+            &["marquee.sk110", "marquee.stkring"],
+            &["marquee.sk220", "marquee.stkstar"],
+            &["marquee.sk330", "marquee.stktrangle"],
+            &["marquee.sk400", "marquee.stkdiamond"],
+            &["marquee.sk510", "marquee.stkhex"],
+            &["marquee.sk630", "marquee.stkheart"],
+            &["marquee.sk720", "marquee.stkburst"],
+            &["marquee.ch01", "marquee.stkbubble"],
+        ];
+        let catalogue = Catalogue::builtin();
+        let mut looks: BTreeMap<String, Vec<&str>> = BTreeMap::new();
+        for package in catalogue.packages() {
+            let source = match (package.shader(), package.transition()) {
+                (Some(shader), _) => shader.source(),
+                (None, Some(cut)) => cut.source(),
+                (None, None) => continue,
+            };
+            let key = format!(
+                "{source}\n{:?}\n{:?}",
+                package.params_at(At::Default),
+                package.manifest.card
+            );
+            looks.entry(key).or_default().push(package.id());
+        }
+        let declared = |ids: &[&str]| {
+            SAME_LOOK
+                .iter()
+                .any(|group| ids.iter().all(|id| group.contains(id)))
+        };
+        let clashes: Vec<String> = looks
+            .values()
+            .filter(|ids| ids.len() > 1 && !declared(ids))
+            .map(|ids| ids.join(" = "))
+            .collect();
+        assert!(
+            clashes.is_empty(),
+            "one look under several names:\n{}",
+            clashes.join("\n")
+        );
+    }
+
     /// A link to a retired key or blur opens as its stand-in, its knobs
     /// carried over as the `[[replaces]]` table says - the screen's colour,
     /// FFmpeg's distances doubled and held to the new ranges, a box's

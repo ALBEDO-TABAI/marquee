@@ -2099,6 +2099,114 @@ impl WgpuCompositor {
         self.middle_of(side, drawn)
     }
 
+    /// `passes` over a picture `side` pixels square given pixel by pixel -
+    /// straight RGBA in the working space, row after row from the top - and
+    /// every pixel after them, read back the same way: a probe on a picture
+    /// with gradients and edges, where a look that only reads the middle of
+    /// a flat colour cannot pass for one that does nothing. `side` is a
+    /// multiple of 32, so a row of half floats fills whole copy rows. The
+    /// passes see `clip_time` seconds into a clip `clip_duration` long.
+    pub fn probe_picture(
+        &mut self,
+        passes: &[ShaderPass],
+        pixels: &[[f32; 4]],
+        side: u32,
+        clip_time: f32,
+        clip_duration: f32,
+    ) -> Option<Vec<[f32; 4]>> {
+        if self.dead() || self.work != WORK {
+            return None;
+        }
+        assert!(side % 32 == 0 && pixels.len() == (side * side) as usize, "a picture side*side, side a multiple of 32");
+        self.used.values_mut().for_each(|used| *used = 0);
+        self.composites += 1;
+        let source = self.claim(side, side);
+        let texels: Vec<u8> = pixels
+            .iter()
+            .flat_map(|pixel| pixel.iter().flat_map(|channel| half::f16::from_f32(*channel).to_le_bytes()))
+            .collect();
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.pool[&(side, side)][source].texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &texels,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(side * WORK_BYTES as u32),
+                rows_per_image: Some(side),
+            },
+            wgpu::Extent3d {
+                width: side,
+                height: side,
+                depth_or_array_layers: 1,
+            },
+        );
+        let drawn = self.run_passes(side, side, source, passes, clip_time, 0.0, clip_duration);
+        let row = side * WORK_BYTES as u32;
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("concat picture probe"),
+            size: u64::from(row * side),
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("concat picture probe"),
+            });
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.pool[&(side, side)][drawn].texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &buffer,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(row),
+                    rows_per_image: Some(side),
+                },
+            },
+            wgpu::Extent3d {
+                width: side,
+                height: side,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.queue.submit([encoder.finish()]);
+        let slice = buffer.slice(..);
+        let (mapped_tx, mapped_rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |result| {
+            let _ = mapped_tx.send(result);
+        });
+        let waited = self.wait();
+        self.retire();
+        if waited.is_err() {
+            self.dead = true;
+            return None;
+        }
+        if !matches!(mapped_rx.try_recv(), Ok(Ok(()))) {
+            return None;
+        }
+        let data = slice.get_mapped_range().ok()?;
+        Some(
+            data.chunks_exact(WORK_BYTES as usize)
+                .map(|texel| {
+                    let mut out = [0.0; 4];
+                    for (channel, bytes) in out.iter_mut().zip(texel.chunks_exact(2)) {
+                        *channel = half::f16::from_le_bytes([bytes[0], bytes[1]]).to_f32();
+                    }
+                    out
+                })
+                .collect(),
+        )
+    }
+
     /// [`WgpuCompositor::probe`] for a transition: `pass` combining a
     /// picture of `from` with one of `to`, and the middle pixel of the cut.
     /// None when the device is dead, the shader will not build, or the

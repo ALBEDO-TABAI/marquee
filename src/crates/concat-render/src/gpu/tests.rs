@@ -1504,6 +1504,166 @@ fn every_package_probe_holds() {
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
+/// A picture with something in it, straight RGBA in the working space: a
+/// hue sweep across, light falling off down it, a fine checker, a hard dark
+/// bar and a hot spot past white - so a grade, a blur, an edge, a distortion
+/// and a glow each have something to change.
+fn textured(side: u32) -> Vec<[f32; 4]> {
+    (0..side * side)
+        .map(|i| {
+            let (px, py) = (i % side, i / side);
+            let (x, y) = (px as f32 / side as f32, py as f32 / side as f32);
+            let hue = x * 6.0;
+            let rgb = [0.0f32, 4.0, 2.0].map(|o| (((hue + o) % 6.0 - 3.0).abs() - 1.0).clamp(0.0, 1.0));
+            let light = 0.25 + 0.6 * (1.0 - y);
+            let check = if (px / 4 + py / 4) % 2 == 0 { 1.0 } else { 0.8 };
+            let mut c = rgb.map(|v| (0.35 + 0.65 * v) * light * check);
+            if (0.40..0.48).contains(&x) {
+                c = [0.05, 0.05, 0.06];
+            }
+            let (dx, dy) = (x - 0.7, y - 0.3);
+            if dx * dx + dy * dy < 0.004 {
+                c = [1.3, 1.25, 1.2];
+            }
+            let light = c.map(|v| v.max(0.0).powf(2.4));
+            [light[0], light[1], light[2], 1.0]
+        })
+        .collect()
+}
+
+/// A working-space level in the display encoding, where a difference is one
+/// an eye would see.
+fn shown(level: f32) -> f32 {
+    level.signum() * level.abs().powf(1.0 / 2.4)
+}
+
+/// How far apart two pictures are: the mean difference of a channel, the
+/// colour shown and the alpha as it is, so a key that cuts out counts.
+fn apart(a: &[[f32; 4]], b: &[[f32; 4]]) -> f32 {
+    let sum: f32 = a
+        .iter()
+        .zip(b)
+        .map(|(a, b)| (0..3).map(|k| (shown(a[k]) - shown(b[k])).abs()).sum::<f32>() + (a[3] - b[3]).abs())
+        .sum();
+    sum / (a.len() * 4) as f32
+}
+
+/// The families of looks whose names promise motion - falling snow, a
+/// jittering glitch, a twinkle, a beat. Each must draw a different picture
+/// half a second into its clip than a little over a second in.
+const MOVING: &[&str] = &[
+    "marquee.audiobar", "marquee.audiopulse", "marquee.audioring", "marquee.audiowave",
+    "marquee.confetti", "marquee.dust", "marquee.embers", "marquee.filmburn", "marquee.fog",
+    "marquee.heartburst", "marquee.heartglow", "marquee.hearto", "marquee.hotpop",
+    "marquee.hottrend", "marquee.lightleak", "marquee.lightning", "marquee.mappin",
+    "marquee.petpaw", "marquee.projector", "marquee.rain", "marquee.slideproj", "marquee.smoke",
+    "marquee.snow", "marquee.speedlines", "marquee.varsticker", "marquee.crashzoom",
+    "marquee.handheld", "marquee.kaleido", "marquee.roll", "marquee.shake", "marquee.swirl",
+    "marquee.twirl", "marquee.wavedistort", "marquee.crt", "marquee.datamosh",
+    "marquee.glitchslice", "marquee.oldtv", "marquee.rgbsplit", "marquee.glitter",
+    "marquee.golddust", "marquee.sparkle", "marquee.varspark", "marquee.scanfail", "marquee.vhs",
+    "marquee.underwater", "marquee.newest",
+];
+
+/// The panels that are neutral at rest by design - their knobs start where
+/// they change nothing - checked at their knobs' far end instead, where they
+/// must change the picture like any look.
+const NEUTRAL_AT_REST: &[&str] = &[
+    "concat.adjust", "concat.exposure", "concat.contrast", "concat.saturation",
+    "concat.white-balance", "concat.color-wheels",
+];
+
+/// Curves: its knobs are drawn lines, straight at rest, with no far end to
+/// set - the one look this test cannot pose. Its own probes bend it.
+const UNPOSED: &[&str] = &["concat.curves"];
+
+/// The family a package belongs to: a strength preset (`x25`, `x85`) is its
+/// base look at another default.
+fn family<'a>(catalogue: &'a concat_effects::Catalogue, id: &'a str) -> &'a str {
+    let base = id.trim_end_matches(|c: char| c.is_ascii_digit());
+    let digits = id.len() - base.len();
+    if digits == 2 && catalogue.packages().any(|package| package.id() == base) {
+        base
+    } else {
+        id
+    }
+}
+
+/// Every effect and filter, on a textured picture at its default: it
+/// changes the picture (a placeholder that hands it back, or that only
+/// touches what the flat probe's middle pixel cannot see, fails), no two
+/// families draw the same picture, and a look whose name moves draws a
+/// different picture at two moments of its clip.
+#[test]
+fn every_look_changes_a_textured_picture_its_own_way() {
+    let Some(mut gpu) = heavy_gpu() else { return };
+    let catalogue = concat_effects::Catalogue::builtin();
+    let picture = textured(64);
+    let mut failures = Vec::new();
+    let mut drawn: Vec<(String, Vec<i32>)> = Vec::new();
+    let report = std::env::var_os("CONCAT_LOOK_REPORT").is_some();
+    for package in catalogue.packages() {
+        if !matches!(package.kind(), concat_effects::Kind::Effect | concat_effects::Kind::Filter)
+            || UNPOSED.contains(&package.id())
+        {
+            continue;
+        }
+        let at = if NEUTRAL_AT_REST.contains(&package.id()) {
+            concat_effects::At::Max
+        } else {
+            concat_effects::At::Default
+        };
+        let Some(pass) = package.pass(&package.params_at(at), None) else {
+            continue;
+        };
+        let early = gpu
+            .probe_picture(std::slice::from_ref(&pass), &picture, 64, 0.5, 4.0)
+            .expect("reads back");
+        let late = gpu
+            .probe_picture(std::slice::from_ref(&pass), &picture, 64, 1.3, 4.0)
+            .expect("reads back");
+        // A third moment: a look that moves in strokes - a strike, a slide
+        // clicking on - is still between them at both of the others.
+        let later = gpu
+            .probe_picture(std::slice::from_ref(&pass), &picture, 64, 2.05, 4.0)
+            .expect("reads back");
+        let change = apart(&early, &picture).max(apart(&late, &picture)).max(apart(&later, &picture));
+        let motion = apart(&early, &late).max(apart(&late, &later));
+        if report {
+            eprintln!("LOOK\t{}\t{change:.4}\t{motion:.4}", package.id());
+        }
+        // Exactly nothing is what a placeholder hands back; the lightest
+        // preset of a real look moves the picture by a few thousandths.
+        if change < 0.001 {
+            failures.push(format!("{}: hands the picture back (moves it {change:.4})", package.id()));
+        }
+        if MOVING.contains(&family(catalogue, package.id())) && motion < 0.0003 {
+            failures.push(format!("{}: its name moves but the picture does not ({motion:.4})", package.id()));
+        }
+        // An 8 by 8 thumbnail of the early picture, in steps of a 64th.
+        let mut thumb = vec![0.0f32; 8 * 8 * 3];
+        for (i, pixel) in early.iter().enumerate() {
+            let cell = ((i / 64) / 8) * 8 + (i % 64) / 8;
+            for k in 0..3 {
+                thumb[cell * 3 + k] += shown(pixel[k]) / 64.0;
+            }
+        }
+        drawn.push((package.id().to_owned(), thumb.iter().map(|v| (v * 64.0).round() as i32).collect()));
+    }
+    let mut seen: BTreeMap<Vec<i32>, Vec<String>> = BTreeMap::new();
+    for (id, thumb) in drawn {
+        seen.entry(thumb).or_default().push(id);
+    }
+    for ids in seen.values() {
+        let mut families: Vec<&str> = ids.iter().map(|id| family(catalogue, id)).collect();
+        families.dedup();
+        if families.len() > 1 {
+            failures.push(format!("draw the same picture: {}", ids.join(", ")));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
 /// Writes what every package probe renders, one line per probe - id,
 /// index in its file, name, and the four channels - to the file named by
 /// `CONCAT_PROBE_DUMP`: what a fixture's `expect` is checked against when

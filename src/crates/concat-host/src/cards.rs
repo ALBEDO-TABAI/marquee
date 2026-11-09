@@ -807,7 +807,8 @@ mod tests {
         assert!(drawn > 0);
     }
 
-    /// Draws picture packages at several moments of a clip, as PNG frames
+    /// Draws picture packages and text animations at several moments of a
+    /// clip, as PNG frames
     /// `<id>-<n>.png` in `CONCAT_FRAMES_OUT`: the moving looks checked by
     /// eye and turned into the evidence's GIFs. `CONCAT_FRAMES_IDS` names
     /// the packages (comma separated, all picture looks when unset) and
@@ -836,7 +837,7 @@ mod tests {
                 continue;
             }
             let Some(mut card) = Card::of(catalogue, package, &scratch) else { continue };
-            if !matches!(card.drawing, Drawing::Picture { .. }) {
+            if !matches!(card.drawing, Drawing::Picture { .. } | Drawing::Words(_)) {
                 continue;
             }
             for (n, moment) in times.iter().enumerate() {
