@@ -189,9 +189,15 @@ pub struct ClipPatch {
     #[cfg_attr(feature = "schema", schemars(with = "Option<ClipMask>"))]
     pub mask: Option<Option<ClipMask>>,
     /// Wholesale replacement of the audio filter chain - the UI sends the
-    /// full list, not a diff.
+    /// full list, not a diff. Only `audio` packages play here. Through the
+    /// API, a picture effect or filter put here is moved to
+    /// `videoEffects` (appended to the clip's chain when the patch has
+    /// none) and the reply's `warnings` say so; an unknown id, or a
+    /// transition, sticker or text animation, is kept and named there.
     pub filters: Option<Vec<AppliedFilter>>,
-    /// Wholesale replacement of the video effect chain, like `filters`.
+    /// Wholesale replacement of the video effect chain, like `filters`:
+    /// the `effect` and `filter` packages, drawn by their shaders. An
+    /// `audio` package put here is moved to `filters` the same way.
     pub video_effects: Option<Vec<AppliedFilter>>,
     /// The transition on the cut into the clip: absent leaves it alone,
     /// null clears it, a value replaces it.

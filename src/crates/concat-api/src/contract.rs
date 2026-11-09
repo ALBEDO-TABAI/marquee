@@ -158,6 +158,31 @@ mod tests {
         }
     }
 
+    /// The contract tells a caller which chain plays what: a look put in a
+    /// clip's `filters` is moved, and the reply's warnings say so.
+    #[test]
+    fn the_contract_says_where_a_look_and_a_sound_filter_go() {
+        let contract = contract_schema();
+        let patch = &contract["$defs"]["ClipPatch"]["properties"];
+        let said = |key: &str| {
+            patch[key]["description"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        };
+        assert!(
+            said("filters").contains("videoEffects"),
+            "{}",
+            said("filters")
+        );
+        assert!(said("filters").contains("warnings"), "{}", said("filters"));
+        assert!(
+            said("videoEffects").contains("filters"),
+            "{}",
+            said("videoEffects")
+        );
+    }
+
     #[test]
     fn a_reply_names_no_method_the_api_lacks() {
         let mut generator = SchemaSettings::draft2020_12().into_generator();

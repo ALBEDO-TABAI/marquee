@@ -32,6 +32,7 @@
 mod contract;
 mod job;
 pub mod message;
+mod route;
 pub mod rpc;
 
 use std::collections::BTreeMap;
@@ -693,8 +694,16 @@ impl Api {
     }
 
     /// [`Request::EditApply`].
+    ///
+    /// A look written into a clip's `filters`, or a sound filter into its
+    /// `videoEffects`, is moved to the chain that plays it, and the reply's
+    /// `warnings` say so; a link that plays in neither is kept and named.
     pub fn apply(&mut self, path: &str, command: Command) -> Result<EditorView, ApiError> {
-        self.session_mut(path)?.apply(command).map_err(refused)
+        let session = self.session_mut(path)?;
+        let (command, notes) = route::route(command, session.project());
+        let mut view = session.apply(command).map_err(refused)?;
+        view.warnings.extend(notes);
+        Ok(view)
     }
 
     /// [`Request::MediaImport`]: the probe and the add, as one.
@@ -2031,5 +2040,160 @@ mod tests {
         .expect("spec");
         assert_eq!(spec.normalize, None);
         assert!(spec.normalize.unwrap_or(true));
+    }
+
+    /// A project with one still clip on it, for the chain tests.
+    fn one_clip() -> (Api, tempfile::TempDir, String, String) {
+        let (mut api, scratch, _) = api();
+        let location = scratch.path().join("projects");
+        std::fs::create_dir_all(&location).expect("location");
+        let location = location.to_string_lossy().into_owned();
+        ok(api.dispatch(Request::ProjectCreate {
+            location: location.clone(),
+            name: "Chains".to_owned(),
+            video: None,
+        }));
+        let path = format!("{location}/Chains");
+        let added = view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::AddMedia {
+                item: still("/nowhere/still.png"),
+            }),
+        })));
+        let placed = view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::AddClipAtFirstFree {
+                media_id: added.created_id.expect("minted"),
+                start: 0.0,
+            }),
+        })));
+        let clip = placed.created_id.expect("a clip");
+        (api, scratch, path, clip)
+    }
+
+    fn patch_chains(
+        filters: Option<&[&str]>,
+        effects: Option<&[&str]>,
+    ) -> concat_project::commands::ClipPatch {
+        let links = |ids: &[&str]| {
+            ids.iter()
+                .map(|id| concat_project::model::AppliedFilter::new(*id))
+                .collect::<Vec<_>>()
+        };
+        concat_project::commands::ClipPatch {
+            filters: filters.map(links),
+            video_effects: effects.map(links),
+            ..Default::default()
+        }
+    }
+
+    fn ids(chain: &[concat_project::model::AppliedFilter]) -> Vec<&str> {
+        chain.iter().map(|link| link.id.as_str()).collect()
+    }
+
+    /// A look written into `filters` - the audio chain, which never draws
+    /// it - lands in `videoEffects`, after what the clip already had, and
+    /// the reply says it was moved; the sound filter beside it stays.
+    #[test]
+    fn a_look_put_in_filters_is_moved_to_video_effects_and_said() {
+        let (mut api, _scratch, path, clip) = one_clip();
+        view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::UpdateClip {
+                clip_id: clip.clone(),
+                patch: patch_chains(None, Some(&["concat.mono"])),
+            }),
+        })));
+        let after = view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::UpdateClip {
+                clip_id: clip.clone(),
+                patch: patch_chains(Some(&["marquee.sepia", "concat.bass"]), None),
+            }),
+        })));
+        let placed = after.project.active().clip(&clip).expect("the clip");
+        assert_eq!(ids(&placed.filters), ["concat.bass"]);
+        assert_eq!(ids(&placed.video_effects), ["concat.mono", "marquee.sepia"]);
+        assert!(
+            after
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("marquee.sepia")
+                    && warning.contains("moved from filters to videoEffects")),
+            "{:?}",
+            after.warnings
+        );
+    }
+
+    /// The other way too, inside a batch: a sound filter put in
+    /// `videoEffects` goes to `filters`, and the batch's own earlier
+    /// patch of the same clip is what it is appended to.
+    #[test]
+    fn a_sound_filter_put_in_video_effects_is_moved_to_filters_even_in_a_batch() {
+        let (mut api, _scratch, path, clip) = one_clip();
+        let after = view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::Batch {
+                commands: vec![
+                    Command::UpdateClip {
+                        clip_id: clip.clone(),
+                        patch: patch_chains(Some(&["concat.bright"]), None),
+                    },
+                    Command::UpdateClip {
+                        clip_id: clip.clone(),
+                        patch: patch_chains(None, Some(&["concat.bass", "marquee.kodachrome"])),
+                    },
+                ],
+            }),
+        })));
+        let placed = after.project.active().clip(&clip).expect("the clip");
+        assert_eq!(ids(&placed.filters), ["concat.bright", "concat.bass"]);
+        assert_eq!(ids(&placed.video_effects), ["marquee.kodachrome"]);
+        assert!(
+            after
+                .warnings
+                .iter()
+                .any(|w| w.contains("moved from videoEffects to filters"))
+        );
+    }
+
+    /// What plays in neither chain - an unknown id, a transition - is kept
+    /// where it was put, and the reply names it and says what to do.
+    #[test]
+    fn what_plays_in_neither_chain_is_kept_and_named() {
+        let (mut api, _scratch, path, clip) = one_clip();
+        let after = view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::UpdateClip {
+                clip_id: clip.clone(),
+                patch: patch_chains(Some(&["nobody.nothing", "marquee.xf027"]), None),
+            }),
+        })));
+        let placed = after.project.active().clip(&clip).expect("the clip");
+        assert_eq!(ids(&placed.filters), ["nobody.nothing", "marquee.xf027"]);
+        assert!(placed.video_effects.is_empty());
+        let said = after.warnings.join("\n");
+        assert!(
+            said.contains("`nobody.nothing`") && said.contains("not in the catalogue"),
+            "{said}"
+        );
+        assert!(
+            said.contains("`marquee.xf027`") && said.contains("transitionIn"),
+            "{said}"
+        );
+    }
+
+    /// A chain written right says nothing.
+    #[test]
+    fn chains_written_right_raise_no_warning() {
+        let (mut api, _scratch, path, clip) = one_clip();
+        let after = view(ok(api.dispatch(Request::EditApply {
+            path,
+            command: Box::new(Command::UpdateClip {
+                clip_id: clip,
+                patch: patch_chains(Some(&["concat.bass"]), Some(&["marquee.sepia"])),
+            }),
+        })));
+        assert!(after.warnings.is_empty(), "{:?}", after.warnings);
     }
 }
