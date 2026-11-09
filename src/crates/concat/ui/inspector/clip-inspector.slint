@@ -117,8 +117,12 @@ export global Library {
     in-out property <string> hover-id;
     /// Frames in play order.
     in-out property <[image]> hover-frames;
-    /// Cycle them. A text look plays once and holds the last frame.
+    /// Cycle them; every hover sequence loops now, but a failed or single
+    /// frame does not.
     in-out property <bool> hover-cycle;
+    /// Time between hover frames: text and shape loops run finer than a
+    /// package's few rendered moments.
+    in-out property <duration> hover-step: 140ms;
     /// A preview was asked for and has not arrived.
     in-out property <bool> hover-loading;
     /// The preview could not be painted. The still stays.

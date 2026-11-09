@@ -917,6 +917,16 @@ component LiveArt inherits Rectangle {
         : root.hold ? Math.min(root.tick, root.n - 1)
         : Math.mod(root.tick, root.n);
 
+    // The loading ring only after a beat: a sequence that is cached, or
+    // painted quickly, swaps in over the still without a flash.
+    property <bool> late;
+    changed mine => { root.late = false; root.tick = 0; }
+    wait := Timer {
+        interval: 300ms;
+        running: root.mine && Library.hover-loading && root.n == 0 && !root.late;
+        triggered => { root.late = true; }
+    }
+
     changed hover => {
         root.tick = 0;
         if (root.hover && root.enabled && root.id != "") {
@@ -927,7 +937,7 @@ component LiveArt inherits Rectangle {
     }
 
     play := Timer {
-        interval: Library.hover-cycle ? 140ms : 380ms;
+        interval: Library.hover-step;
         running: root.mine && root.n > 1 && !Library.reduce-motion
             && (Library.hover-cycle || root.tick + 1 < root.n);
         triggered => { root.tick += 1; }
@@ -959,7 +969,7 @@ component LiveArt inherits Rectangle {
     }
 
     // Loading is a small ring, not a fake shimmer of the effect.
-    if root.mine && Library.hover-loading && root.n == 0: Rectangle {
+    if root.mine && root.late && Library.hover-loading && root.n == 0: Rectangle {
         x: parent.width - 22px;
         y: 6px;
         width: 14px;

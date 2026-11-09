@@ -2987,12 +2987,16 @@ impl Studio {
         let preview = app.global::<Library>();
         preview.set_hover_id(id.into());
         preview.set_hover_failed(false);
+        preview.set_hover_step(match kind {
+            crate::gallery::Kind::Package => 140,
+            _ => crate::gallery::LOOP_STEP_MS as i64,
+        });
         if let Some(hit) = hit {
             preview.set_hover_cycle(hit.looped);
             preview.set_hover_loading(false);
             preview.set_hover_frames(frames_model(&hit.frames));
         } else {
-            preview.set_hover_cycle(kind == crate::gallery::Kind::Package);
+            preview.set_hover_cycle(true);
             preview.set_hover_loading(true);
             preview.set_hover_frames(ModelRc::new(VecModel::from(Vec::new())));
         }

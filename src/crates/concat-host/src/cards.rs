@@ -411,18 +411,37 @@ impl Painter {
                 Some(colour) => Arc::new(screened(&self.still, colour)),
                 None => Arc::clone(&self.still),
             };
-            for (index, moment) in [0.0_f64, 0.15, 0.55, 0.95, 1.35, 1.75]
-                .into_iter()
-                .enumerate()
-            {
+            // The look breathes: its intensity knob runs from the card's
+            // setting up to the top of its range and back, so a quiet look
+            // (a glow, a grade) is plain to see on a small tile. A package
+            // without one keeps its setting and shows its motion over time.
+            let ramp = package.manifest.effect.intensity.as_ref().and_then(|key: &String| {
+                let param = package.manifest.param(key)?;
+                let from = set.get(key).copied().unwrap_or(param.default);
+                let to = if (param.max - from).abs() > f64::EPSILON { param.max } else { param.min };
+                Some((key.clone(), from, to))
+            });
+            let levels = [0.0_f64, 0.0, 0.35, 0.7, 1.0, 1.0, 0.7, 0.35, 0.1];
+            for (index, level) in levels.into_iter().enumerate() {
                 if stop() {
                     return Err("cancelled".to_owned());
                 }
+                let moment = index as f64 * 0.2;
                 let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.checker));
                 let mut picture = PlannedLayer::picture(detached_clip(), Arc::clone(&subject));
                 picture.track = 1;
                 if index > 0 {
-                    picture.effects = vec![pass.clone()];
+                    let pass = match &ramp {
+                        Some((key, from, to)) => {
+                            let mut at = set.clone();
+                            at.insert(key.clone(), from + (to - from) * level);
+                            package
+                                .pass(&at, None)
+                                .ok_or_else(|| format!("{id} has no shader"))?
+                        }
+                        None => pass.clone(),
+                    };
+                    picture.effects = vec![pass];
                 }
                 let time = Rational::approximate(moment).ok_or("the moment is not a time")?;
                 out.push(self.compositor.render(&FramePlan {

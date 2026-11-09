@@ -32,6 +32,105 @@ const CACHE: usize = 24;
 /// The square a text or shape hover is painted at.
 const TEXT_SIDE: u32 = 144;
 
+/// A text or shape hover loop: an entrance, a light sweeping across the
+/// treatment, and a short exit, so the tile keeps moving the way an editor's
+/// shelf does rather than settling on its still.
+pub const LOOP_FRAMES: usize = 22;
+/// Milliseconds between loop frames: 22 of them run about 1.8 s.
+pub const LOOP_STEP_MS: u64 = 80;
+
+/// The title-card ground `preset_card` and `shape_card` flatten onto.
+const GROUND: [f32; 3] = [44.0, 44.0, 50.0];
+
+/// Builds the hover loop from the plain words (`before`, when there are
+/// any) and the finished look. Every frame differs from its neighbours.
+pub fn card_loop(before: Option<&CardPixels>, after: &CardPixels) -> Vec<CardPixels> {
+    let ease = |t: f32| 1.0 - (1.0 - t.clamp(0.0, 1.0)).powi(3);
+    let mut out = Vec::with_capacity(LOOP_FRAMES);
+    for index in 0..LOOP_FRAMES {
+        // (scale, opacity, mix of the look over the plain words, sweep)
+        let (scale, opacity, mix, sweep) = if index < 7 {
+            let e = ease((index + 1) as f32 / 7.0);
+            (0.72 + 0.28 * e, 0.15 + 0.85 * e, e, None)
+        } else if index < 17 {
+            let t = (index - 7) as f32 / 9.0;
+            (1.0, 1.0, 1.0, Some(-0.25 + 1.5 * t))
+        } else {
+            let t = (index - 16) as f32 / 5.0;
+            (1.0 + 0.06 * t, 1.0 - 0.85 * t, 1.0, None)
+        };
+        out.push(loop_frame(before, after, scale, opacity, mix, sweep));
+    }
+    out
+}
+
+fn loop_frame(
+    before: Option<&CardPixels>,
+    after: &CardPixels,
+    scale: f32,
+    opacity: f32,
+    mix: f32,
+    sweep: Option<f32>,
+) -> CardPixels {
+    let (w, h) = (after.width as usize, after.height as usize);
+    let before = before.filter(|b| b.width == after.width && b.height == after.height);
+    let (cx, cy) = (w as f32 / 2.0, h as f32 / 2.0);
+    let fetch = |card: &CardPixels, x: f32, y: f32, c: usize| -> f32 {
+        // Bilinear, the ground outside the card.
+        let at = |xi: isize, yi: isize| -> f32 {
+            if xi < 0 || yi < 0 || xi >= w as isize || yi >= h as isize {
+                GROUND[c]
+            } else {
+                card.rgba[(yi as usize * w + xi as usize) * 4 + c] as f32
+            }
+        };
+        let (x0, y0) = (x.floor(), y.floor());
+        let (fx, fy) = (x - x0, y - y0);
+        let (xi, yi) = (x0 as isize, y0 as isize);
+        let top = at(xi, yi) * (1.0 - fx) + at(xi + 1, yi) * fx;
+        let bottom = at(xi, yi + 1) * (1.0 - fx) + at(xi + 1, yi + 1) * fx;
+        top * (1.0 - fy) + bottom * fy
+    };
+    let mut rgba = vec![255u8; w * h * 4];
+    for y in 0..h {
+        for x in 0..w {
+            let sx = cx + (x as f32 + 0.5 - cx) / scale - 0.5;
+            let sy = cy + (y as f32 + 0.5 - cy) / scale - 0.5;
+            let mut px = [0f32; 3];
+            for (c, slot) in px.iter_mut().enumerate() {
+                let look = fetch(after, sx, sy, c);
+                *slot = match before {
+                    Some(plain) => fetch(plain, sx, sy, c) * (1.0 - mix) + look * mix,
+                    None => look,
+                };
+            }
+            // How much of this pixel is the words rather than the ground.
+            let ink = (0..3)
+                .map(|c| (px[c] - GROUND[c]).abs())
+                .fold(0.0, f32::max)
+                / 96.0;
+            let ink = ink.clamp(0.0, 1.0);
+            if let Some(at) = sweep {
+                let d = (x as f32 / w as f32) * 0.8 + (y as f32 / h as f32) * 0.4;
+                let g = (-((d / 1.2 - at) / 0.09).powi(2)).exp();
+                for value in px.iter_mut() {
+                    *value += (255.0 - *value) * 0.75 * g * ink;
+                }
+            }
+            let o = (y * w + x) * 4;
+            for c in 0..3 {
+                let v = GROUND[c] + (px[c] - GROUND[c]) * opacity;
+                rgba[o + c] = v.round().clamp(0.0, 255.0) as u8;
+            }
+        }
+    }
+    CardPixels {
+        width: after.width,
+        height: after.height,
+        rgba,
+    }
+}
+
 /// Whether the pointer asked not to be shown motion. `CONCAT_REDUCE_MOTION=1`
 /// forces it, which is how the tests and a headless run pin the state. A
 /// GNOME desktop that has turned animations off counts too; anything else,
@@ -360,11 +459,11 @@ fn render_hover(
                 return Err("cancelled".to_owned());
             }
             let after = concat_host::titles::preset_card(style, &job.sample, TEXT_SIDE, false)?;
-            Ok((vec![before, after], false))
+            Ok((card_loop(Some(&before), &after), true))
         }
         Kind::Shape => {
             let card = concat_host::titles::shape_card(&job.id, TEXT_SIDE)?;
-            Ok((vec![card], false))
+            Ok((card_loop(None, &card), true))
         }
         Kind::Package => {
             let painter = painter_of(painter)?;
@@ -455,6 +554,25 @@ mod tests {
         assert!(!gate.accept(second, "neon"), "a newer hover wins");
         assert!(gate.accept(third, "drop"));
         assert!(!gate.accept(third, "neon"));
+    }
+
+    #[test]
+    fn a_card_loop_keeps_moving() {
+        let side = 48u32;
+        let mut rgba = Vec::new();
+        for y in 0..side {
+            for x in 0..side {
+                let ink = (16..32).contains(&x) && (12..36).contains(&y);
+                rgba.extend_from_slice(if ink { &[0, 230, 255, 255] } else { &[44, 44, 50, 255] });
+            }
+        }
+        let card = CardPixels { width: side, height: side, rgba };
+        let frames = card_loop(None, &card);
+        assert_eq!(frames.len(), LOOP_FRAMES);
+        for pair in frames.windows(2) {
+            assert_ne!(pair[0].rgba, pair[1].rgba, "two neighbouring loop frames match");
+        }
+        assert_ne!(frames[LOOP_FRAMES - 1].rgba, frames[0].rgba);
     }
 
     #[test]
