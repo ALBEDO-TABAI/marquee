@@ -1074,5 +1074,6 @@
   "anim.intro": "入场",
   "anim.outro": "出场",
   "anim.combo": "组合",
-  "anim.duration": "时长"
+  "anim.duration": "时长",
+  "mediaPane.morePages": "更多"
 }

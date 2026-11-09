@@ -1074,5 +1074,6 @@
   "anim.intro": "In",
   "anim.outro": "Out",
   "anim.combo": "Loop",
-  "anim.duration": "Duration"
+  "anim.duration": "Duration",
+  "mediaPane.morePages": "More pages"
 }

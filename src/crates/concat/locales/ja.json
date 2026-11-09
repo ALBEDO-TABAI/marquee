@@ -1074,5 +1074,6 @@
   "configPane.animationHelp": "In, out and loop recipes ride opacity, position and scale. Duration is in seconds.",
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
-  "mediaPane.textAnim": "Text Motion"
+  "mediaPane.textAnim": "Text Motion",
+  "mediaPane.morePages": "その他"
 }
