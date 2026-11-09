@@ -2,6 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.cartoonxf"
+aliases = ["marquee.xf103"]
 name = "漫画框切"
 kind = "transition"
 category = "表情"

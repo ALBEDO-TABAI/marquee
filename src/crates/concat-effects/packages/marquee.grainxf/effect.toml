@@ -2,6 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.grainxf"
+aliases = ["marquee.xf023"]
 name = "颗粒叠化"
 kind = "transition"
 category = "叠化"

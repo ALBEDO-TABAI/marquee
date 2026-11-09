@@ -6,7 +6,7 @@ name = "基础左擦"
 kind = "transition"
 category = "基础"
 order = 1611
-description = "Browsable transition SKU on the 基础 rail."
+description = "基础左擦: a hard-edged wipe at an even pace."
 
 
 

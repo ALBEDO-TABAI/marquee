@@ -2,6 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.montagexf"
+aliases = ["marquee.xf096"]
 name = "硬切"
 kind = "transition"
 category = "拍摄"

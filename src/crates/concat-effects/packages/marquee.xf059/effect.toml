@@ -6,7 +6,7 @@ name = "左下擦除 50"
 kind = "transition"
 category = "滑动"
 order = 1659
-description = "Browsable transition SKU on the 滑动 rail."
+description = "左下擦除 50: a wipe whose edge is feathered across 50% of the frame."
 
 
 

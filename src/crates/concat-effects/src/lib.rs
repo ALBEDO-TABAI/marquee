@@ -742,5 +742,4 @@ mod tests {
             "RGB-split shader under a non-chromatic name: {unexpected:?}"
         );
     }
-
 }

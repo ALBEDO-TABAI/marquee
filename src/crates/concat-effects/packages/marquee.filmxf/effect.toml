@@ -2,6 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.filmxf"
+aliases = ["marquee.xf026"]
 name = "胶片叠化"
 kind = "transition"
 category = "叠化"

@@ -2,6 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.perspectivexf"
+aliases = ["marquee.xf105"]
 name = "立方翻转"
 kind = "transition"
 category = "扭曲"

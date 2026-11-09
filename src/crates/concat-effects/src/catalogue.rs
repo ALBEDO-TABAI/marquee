@@ -1318,32 +1318,18 @@ mod tests {
     /// on another shelf, under its own or a shelf's name, is declared here.
     #[test]
     fn no_two_names_draw_the_same_look() {
+        // Only one item listed on two rails may share a look: the same
+        // name, on 热门 and on its own rail. A copy on its own rail was
+        // folded into the original as an alias (`marquee.xf026` and the
+        // rest, see `a_folded_copy_still_opens_as_its_original`), and
+        // everything else that looked alike was given its own look.
         const SAME_LOOK: &[&[&str]] = &[
-            // Transitions on 热门 or 基础 as well as their own shelf.
-            &["marquee.filmxf", "marquee.xf026"],
-            &["marquee.grainxf", "marquee.xf023"],
-            &["marquee.xf000", "marquee.xf022", "marquee.xf008"],
-            &["marquee.xf001", "marquee.xf024", "marquee.xf010"],
-            &["marquee.xf009", "marquee.xf025"],
-            &["marquee.cartoonxf", "marquee.xf103"],
-            &["marquee.perspectivexf", "marquee.xf105"],
-            &["marquee.montagexf", "marquee.xf096"],
-            &["marquee.xf007", "marquee.xf110", "marquee.xf108"],
-            &["marquee.xf005", "marquee.xf099"],
-            &["marquee.xf011", "marquee.xf027"],
-            &["marquee.xf012", "marquee.xf032"],
-            &["marquee.xf002", "marquee.xf028"],
-            &["marquee.cross-soft", "marquee.talkingxf"],
-            // The doodle stickers again as the shelves' numbered stickers.
-            &["marquee.sk000", "marquee.stkcircle"],
-            &["marquee.sk110", "marquee.stkring"],
-            &["marquee.sk220", "marquee.stkstar"],
-            &["marquee.sk330", "marquee.stktrangle"],
-            &["marquee.sk400", "marquee.stkdiamond"],
-            &["marquee.sk510", "marquee.stkhex"],
-            &["marquee.sk630", "marquee.stkheart"],
-            &["marquee.sk720", "marquee.stkburst"],
-            &["marquee.ch01", "marquee.stkbubble"],
+            // 交叉溶解 on 热门 and on 叠化.
+            &["marquee.xf000", "marquee.xf022"],
+            // 闪黑 on 热门 and on 叠化.
+            &["marquee.xf001", "marquee.xf024"],
+            // 圆形打开 on 热门 and on 综艺.
+            &["marquee.xf007", "marquee.xf110"],
         ];
         let catalogue = Catalogue::builtin();
         let mut looks: BTreeMap<String, Vec<&str>> = BTreeMap::new();
@@ -1375,6 +1361,30 @@ mod tests {
             "one look under several names:\n{}",
             clashes.join("\n")
         );
+    }
+
+    /// A transition SKU that was the same item as an original on the same
+    /// rail was folded into it: a project that names the copy still finds
+    /// a package, and it is the original.
+    #[test]
+    fn a_folded_copy_still_opens_as_its_original() {
+        let catalogue = Catalogue::builtin();
+        for (gone, kept) in [
+            ("marquee.xf026", "marquee.filmxf"),
+            ("marquee.xf023", "marquee.grainxf"),
+            ("marquee.xf103", "marquee.cartoonxf"),
+            ("marquee.xf105", "marquee.perspectivexf"),
+            ("marquee.xf096", "marquee.montagexf"),
+        ] {
+            let package = catalogue
+                .get(gone)
+                .unwrap_or_else(|| panic!("{gone} opens"));
+            assert_eq!(package.id(), kept);
+            assert!(
+                catalogue.packages().all(|package| package.id() != gone),
+                "{gone} is not on a shelf twice"
+            );
+        }
     }
 
     /// A link to a retired key or blur opens as its stand-in, its knobs
@@ -1625,9 +1635,7 @@ mod tests {
 
     #[test]
     fn marquee_stickers_are_concrete_skus() {
-        let n = Catalogue::builtin()
-            .of_kind(Kind::Sticker)
-            .count();
+        let n = Catalogue::builtin().of_kind(Kind::Sticker).count();
         assert!(n >= 300, "stickers {n}");
     }
 
@@ -1651,7 +1659,9 @@ mod tests {
         assert_eq!(checked, n);
         for rail in ["入场", "出场", "循环", "字幕动画", "组合"] {
             assert!(
-                catalogue.of_kind(Kind::Textanim).any(|p| p.category() == rail),
+                catalogue
+                    .of_kind(Kind::Textanim)
+                    .any(|p| p.category() == rail),
                 "missing textanim rail {rail}"
             );
         }
@@ -1664,14 +1674,20 @@ mod tests {
             .of_kind(Kind::Transition)
             .filter(|p| p.id().starts_with("marquee."))
             .collect();
-        assert!(marquee.len() >= 110, "marquee transitions {}", marquee.len());
+        assert!(
+            marquee.len() >= 110,
+            "marquee transitions {}",
+            marquee.len()
+        );
         let rails = [
-            "热门", "最新", "基础", "叠化", "滑动", "缩放", "旋转", "模糊", "光效",
-            "故障", "分割", "运镜", "拍摄", "旅行", "自然", "综艺", "表情", "AI", "扭曲",
+            "热门", "最新", "基础", "叠化", "滑动", "缩放", "旋转", "模糊", "光效", "故障", "分割",
+            "运镜", "拍摄", "旅行", "自然", "综艺", "表情", "AI", "扭曲",
         ];
         for rail in rails {
             assert!(
-                marquee.iter().any(|p| p.category() == rail || p.matches_category(rail)),
+                marquee
+                    .iter()
+                    .any(|p| p.category() == rail || p.matches_category(rail)),
                 "missing transition rail {rail}"
             );
         }
@@ -1687,7 +1703,9 @@ mod tests {
             .collect();
         let variants = ids
             .iter()
-            .filter(|id| id.ends_with("25") || id.ends_with("45") || id.ends_with("65") || id.ends_with("85"))
+            .filter(|id| {
+                id.ends_with("25") || id.ends_with("45") || id.ends_with("65") || id.ends_with("85")
+            })
             .count();
         assert!(variants >= 400, "intensity variant packages {variants}");
         assert!(
@@ -1696,5 +1714,4 @@ mod tests {
             "grain intensity variants missing"
         );
     }
-
 }
