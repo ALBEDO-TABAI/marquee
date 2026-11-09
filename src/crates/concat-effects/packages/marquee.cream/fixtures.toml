@@ -1,9 +1,10 @@
-# Working-space probes. Min amount is an identity mix.
+# Working-space probes. Min amount is an identity mix; default and
+# maximum are what the look renders, checked against its card.
 
 [[probe]]
 name = "default"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
+expect = [0.408203, 0.254395, 0.13269, 1]
 
 [[probe]]
 name = "minimum"
@@ -15,4 +16,4 @@ expect = [0.3, 0.2, 0.12, 1]
 name = "maximum"
 at = "max"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
+expect = [0.567871, 0.331543, 0.149292, 1]
