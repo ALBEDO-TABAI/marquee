@@ -50,14 +50,19 @@ pub fn card_loop(before: Option<&CardPixels>, after: &CardPixels) -> Vec<CardPix
     for index in 0..LOOP_FRAMES {
         // (scale, opacity, mix of the look over the plain words, sweep)
         let (scale, opacity, mix, sweep) = if index < 7 {
-            let e = ease((index + 1) as f32 / 7.0);
-            (0.72 + 0.28 * e, 0.15 + 0.85 * e, e, None)
+            // Short of full size, so the last entrance frame is not the
+            // first sweep frame.
+            let e = ease((index + 1) as f32 / 8.0);
+            (0.72 + 0.26 * e, 0.15 + 0.85 * e, e, None)
         } else if index < 17 {
+            // A slight swell under the sweep keeps every frame moving,
+            // including the ones where the light is off the words.
             let t = (index - 7) as f32 / 9.0;
-            (1.0, 1.0, 1.0, Some(-0.25 + 1.5 * t))
+            let swell = (t * std::f32::consts::PI).sin();
+            (0.98 + 0.04 * swell, 1.0, 1.0, Some(-0.1 + 1.2 * t))
         } else {
             let t = (index - 16) as f32 / 5.0;
-            (1.0 + 0.06 * t, 1.0 - 0.85 * t, 1.0, None)
+            (0.98 + 0.06 * t, 1.0 - 0.85 * t, 1.0, None)
         };
         out.push(loop_frame(before, after, scale, opacity, mix, sweep));
     }
