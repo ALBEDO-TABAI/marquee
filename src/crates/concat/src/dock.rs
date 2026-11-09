@@ -221,7 +221,17 @@ pub fn lay_out(node: &Dock, (x, y, w, h): (f32, f32, f32, f32), out: &mut DockLa
 
             let along = if *columns { w } else { h };
             let usable = (along - SEAT_GAP).max(0.0);
-            let head = (usable * ratio).clamp(0.0, usable);
+            // A window narrowed after the ratio was set squeezes every seat
+            // by the same share, and an inspector at 900 px came out 150 px
+            // wide: fields clipped, buttons over one another. Each side keeps
+            // the least its seats need while the split has room for both;
+            // past that the ratio rules as before.
+            let (lo, hi) = (min_along(first, *columns), min_along(second, *columns));
+            let head = if lo + hi <= usable {
+                (usable * ratio).clamp(lo, usable - hi)
+            } else {
+                (usable * ratio).clamp(0.0, usable)
+            };
             out.extents[index] = usable;
             out.dividers[index] = if *columns {
                 DockDivider {
@@ -249,6 +259,34 @@ pub fn lay_out(node: &Dock, (x, y, w, h): (f32, f32, f32, f32), out: &mut DockLa
             } else {
                 lay_out(first, (x, y, w, head), out);
                 lay_out(second, (x, y + head + SEAT_GAP, w, usable - head), out);
+            }
+        }
+    }
+}
+
+/// The least a node needs along a split's axis: a seat's minimum, the
+/// sum of both sides (and the gutter) across a split the same way, the
+/// larger side across one the other way.
+fn min_along(node: &Dock, columns: bool) -> f32 {
+    match node {
+        Dock::Leaf(_) => {
+            if columns {
+                SEAT_MIN_W
+            } else {
+                SEAT_MIN_H
+            }
+        }
+        Dock::Split {
+            columns: across,
+            first,
+            second,
+            ..
+        } => {
+            let (a, b) = (min_along(first, columns), min_along(second, columns));
+            if *across == columns {
+                a + b + SEAT_GAP
+            } else {
+                a.max(b)
             }
         }
     }
@@ -445,6 +483,19 @@ mod saved_tests {
             second: Box::new(SavedDock::Pane("preview".into())),
         };
         assert!(Dock::from_saved(&nan).is_none());
+    }
+
+    #[test]
+    fn a_narrow_window_keeps_every_seat_usable() {
+        let mut out = DockLayout::default();
+        lay_out(&default_dock(), (0.0, 0.0, 886.0, 640.0), &mut out);
+        for seat in &out.seats {
+            assert!(seat.width >= SEAT_MIN_W - 0.5, "{:?} {}", seat.kind, seat.width);
+        }
+        let mut wide = DockLayout::default();
+        lay_out(&default_dock(), (0.0, 0.0, 2546.0, 1290.0), &mut wide);
+        let inspector = wide.seats.iter().find(|s| s.kind == PaneKind::Inspector).unwrap();
+        assert!((inspector.width - (2546.0 - SEAT_GAP) * (1.0 - 0.8143)).abs() < 1.0);
     }
 
     #[test]
