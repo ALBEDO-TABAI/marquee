@@ -351,7 +351,9 @@ fn check_probes(folder: &Path, gpu: &mut Option<WgpuCompositor>) -> Vec<String> 
     for (n, probe) in package.probes.iter().enumerate() {
         let label = probe.label(n);
         let got = match (package.probe_pass(probe), package.probe_transition(probe)) {
-            (Some(pass), _) => gpu.probe(&[pass], probe.input, 8, 0.0),
+            (Some(pass), _) => {
+                gpu.probe_clip(&[pass], probe.input, 8, probe.clip_time, probe.clip_duration)
+            }
             (None, Some(cut)) => {
                 gpu.probe_transition(&cut, probe.input, probe.to.unwrap_or_default(), 8, 0.0)
             }

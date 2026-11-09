@@ -1484,7 +1484,9 @@ fn every_package_probe_holds() {
     for package in concat_effects::Catalogue::builtin().packages() {
         for (n, probe) in package.probes.iter().enumerate() {
             let got = match (package.probe_pass(probe), package.probe_transition(probe)) {
-                (Some(pass), _) => gpu.probe(&[pass], probe.input, 8, 0.0),
+                (Some(pass), _) => {
+                    gpu.probe_clip(&[pass], probe.input, 8, probe.clip_time, probe.clip_duration)
+                }
                 (None, Some(cut)) => {
                     gpu.probe_transition(&cut, probe.input, probe.to.unwrap_or_default(), 8, 0.0)
                 }

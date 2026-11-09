@@ -1,18 +1,26 @@
-# Working-space probes. Min amount is an identity mix.
+# Working-space probes, read at rest: 3 s into a 6 s clip, past the
+# entrance and before any exit. On the first frame (the default) a title
+# animation is still hidden, which is right, so identity is pinned here.
 
 [[probe]]
 name = "default"
+clip_time = 3.0
+clip_duration = 6.0
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
 
 [[probe]]
 name = "minimum"
+clip_time = 3.0
+clip_duration = 6.0
 at = "min"
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
 
 [[probe]]
 name = "maximum"
+clip_time = 3.0
+clip_duration = 6.0
 at = "max"
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]

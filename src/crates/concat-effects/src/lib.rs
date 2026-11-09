@@ -317,6 +317,8 @@ mod tests {
             input: [0.0; 4],
             to: None,
             progress: None,
+            clip_time: 0.0,
+            clip_duration: 0.0,
             expect: [2.0, 0.5, 0.0, 1.0],
             tolerance: 0.01,
         };

@@ -4,15 +4,11 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let order = reveal_order(uv);
     let rank = order;
     let amt = clamp(params.amount / 100.0, 0.0, 1.0);
-    let window = mix(0.20, 1.20, 1.0 - amt);
-    let dur = max(frame.clip_duration, window + 0.05);
     let ct = frame.clip_time;
-    let progress = 0.5 + 0.5 * sin(ct * mix(2.2, 7.5, amt) + rank * 12.0);
-    let local = 0.62 + 0.38 * progress;
-
+    // Each glyph sways side to side a little, out of step with its
+    // neighbours. Still at the start of the loop. (Was a copy of 闪烁.)
+    let sway = sin(ct * mix(3.0, 9.0, amt) + rank * 6.0) - sin(rank * 6.0);
     var suv = uv;
-
-    let c = sample(suv);
-    var rgb = c.rgb;
-    return vec4<f32>(rgb, c.a * local);
+    suv.x = suv.x + sway * mix(0.004, 0.012, amt);
+    return sample(suv);
 }

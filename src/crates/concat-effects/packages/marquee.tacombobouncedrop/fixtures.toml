@@ -1,18 +1,26 @@
-# Working-space probes. Min amount is an identity mix.
+# Working-space probes read at rest on the crest of the breathing loop:
+# 2.8274334 s = 0.9 pi, where 5 t = 4.5 pi and 0.82 + 0.18 sin(5 t) is 1, past the
+# longest entrance (1.2 s) and before the exit of a 6 s clip.
 
 [[probe]]
 name = "default"
+clip_time = 2.8274334
+clip_duration = 6.0
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
 
 [[probe]]
 name = "minimum"
+clip_time = 2.8274334
+clip_duration = 6.0
 at = "min"
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
 
 [[probe]]
 name = "maximum"
+clip_time = 2.8274334
+clip_duration = 6.0
 at = "max"
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]

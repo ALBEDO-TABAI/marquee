@@ -2077,6 +2077,28 @@ impl WgpuCompositor {
         self.middle_of(side, drawn)
     }
 
+    /// [`WgpuCompositor::probe`] at `clip_time` seconds into a clip
+    /// `clip_duration` long: where a timed animation - a title's entrance,
+    /// a loop - is read at rest rather than on its first frame.
+    pub fn probe_clip(
+        &mut self,
+        passes: &[ShaderPass],
+        colour: [f32; 4],
+        side: u32,
+        clip_time: f32,
+        clip_duration: f32,
+    ) -> Option<[f32; 4]> {
+        if self.dead() || self.work != WORK {
+            return None;
+        }
+        let side = side.max(1);
+        self.used.values_mut().for_each(|used| *used = 0);
+        self.composites += 1;
+        let source = self.filled(side, colour);
+        let drawn = self.run_passes(side, side, source, passes, clip_time, 0.0, clip_duration);
+        self.middle_of(side, drawn)
+    }
+
     /// [`WgpuCompositor::probe`] for a transition: `pass` combining a
     /// picture of `from` with one of `to`, and the middle pixel of the cut.
     /// None when the device is dead, the shader will not build, or the

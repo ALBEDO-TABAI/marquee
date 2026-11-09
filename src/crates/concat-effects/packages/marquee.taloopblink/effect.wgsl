@@ -7,7 +7,9 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let window = mix(0.20, 1.20, 1.0 - amt);
     let dur = max(frame.clip_duration, window + 0.05);
     let ct = frame.clip_time;
-    let progress = 0.5 + 0.5 * sin(ct * mix(2.2, 7.5, amt) + rank * 12.0);
+    // A cosine, so the title opens whole and the first glyph starts the
+    // loop at full strength rather than half-way down it.
+    let progress = 0.5 + 0.5 * cos(ct * mix(2.2, 7.5, amt) + rank * 12.0);
     let local = 0.62 + 0.38 * progress;
 
     var suv = uv;

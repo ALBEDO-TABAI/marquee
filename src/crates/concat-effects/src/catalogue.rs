@@ -124,6 +124,15 @@ pub struct Probe {
     /// How far through a transition's cut, `0..=1`, and nothing else's.
     #[serde(default)]
     pub progress: Option<f32>,
+    /// Seconds into the clip the probe reads, `frame.clip_time`. Zero, the
+    /// first frame, by default; an entrance or a loop that starts hidden is
+    /// probed where it has come to rest, which is what its expect pins.
+    #[serde(default)]
+    pub clip_time: f32,
+    /// The clip's length, `frame.clip_duration`, for a probe that reads an
+    /// animation timed against it. Zero by default, as before.
+    #[serde(default)]
+    pub clip_duration: f32,
     /// The colour the middle pixel must come out as.
     pub expect: [f32; 4],
     /// How far a channel may land from `expect`, as a fraction of the

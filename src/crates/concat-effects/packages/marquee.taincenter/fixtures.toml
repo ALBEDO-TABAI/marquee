@@ -1,21 +1,27 @@
-# Loose working-space probes so SKU variants stay loadable.
+# Working-space probes, strict, read at rest: 2.8274334 s (0.9 pi) into a
+# 6 s clip - past the longest entrance (1.2 s), before any exit, and on
+# the crest of the combos' breathing loop. These were tolerance 100,
+# which passed any colour at all.
 
 [[probe]]
 name = "default"
+clip_time = 2.8274334
+clip_duration = 6.0
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
-tolerance = 100.0
 
 [[probe]]
 name = "minimum"
+clip_time = 2.8274334
+clip_duration = 6.0
 at = "min"
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
-tolerance = 100.0
 
 [[probe]]
 name = "maximum"
+clip_time = 2.8274334
+clip_duration = 6.0
 at = "max"
 input = [0.3, 0.2, 0.12, 1]
 expect = [0.3, 0.2, 0.12, 1]
-tolerance = 100.0
