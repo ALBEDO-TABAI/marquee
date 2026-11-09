@@ -198,6 +198,7 @@
   "common.right": "Derecha",
   "common.rotation": "Rotación",
   "common.saved": "guardado",
+  "common.unsavedChanges": "cambios sin guardar",
   "common.scale": "Escala",
   "common.script": "Guion",
   "common.searchKind": "Buscar {0}",

@@ -198,6 +198,7 @@
   "common.right": "اليمين",
   "common.rotation": "الدوران",
   "common.saved": "محفوظ",
+  "common.unsavedChanges": "تغييرات غير محفوظة",
   "common.scale": "المقياس",
   "common.script": "النص",
   "common.searchKind": "البحث عن {0}",

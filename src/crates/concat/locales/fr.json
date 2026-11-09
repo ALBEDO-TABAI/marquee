@@ -198,6 +198,7 @@
   "common.right": "Droite",
   "common.rotation": "Rotation",
   "common.saved": "enregistré",
+  "common.unsavedChanges": "modifications non enregistrées",
   "common.scale": "Échelle",
   "common.script": "Texte",
   "common.searchKind": "Rechercher un {0}",

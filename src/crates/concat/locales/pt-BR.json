@@ -198,6 +198,7 @@
   "common.right": "Direita",
   "common.rotation": "Rotação",
   "common.saved": "salvo",
+  "common.unsavedChanges": "alterações não salvas",
   "common.scale": "Escala",
   "common.script": "Roteiro",
   "common.searchKind": "Buscar {0}",
