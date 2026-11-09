@@ -1,20 +1,20 @@
 struct Params { amount: f32 }
 
+// 旋弹入场: the title spins in from a quarter turn, growing as it turns.
 fn effect(uv: vec2<f32>) -> vec4<f32> {
-    let order = reveal_order(uv);
-    let rank = order;
+    let rank = reveal_order(uv);
     let amt = clamp(params.amount / 100.0, 0.0, 1.0);
     let window = mix(0.20, 1.20, 1.0 - amt);
     let dur = max(frame.clip_duration, window + 0.05);
     let ct = frame.clip_time;
+    // 0 hidden, 1 at rest: an entrance from the clip's start, an exit
+    // counted back from its end.
     let progress = clamp(ct / window, 0.0, 1.0);
-    // The last glyph (rank 1) is whole at progress 1: the old window
-    // `rank - 0.045 .. rank + 0.22` left it at ~8% when the motion ended.
     let local = smoothstep(rank * 0.78, rank * 0.78 + 0.22, progress);
-
-    var suv = uv;
-    suv = mix(vec2<f32>(0.5), suv, 0.62 + 0.38 * local);
-    let c = sample(suv);
-    var rgb = c.rgb;
-    return vec4<f32>(rgb, c.a * local);
+    let ang = (1.0 - local) * 1.7;
+    let s = 0.35 + 0.65 * local;
+    let d = (uv - vec2<f32>(0.5)) / s;
+    let r = vec2<f32>(d.x * cos(ang) - d.y * sin(ang), d.x * sin(ang) + d.y * cos(ang));
+    let c = sample(vec2<f32>(0.5) + r);
+    return vec4<f32>(c.rgb, c.a * local);
 }
