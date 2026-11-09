@@ -445,6 +445,22 @@ const X264_PRESETS: [&str; 10] = [
     "placebo",
 ];
 
+/// The most pictures SVT-AV1 may work on at once for a frame this size,
+/// when it must be held down. On macOS SVT-AV1 (4.1 as Homebrew builds it)
+/// tears its encoder down with a dispatch semaphore below the count it was
+/// made with now and then, when a small picture's frames all finish
+/// before its worker threads settle, and libdispatch traps the whole
+/// process (`_dispatch_semaphore_dispose`, SIGTRAP) - the app, not just
+/// the export. Measured with the ffmpeg command line on this library: 64
+/// and 128 pixel pictures crashed 10 of 1,200 runs at the default
+/// parallelism and none of 800 with one or two pictures in flight; 360p
+/// and 720p crashed none of 600. A picture this small encodes in no time
+/// on one thread, so it gets one; a larger one keeps every core.
+fn svt_parallelism(width: u32, height: u32) -> Option<u32> {
+    const SMALL: u64 = 256 * 256;
+    (cfg!(target_os = "macos") && u64::from(width) * u64::from(height) <= SMALL).then_some(1)
+}
+
 /// SVT-AV1's preset for an x264 one: the same place on its own scale.
 fn svt_preset(preset: &str) -> u8 {
     const SVT: [u8; 10] = [12, 11, 10, 9, 8, 6, 4, 3, 2, 1];
@@ -1238,15 +1254,16 @@ fn open_video(
     if attempt == Attempt::Software {
         settings.set("require_sw", "1");
     }
-    if hdr.is_some() {
-        match encoder_name {
-            "libsvtav1" if pq => {
-                settings.set(
-                    "svtav1-params",
-                    format!("mastering-display={SVT_MASTER_DISPLAY}"),
-                );
-            }
-            _ => {}
+    if encoder_name == "libsvtav1" {
+        let mut svt = Vec::new();
+        if hdr.is_some() && pq {
+            svt.push(format!("mastering-display={SVT_MASTER_DISPLAY}"));
+        }
+        if let Some(lp) = svt_parallelism(width, height) {
+            svt.push(format!("lp={lp}"));
+        }
+        if !svt.is_empty() {
+            settings.set("svtav1-params", svt.join(":"));
         }
     }
     let encoder = video
@@ -2558,6 +2575,14 @@ mod tests {
         assert_eq!(svt_preset("medium"), 6);
         assert_eq!(svt_preset("veryfast"), 10);
         assert_eq!(svt_preset("nonsense"), 6);
+        // A small picture is held to one in flight on macOS, where SVT-AV1's
+        // teardown can trap the process; a real frame keeps every core.
+        assert_eq!(
+            svt_parallelism(64, 64),
+            cfg!(target_os = "macos").then_some(1)
+        );
+        assert_eq!(svt_parallelism(1920, 1080), None);
+        assert_eq!(svt_parallelism(640, 360), None);
         assert_eq!(videotoolbox_quality(16), 80);
         assert_eq!(videotoolbox_quality(18), 76);
         assert_eq!(videotoolbox_quality(26), 61);
