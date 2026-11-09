@@ -6,7 +6,7 @@ name = "暗角 45"
 kind = "effect"
 category = "基础"
 order = 2949
-description = "Original 暗角 family look."
+description = "the corners and edges sink into shadow."
 intensity = "amount"
 
 [[param]]

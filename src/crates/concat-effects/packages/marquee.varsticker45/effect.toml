@@ -6,7 +6,7 @@ name = "综艺贴条 45"
 kind = "effect"
 category = "综艺"
 order = 2941
-description = "Original 综艺贴条 family look."
+description = "striped variety-show tape strips sliding into the corners."
 intensity = "amount"
 
 [[param]]

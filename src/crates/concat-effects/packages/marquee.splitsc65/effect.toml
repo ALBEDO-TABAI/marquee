@@ -6,7 +6,7 @@ name = "左右分屏 65"
 kind = "effect"
 category = "多屏"
 order = 2898
-description = "Original 左右分屏 family look."
+description = "the picture twice, side by side, split by a white line."
 intensity = "amount"
 
 [[param]]

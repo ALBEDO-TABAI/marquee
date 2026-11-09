@@ -6,7 +6,7 @@ name = "幻灯投影 45"
 kind = "effect"
 category = "投影"
 order = 2873
-description = "Original 幻灯投影 family look."
+description = "a slide thrown on a wall in a dark room, clicking to the next."
 intensity = "amount"
 
 [[param]]

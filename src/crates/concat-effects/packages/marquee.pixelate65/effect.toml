@@ -6,7 +6,7 @@ name = "像素化 65"
 kind = "effect"
 category = "潮酷"
 order = 2810
-description = "Original 像素化 family look."
+description = "chunky square pixels in a short palette, like an old game."
 intensity = "amount"
 
 [[param]]

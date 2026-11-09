@@ -6,7 +6,7 @@ name = "素描 65"
 kind = "effect"
 category = "漫画"
 order = 2870
-description = "Original 素描 family look."
+description = "a pencil drawing on white paper."
 intensity = "amount"
 
 [[param]]

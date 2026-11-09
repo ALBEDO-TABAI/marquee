@@ -6,7 +6,7 @@ name = "旅途漏光 65"
 kind = "effect"
 category = "出游"
 order = 2906
-description = "Original 旅途漏光 family look."
+description = "golden afternoon sun pouring in from the top right corner."
 intensity = "amount"
 
 [[param]]

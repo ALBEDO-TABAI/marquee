@@ -6,7 +6,7 @@ name = "水彩"
 kind = "effect"
 category = "纹理"
 order = 345
-description = "Original 水彩 family look."
+description = "soft washes of colour bleeding on textured paper."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

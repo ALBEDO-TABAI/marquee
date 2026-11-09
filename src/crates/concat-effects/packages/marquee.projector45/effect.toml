@@ -6,7 +6,7 @@ name = "投影叠影 45"
 kind = "effect"
 category = "投影"
 order = 2829
-description = "Original 投影叠影 family look."
+description = "an old film projector - flicker, gate weave, dust and a ghost frame."
 intensity = "amount"
 
 [[param]]

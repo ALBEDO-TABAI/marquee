@@ -6,7 +6,7 @@ name = "旅途漏光"
 kind = "effect"
 category = "出游"
 order = 405
-description = "Original 旅途漏光 family look."
+description = "golden afternoon sun pouring in from the top right corner."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

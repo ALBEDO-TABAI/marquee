@@ -6,7 +6,7 @@ name = "像素化"
 kind = "effect"
 category = "潮酷"
 order = 336
-description = "Original 像素化 family look."
+description = "chunky square pixels in a short palette, like an old game."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

@@ -6,7 +6,7 @@ name = "水彩 85"
 kind = "effect"
 category = "纹理"
 order = 2955
-description = "Original 水彩 family look."
+description = "soft washes of colour bleeding on textured paper."
 intensity = "amount"
 
 [[param]]

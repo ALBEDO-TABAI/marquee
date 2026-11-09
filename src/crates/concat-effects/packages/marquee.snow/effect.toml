@@ -6,7 +6,7 @@ name = "飘雪"
 kind = "effect"
 category = "自然"
 order = 350
-description = "Original 飘雪 family look."
+description = "snowflakes drifting down, near ones big and soft, the picture cooled."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

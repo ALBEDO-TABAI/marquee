@@ -6,7 +6,7 @@ name = "画中画 45"
 kind = "effect"
 category = "多屏"
 order = 2805
-description = "Original 画中画 family look."
+description = "the picture framed small in the middle over a blurred, dimmed copy."
 intensity = "amount"
 
 [[param]]

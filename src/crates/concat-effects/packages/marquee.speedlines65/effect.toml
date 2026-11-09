@@ -6,7 +6,7 @@ name = "速度线 65"
 kind = "effect"
 category = "动感"
 order = 2890
-description = "Original 速度线 family look."
+description = "manga speed lines rushing in from the edges, flickering."
 intensity = "amount"
 
 [[param]]

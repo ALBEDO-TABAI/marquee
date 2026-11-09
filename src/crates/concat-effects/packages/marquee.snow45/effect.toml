@@ -6,7 +6,7 @@ name = "飘雪 45"
 kind = "effect"
 category = "自然"
 order = 2881
-description = "Original 飘雪 family look."
+description = "snowflakes drifting down, near ones big and soft, the picture cooled."
 intensity = "amount"
 
 [[param]]
