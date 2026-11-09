@@ -41,11 +41,13 @@ at = "max"
 input = [4, 1, 0.05, 1]
 expect = [4, 1, 0.0499878, 0.866206]
 
+# Taken out entirely, it is transparent black: a pixel with no alpha
+# left carries no colour (see EFFECT_FRAGMENT_DISPLAY).
 [[probe]]
 name = "inverted, white"
 params = { invert = 1 }
 input = [1, 1, 1, 1]
-expect = [1, 1, 1, 0]
+expect = [0, 0, 0, 0]
 
 [[probe]]
 name = "inverted, black"
