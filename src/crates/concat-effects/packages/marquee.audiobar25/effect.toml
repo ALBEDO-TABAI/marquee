@@ -6,7 +6,7 @@ name = "频谱条 25"
 kind = "effect"
 category = "有声"
 order = 2512
-description = "Original 频谱条 family look."
+description = "a row of spectrum bars dancing along the bottom."
 intensity = "amount"
 
 [[param]]

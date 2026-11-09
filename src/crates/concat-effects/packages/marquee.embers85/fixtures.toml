@@ -1,18 +1,19 @@
-# Working-space probes. Min amount is an identity mix.
+# Working-space probes on a flat picture: what the look renders at its
+# middle pixel, checked against its card and sheet (round 8).
 
 [[probe]]
 name = "default"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
+expect = [0.325684, 0.211182, 0.122192, 1]
 
 [[probe]]
 name = "minimum"
 at = "min"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
+expect = [0.300049, 0.199951, 0.119995, 1]
 
 [[probe]]
 name = "maximum"
 at = "max"
 input = [0.3, 0.2, 0.12, 1]
-expect = [0.3, 0.2, 0.12, 1]
+expect = [0.330322, 0.213135, 0.122559, 1]

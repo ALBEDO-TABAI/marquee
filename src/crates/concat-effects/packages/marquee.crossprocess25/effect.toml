@@ -6,7 +6,7 @@ name = "交叉冲洗 25"
 kind = "effect"
 category = "复古"
 order = 2588
-description = "Original 交叉冲洗 family look."
+description = "yellow-green highlights, blue shadows, hard contrast."
 intensity = "amount"
 
 [[param]]

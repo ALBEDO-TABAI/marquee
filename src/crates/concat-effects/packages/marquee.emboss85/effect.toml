@@ -6,7 +6,7 @@ name = "浮雕 85"
 kind = "effect"
 category = "纹理"
 order = 2627
-description = "Original 浮雕 family look."
+description = "the picture pressed into grey metal, lit from the top left."
 intensity = "amount"
 
 [[param]]

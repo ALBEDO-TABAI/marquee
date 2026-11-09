@@ -6,7 +6,7 @@ name = "火星 85"
 kind = "effect"
 category = "氛围"
 order = 2623
-description = "Original 火星 family look."
+description = "glowing sparks rising and flickering out, the bottom warmed."
 intensity = "amount"
 
 [[param]]

@@ -6,7 +6,7 @@ name = "交叉排线 25"
 kind = "effect"
 category = "漫画"
 order = 2584
-description = "Original 交叉排线 family look."
+description = "a pen drawing, darker tones hatched in more directions."
 intensity = "amount"
 
 [[param]]

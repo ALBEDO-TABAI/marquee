@@ -6,7 +6,7 @@ name = "声纹环 65"
 kind = "effect"
 category = "音频"
 order = 2522
-description = "Original 声纹环 family look."
+description = "a ring of sound bars around the middle, pulsing to the beat."
 intensity = "amount"
 
 [[param]]

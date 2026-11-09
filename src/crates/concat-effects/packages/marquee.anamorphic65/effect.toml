@@ -6,7 +6,7 @@ name = "变形光斑 65"
 kind = "effect"
 category = "光"
 order = 2506
-description = "Original 变形光斑 family look."
+description = "a blue horizontal streak flare across the lights."
 intensity = "amount"
 
 [[param]]

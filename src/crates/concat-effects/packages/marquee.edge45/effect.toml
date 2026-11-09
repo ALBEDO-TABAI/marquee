@@ -6,7 +6,7 @@ name = "描边提取 45"
 kind = "effect"
 category = "漫画"
 order = 2617
-description = "Original 描边提取 family look."
+description = "the outlines alone, glowing in the picture's own colours on black."
 intensity = "amount"
 
 [[param]]

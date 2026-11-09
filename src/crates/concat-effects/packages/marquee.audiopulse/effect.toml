@@ -6,7 +6,7 @@ name = "节奏脉冲"
 kind = "effect"
 category = "音频"
 order = 394
-description = "Original 节奏脉冲 family look."
+description = "the picture punches and flashes on every beat."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

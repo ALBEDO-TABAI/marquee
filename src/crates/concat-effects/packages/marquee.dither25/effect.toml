@@ -6,7 +6,7 @@ name = "抖动色阶 25"
 kind = "effect"
 category = "潮酷"
 order = 2600
-description = "Original 抖动色阶 family look."
+description = "an ordered-dither print in a handful of colours."
 intensity = "amount"
 
 [[param]]

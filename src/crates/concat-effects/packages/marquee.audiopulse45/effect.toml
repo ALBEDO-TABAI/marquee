@@ -6,7 +6,7 @@ name = "节奏脉冲 45"
 kind = "effect"
 category = "音频"
 order = 2517
-description = "Original 节奏脉冲 family look."
+description = "the picture punches and flashes on every beat."
 intensity = "amount"
 
 [[param]]

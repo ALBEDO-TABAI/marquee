@@ -6,7 +6,7 @@ name = "ASCII 25"
 kind = "effect"
 category = "潮酷"
 order = 2508
-description = "Original ASCII family look."
+description = "the picture redrawn as coloured characters on black."
 intensity = "amount"
 
 [[param]]
