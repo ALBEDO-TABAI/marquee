@@ -6,7 +6,7 @@ name = "油画"
 kind = "effect"
 category = "纹理"
 order = 344
-description = "Original 油画 family look."
+description = "thick painted strokes on canvas."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

@@ -6,7 +6,7 @@ name = "热门光斑 65"
 kind = "effect"
 category = "热门"
 order = 2710
-description = "Original 热门光斑 family look."
+description = "soft bokeh spots of pink, gold and cyan floating over the picture."
 intensity = "amount"
 
 [[param]]

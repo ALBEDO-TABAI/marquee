@@ -6,7 +6,7 @@ name = "镜头污渍 65"
 kind = "effect"
 category = "光"
 order = 2734
-description = "Original 镜头污渍 family look."
+description = "smudges and specks on the lens, lit up where the light hits them."
 intensity = "amount"
 
 [[param]]

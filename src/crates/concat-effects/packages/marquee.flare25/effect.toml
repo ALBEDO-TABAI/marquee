@@ -6,7 +6,7 @@ name = "光斑 25"
 kind = "effect"
 category = "光"
 order = 2636
-description = "Original 光斑 family look."
+description = "a lens flare - a bright source, its rays and a chain of ghosts."
 intensity = "amount"
 
 [[param]]

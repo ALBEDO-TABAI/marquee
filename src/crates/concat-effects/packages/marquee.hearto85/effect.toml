@@ -6,7 +6,7 @@ name = "心动描边 85"
 kind = "effect"
 category = "爱心"
 order = 2703
-description = "Original 心动描边 family look."
+description = "a neon heart outline around the picture, beating, the outside dimmed."
 intensity = "amount"
 
 [[param]]

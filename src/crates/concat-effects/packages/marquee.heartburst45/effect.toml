@@ -6,7 +6,7 @@ name = "爱心绽放 45"
 kind = "effect"
 category = "爱心"
 order = 2693
-description = "Original 爱心绽放 family look."
+description = "a burst of hearts flying out from the middle, again and again."
 intensity = "amount"
 
 [[param]]

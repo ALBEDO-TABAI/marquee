@@ -6,7 +6,7 @@ name = "网点 65"
 kind = "effect"
 category = "漫画"
 order = 2686
-description = "Original 网点 family look."
+description = "a printed halftone - ink dots sized by the shade, on paper."
 intensity = "amount"
 
 [[param]]

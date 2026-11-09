@@ -6,7 +6,7 @@ name = "地点图钉"
 kind = "effect"
 category = "出游"
 order = 404
-description = "Original 地点图钉 family look."
+description = "a red map pin dropping in with a bounce, a ring pulsing under it."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

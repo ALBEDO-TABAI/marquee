@@ -6,7 +6,7 @@ name = "马赛克 85"
 kind = "effect"
 category = "多屏"
 order = 2763
-description = "Original 马赛克 family look."
+description = "the picture laid as big bevelled tiles."
 intensity = "amount"
 
 [[param]]

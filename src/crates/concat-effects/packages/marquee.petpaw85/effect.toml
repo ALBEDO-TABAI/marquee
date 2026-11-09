@@ -6,7 +6,7 @@ name = "爪印 85"
 kind = "effect"
 category = "宠物"
 order = 2799
-description = "Original 爪印 family look."
+description = "paw prints padding across the picture, one step at a time."
 intensity = "amount"
 
 [[param]]

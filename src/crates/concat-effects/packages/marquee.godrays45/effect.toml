@@ -6,7 +6,7 @@ name = "丁达尔 45"
 kind = "effect"
 category = "光"
 order = 2673
-description = "Original 丁达尔 family look."
+description = "shafts of warm light falling from the top corner."
 intensity = "amount"
 
 [[param]]

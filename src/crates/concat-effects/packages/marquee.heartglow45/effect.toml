@@ -6,7 +6,7 @@ name = "心形辉光 45"
 kind = "effect"
 category = "爱心"
 order = 2697
-description = "Original 心形辉光 family look."
+description = "a big soft heart of light glowing and beating in the middle."
 intensity = "amount"
 
 [[param]]

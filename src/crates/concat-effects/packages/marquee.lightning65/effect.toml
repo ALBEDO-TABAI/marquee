@@ -6,7 +6,7 @@ name = "闪电 65"
 kind = "effect"
 category = "氛围"
 order = 2746
-description = "Original 闪电 family look."
+description = "a storm - the picture darkened and blued, a bolt striking with a flash."
 intensity = "amount"
 
 [[param]]

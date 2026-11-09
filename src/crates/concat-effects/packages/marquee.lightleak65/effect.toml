@@ -6,7 +6,7 @@ name = "漏光 65"
 kind = "effect"
 category = "光"
 order = 2742
-description = "Original 漏光 family look."
+description = "warm red and orange light leaking in from the edges, drifting."
 intensity = "amount"
 
 [[param]]

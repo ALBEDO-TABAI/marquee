@@ -6,7 +6,7 @@ name = "热门弹出 45"
 kind = "effect"
 category = "热门"
 order = 2705
-description = "Original 热门弹出 family look."
+description = "the picture pops - a springy punch-in, colour up, a flash and burst lines."
 intensity = "amount"
 
 [[param]]
