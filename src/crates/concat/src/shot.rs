@@ -264,6 +264,27 @@ fn apply(line: &str) -> String {
             Shell::with(|_, app| app.global::<GlassChrome>().invoke_refresh());
             "ok".into()
         }
+        "hover" => {
+            let kind = value.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            if id.is_empty() {
+                return "err hover needs id".into();
+            }
+            // Gated by CONCAT_SHOT_PORT: drives gallery hover without a pointer.
+            Shell::with(|shell, app| {
+                shell
+                    .studio
+                    .borrow_mut()
+                    .gallery_hover(&app, kind, id);
+            });
+            "ok".into()
+        }
+        "leave" => {
+            Shell::with(|shell, app| {
+                shell.studio.borrow_mut().gallery_leave(&app);
+            });
+            "ok".into()
+        }
         "close" => {
             Shell::with(|shell, app| {
                 {

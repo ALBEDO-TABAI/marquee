@@ -908,7 +908,9 @@ component LiveArt inherits Rectangle {
     in property <bool> fit-whole: false;
 
     property <int> tick: 0;
-    property <bool> mine: root.hover && root.enabled && Library.hover-id == root.id;
+    // `hover-id` is the source of truth: the pointer writes it through
+    // `changed hover`, and CONCAT_SHOT_PORT can write it without a pointer.
+    property <bool> mine: root.enabled && Library.hover-id == root.id;
     property <int> n: root.mine ? Library.hover-frames.length : 0;
     property <bool> hold: !Library.hover-cycle || Library.reduce-motion;
     property <int> shown: root.n == 0 ? -1

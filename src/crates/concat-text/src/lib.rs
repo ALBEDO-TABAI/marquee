@@ -3721,6 +3721,18 @@ mod tests {
                 );
             }
         }
+        if let Ok(dir) = std::env::var("MARQUEE_DUMP_HOVER") {
+            let dir = std::path::PathBuf::from(dir);
+            let _ = std::fs::create_dir_all(&dir);
+            for (finish, frame) in finishes.iter().zip(frames.iter()) {
+                let path = dir.join(format!("flower-{finish:?}.ppm"));
+                let mut body = format!("P6\n{} {}\n255\n", frame.width, frame.height).into_bytes();
+                for pixel in frame.rgba.chunks_exact(4) {
+                    body.extend_from_slice(&pixel[..3]);
+                }
+                std::fs::write(path, body).expect("write flower finish sample");
+            }
+        }
         /// Soft halo pixels, saturated cyan pixels, and the ink's box.
         fn measure(frame: &RenderedFrame) -> (usize, usize, i32, i32) {
             let (w, h) = (frame.width as i32, frame.height as i32);
