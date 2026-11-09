@@ -6,7 +6,7 @@ name = "碎金闪 25"
 kind = "effect"
 category = "金粉"
 order = 2660
-description = "Original 碎金闪 family look."
+description = "fine gold glitter twinkling on the bright parts of the picture."
 intensity = "amount"
 
 [[param]]

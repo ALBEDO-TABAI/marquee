@@ -6,7 +6,7 @@ name = "闪光粒子"
 kind = "effect"
 category = "金粉"
 order = 352
-description = "Original 闪光粒子 family look."
+description = "white four-pointed sparkles twinkling across the picture."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

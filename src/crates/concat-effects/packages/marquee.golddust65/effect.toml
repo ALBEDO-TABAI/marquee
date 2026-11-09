@@ -6,7 +6,7 @@ name = "金粉扬 65"
 kind = "effect"
 category = "金粉"
 order = 2678
-description = "Original 金粉扬 family look."
+description = "gold dust lifting and swirling up through the picture."
 intensity = "amount"
 
 [[param]]

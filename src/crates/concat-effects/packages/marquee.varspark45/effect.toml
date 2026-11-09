@@ -6,7 +6,7 @@ name = "综艺闪标 45"
 kind = "effect"
 category = "综艺"
 order = 2937
-description = "Original 综艺闪标 family look."
+description = "big cartoon stars popping in and out in the corners, variety-show style."
 intensity = "amount"
 
 [[param]]
