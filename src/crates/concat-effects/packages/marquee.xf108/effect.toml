@@ -6,7 +6,7 @@ name = "圆形虹膜"
 kind = "transition"
 category = "扭曲"
 order = 1708
-description = "Browsable transition SKU on the 扭曲 rail."
+description = "圆形虹膜: an iris that closes on the outgoing shot and opens on the next."
 
 
 

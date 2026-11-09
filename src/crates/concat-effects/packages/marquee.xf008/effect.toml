@@ -6,7 +6,7 @@ name = "基础溶解"
 kind = "transition"
 category = "基础"
 order = 1608
-description = "Browsable transition SKU on the 基础 rail."
+description = "基础溶解: a plain linear dissolve."
 
 
 

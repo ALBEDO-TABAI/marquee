@@ -6,7 +6,7 @@ name = "口播种切"
 kind = "transition"
 category = "最新"
 order = 520
-description = "Original 口播种切 transition."
+description = "口播种切: a talking-head jump cut that punches in and settles."
 
 [transition]
 entry = "effect.wgsl"
