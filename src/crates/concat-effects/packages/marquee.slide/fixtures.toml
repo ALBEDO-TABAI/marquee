@@ -1,8 +1,9 @@
-# Working-space mid-progress probe.
+# Working-space mid-progress probe: what the cut renders there,
+# checked against its strip.
 
 [[probe]]
 name = "default"
 input = [0.8, 0.5, 0.3, 1]
 to = [0.05, 0.15, 0.4, 1]
 progress = 0.37
-expect = [0.5, 0.35, 0.34, 1]
+expect = [0.737793, 0.461182, 0.276611, 1]
