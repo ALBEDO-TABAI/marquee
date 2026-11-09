@@ -917,12 +917,13 @@ component LiveArt inherits Rectangle {
         : root.hold ? Math.min(root.tick, root.n - 1)
         : Math.mod(root.tick, root.n);
 
-    // The loading ring only after a beat: a sequence that is cached, or
-    // painted quickly, swaps in over the still without a flash.
+    // The loading ring only after a full second: the still is already the
+    // real look, so a cached or merely slow-ish sequence swaps in over it
+    // without a flash; the ring is for a paint that is really stuck.
     property <bool> late;
     changed mine => { root.late = false; root.tick = 0; }
     wait := Timer {
-        interval: 600ms;
+        interval: 1000ms;
         running: root.mine && Library.hover-loading && root.n == 0 && !root.late;
         triggered => { root.late = true; }
     }
