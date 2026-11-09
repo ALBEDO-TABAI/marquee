@@ -26,6 +26,11 @@ export enum GlassKind {
     /// The preview transport: one floating capsule, opaque enough to read,
     /// with a hint of the picture under it rather than a grey smear.
     transport,
+    /// A menu, a list, a tooltip, a notice: rows of words over whatever is
+    /// under them. No frost reaches these, so the regular wash let the
+    /// picture and the labels beneath read through the text sharply; this
+    /// keeps a trace of the glass and the words on a quiet ground.
+    menu,
 }
 
 export component Glass inherits Rectangle {
@@ -39,6 +44,7 @@ export component Glass inherits Rectangle {
     property <color> wash: root.kind == GlassKind.clear ? Theme.glass-clear
         : root.kind == GlassKind.strong ? Theme.glass-strong
         : root.kind == GlassKind.transport ? Theme.glass-transport
+        : root.kind == GlassKind.menu ? Theme.glass-menu
         : Theme.glass;
     property <float> frost-opacity: root.kind == GlassKind.transport ? 0.42 : 0.88;
 
