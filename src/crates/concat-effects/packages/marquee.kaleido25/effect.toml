@@ -6,7 +6,7 @@ name = "万花筒 25"
 kind = "effect"
 category = "多屏"
 order = 2724
-description = "Original 万花筒 family look."
+description = "the picture folded into a turning six-fold kaleidoscope."
 intensity = "amount"
 
 [[param]]

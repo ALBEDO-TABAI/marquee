@@ -6,7 +6,7 @@ name = "滚动"
 kind = "effect"
 category = "相机"
 order = 384
-description = "Original 滚动 family look."
+description = "the picture rolling up the screen like a lost vertical hold."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

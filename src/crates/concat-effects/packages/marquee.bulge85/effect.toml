@@ -6,7 +6,7 @@ name = "鼓包 85"
 kind = "effect"
 category = "扭曲"
 order = 2559
-description = "Original 鼓包 family look."
+description = "the middle of the picture swelling outwards like a lens bubble."
 intensity = "amount"
 
 [[param]]

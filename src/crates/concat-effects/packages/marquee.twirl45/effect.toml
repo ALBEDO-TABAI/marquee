@@ -6,7 +6,7 @@ name = "扭转 45"
 kind = "effect"
 category = "扭曲"
 order = 2929
-description = "Original 扭转 family look."
+description = "the whole picture wrung back and forth about its middle."
 intensity = "amount"
 
 [[param]]

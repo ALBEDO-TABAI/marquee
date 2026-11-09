@@ -6,7 +6,7 @@ name = "急推 25"
 kind = "effect"
 category = "动感"
 order = 2580
-description = "Original 急推 family look."
+description = "a sudden punch-in on the middle, smeared with zoom blur."
 intensity = "amount"
 
 [[param]]

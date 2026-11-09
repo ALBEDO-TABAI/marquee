@@ -6,7 +6,7 @@ name = "波纹畸变 45"
 kind = "effect"
 category = "扭曲"
 order = 2957
-description = "Original 波纹畸变 family look."
+description = "rings of ripples running out from the middle."
 intensity = "amount"
 
 [[param]]

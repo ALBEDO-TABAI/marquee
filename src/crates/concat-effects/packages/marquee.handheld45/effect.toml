@@ -6,7 +6,7 @@ name = "手持晃动 45"
 kind = "effect"
 category = "相机"
 order = 2689
-description = "Original 手持晃动 family look."
+description = "the gentle drift and sway of a handheld camera."
 intensity = "amount"
 
 [[param]]

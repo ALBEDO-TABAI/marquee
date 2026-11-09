@@ -6,7 +6,7 @@ name = "漩涡 65"
 kind = "effect"
 category = "扭曲"
 order = 2914
-description = "Original 漩涡 family look."
+description = "the middle twisted into a slowly turning whirlpool."
 intensity = "amount"
 
 [[param]]

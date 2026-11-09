@@ -6,7 +6,7 @@ name = "抖动 45"
 kind = "effect"
 category = "动感"
 order = 2861
-description = "Original 抖动 family look."
+description = "a hard, jittering camera shake."
 intensity = "amount"
 
 [[param]]
