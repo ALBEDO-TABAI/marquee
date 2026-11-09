@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.tainglitch"
-name = "故障闪入入场"
+name = "故障入场"
 kind = "textanim"
 category = "入场"
 order = 623

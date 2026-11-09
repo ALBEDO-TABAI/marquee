@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.tainrotate"
-name = "旋入入场"
+name = "旋转入场"
 kind = "textanim"
 category = "入场"
 order = 612

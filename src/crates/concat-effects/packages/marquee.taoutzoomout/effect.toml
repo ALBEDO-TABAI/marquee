@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.taoutzoomout"
-name = "放大出出场"
+name = "放大出场"
 kind = "textanim"
 category = "出场"
 order = 630

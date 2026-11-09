@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.taoutflip"
-name = "翻出出场"
+name = "翻转出场"
 kind = "textanim"
 category = "出场"
 order = 633

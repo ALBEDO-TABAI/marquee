@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.taoutglitch"
-name = "故障闪出出场"
+name = "故障出场"
 kind = "textanim"
 category = "出场"
 order = 636

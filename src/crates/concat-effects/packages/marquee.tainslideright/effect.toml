@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.tainslideright"
-name = "右滑入入场"
+name = "右滑入场"
 kind = "textanim"
 category = "入场"
 order = 604

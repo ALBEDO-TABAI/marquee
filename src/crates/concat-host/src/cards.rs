@@ -64,7 +64,9 @@ pub const STICKER_FRAMES: usize = 14;
 const STICKER_STEP: f64 = 0.09;
 
 /// The words a text effect's card sets over the still.
-const TITLE: &str = "Big Title";
+/// Three letters: short enough for a square tile, and a title part way
+/// in or out still reads as letters arriving, never as a cut-off word.
+const TITLE: &str = "ABC";
 
 /// The quality cards are written at: FFmpeg's JPEG quantiser, 2 the best.
 const QUALITY: u8 = 3;
@@ -84,6 +86,9 @@ enum Drawing {
     /// the sticker itself on the shelf's own tile, not the still with
     /// something on it or a checkerboard that fights the light theme.
     Sticker(ShaderPass),
+    /// A text animation: the title on the text shelf's dark slate, the
+    /// pass on the title, so its card sits with the 花字 cards beside it.
+    Words(ShaderPass),
     /// A cut from the still to its turned copy.
     Cut(TransitionPass),
 }
@@ -121,6 +126,8 @@ impl Card {
             let pass = package.pass(&set, None)?;
             if package.kind() == concat_effects::Kind::Sticker {
                 Drawing::Sticker(pass)
+            } else if package.kind() == concat_effects::Kind::Textanim {
+                Drawing::Words(pass)
             } else if package.category().eq_ignore_ascii_case("Text") {
                 Drawing::Title(pass)
             } else {
@@ -224,6 +231,12 @@ fn fingerprint(drawing: &Drawing, moment: f64) -> u64 {
             feed(b"sticker");
             pass(&mut feed, drawn);
         }
+        Drawing::Words(drawn) => {
+            feed(b"words");
+            feed(TITLE.as_bytes());
+            feed(&SLATE);
+            pass(&mut feed, drawn);
+        }
         Drawing::Title(drawn) => {
             feed(b"title");
             feed(TITLE.as_bytes());
@@ -250,6 +263,9 @@ pub struct Painter {
     checker: Arc<Frame>,
     /// Nothing, the still's size: what a sticker is drawn over.
     blank: Arc<Frame>,
+    /// The text shelf's dark slate, the still's size: what a text
+    /// animation's title is drawn on.
+    slate: Arc<Frame>,
     title: Option<(Arc<Frame>, Arc<RevealMap>)>,
 }
 
@@ -271,12 +287,14 @@ impl Painter {
         let turned = turned(&still);
         let checker = checker(still.width(), still.height());
         let blank = Frame::transparent(still.width(), still.height());
+        let slate = slate(still.width(), still.height());
         Ok(Painter {
             compositor,
             still: Arc::new(still),
             turned: Arc::new(turned),
             checker: Arc::new(checker),
             blank: Arc::new(blank),
+            slate: Arc::new(slate),
             title: None,
         })
     }
@@ -316,6 +334,10 @@ impl Painter {
             // At rest: a turning or bouncing sticker's card is upright and
             // in place; its motion is what the hover shows.
             Drawing::Sticker(pass) => self.sticker(pass, Rational::ZERO, width, height),
+            Drawing::Words(pass) => {
+                let ground = Arc::clone(&self.slate);
+                self.titled(ground, Some(pass), moment, width, height)?
+            }
             Drawing::Title(pass) => {
                 let (title, reveal) = self.title(width, height)?;
                 let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.still));
@@ -362,6 +384,35 @@ impl Painter {
             canvas: [0, 0, 0, 0],
             ..FramePlan::empty(width, height)
         })
+    }
+
+    /// The title over `ground` at `moment`, through `pass` when there is
+    /// one: a text animation's card and each of its hover frames.
+    fn titled(
+        &mut self,
+        ground: Arc<Frame>,
+        pass: Option<&ShaderPass>,
+        moment: Rational,
+        width: u32,
+        height: u32,
+    ) -> Result<Frame, String> {
+        let (title, reveal) = self.title(width, height)?;
+        let overscan =
+            (title.width() as f32 / width as f32).max(title.height() as f32 / height as f32);
+        let ground = PlannedLayer::picture(detached_clip(), ground);
+        let mut words = PlannedLayer::picture(detached_clip(), title);
+        words.track = 1;
+        words.overscan = overscan;
+        if let Some(pass) = pass {
+            let mut pass = pass.clone();
+            pass.reveal_map = Some(reveal);
+            words.effects = vec![pass];
+        }
+        Ok(self.compositor.render(&FramePlan {
+            time: moment,
+            layers: vec![ground, words],
+            ..FramePlan::empty(width, height)
+        }))
     }
 
     /// A hover sequence for `id`, drawn by the same compositor and the same
@@ -428,28 +479,20 @@ impl Painter {
             let pass = package
                 .pass(&set, None)
                 .ok_or_else(|| format!("{id} has no shader"))?;
-            let (title, reveal) = self.title(width, height)?;
-            let overscan =
-                (title.width() as f32 / width as f32).max(title.height() as f32 / height as f32);
+            // A text animation plays on the slate its card is drawn on; a
+            // text effect over the still, as its card is.
+            let ground = if package.kind() == concat_effects::Kind::Textanim {
+                Arc::clone(&self.slate)
+            } else {
+                Arc::clone(&self.still)
+            };
             for (index, moment) in [0.0_f64, 0.0, 0.3, 0.6, 0.9, 1.2].into_iter().enumerate() {
                 if stop() {
                     return Err("cancelled".to_owned());
                 }
-                let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.still));
-                let mut words = PlannedLayer::picture(detached_clip(), Arc::clone(&title));
-                words.track = 1;
-                words.overscan = overscan;
-                if index > 0 {
-                    let mut pass = pass.clone();
-                    pass.reveal_map = Some(Arc::clone(&reveal));
-                    words.effects = vec![pass];
-                }
                 let time = Rational::approximate(moment).ok_or("the moment is not a time")?;
-                out.push(self.compositor.render(&FramePlan {
-                    time,
-                    layers: vec![ground, words],
-                    ..FramePlan::empty(width, height)
-                }));
+                let pass = (index > 0).then_some(&pass);
+                out.push(self.titled(Arc::clone(&ground), pass, time, width, height)?);
             }
         } else {
             let pass = package
@@ -514,7 +557,8 @@ impl Painter {
         let style = concat_text::TitleStyle {
             content: TITLE.to_owned(),
             font_family: concat_text::BUNDLED_FAMILY.to_owned(),
-            font_size: 0.26,
+            // A share of the height: three letters fit a square tile.
+            font_size: 0.3,
             font_weight: 800.0,
             italic: false,
             underline: false,
@@ -629,6 +673,21 @@ pub fn draw_all(
 
 /// What shows through where a card is transparent: grey squares a
 /// twentieth of the height, the way every editor says "nothing here".
+/// The text shelf's slate, as its 花字 cards are drawn on.
+const SLATE: [u8; 3] = [0x26, 0x26, 0x2a];
+
+/// A frame of [`SLATE`], `width` by `height`.
+fn slate(width: u32, height: u32) -> Frame {
+    let [r, g, b] = SLATE;
+    let mut frame = Frame::transparent(width, height);
+    for y in 0..height {
+        for x in 0..width {
+            frame.set_pixel(x, y, [r, g, b, 255]);
+        }
+    }
+    frame
+}
+
 fn checker(width: u32, height: u32) -> Frame {
     let side = (height / 20).max(1);
     let mut frame = Frame::transparent(width, height);
@@ -707,8 +766,10 @@ mod tests {
         assert_eq!(drawn, cards.len(), "every card is drawn");
     }
 
-    /// Redraws every built-in sticker's `preview.png` from its own shader,
-    /// over nothing, transparent around it, so the shelf shows the sticker:
+    /// Redraws every built-in sticker's and text animation's `preview.png`
+    /// from its own shader - a sticker over nothing, transparent around
+    /// it, a text animation's title on the slate - so the shelf shows
+    /// the package itself and not a stand-in:
     /// `CONCAT_STICKER_PREVIEWS=src/crates/concat-effects/packages cargo
     /// test -p concat-host --lib -- --ignored draw_sticker_previews`.
     #[test]
@@ -721,13 +782,56 @@ mod tests {
         let mut painter = Painter::new(compositor, &still_in(&scratch).expect("the still"), 256, 256)
             .expect("a painter");
         let mut drawn = 0;
-        for package in catalogue.of_kind(concat_effects::Kind::Sticker) {
+        let shelved = catalogue
+            .of_kind(concat_effects::Kind::Sticker)
+            .chain(catalogue.of_kind(concat_effects::Kind::Textanim));
+        for package in shelved {
             let folder = root.join(package.id());
             if !folder.is_dir() {
                 continue;
             }
-            let card = Card::of(catalogue, package, &scratch).expect("a sticker card");
-            let frame = painter.frame(&card).expect("drawn");
+            let card = Card::of(catalogue, package, &scratch).expect("a card");
+            let frame = match &card.drawing {
+                // A text animation's card is the first moment its title is
+                // at rest - an entrance landed, an exit not yet begun - or,
+                // for one always moving, the moment nearest rest. A title
+                // half in reads as a cut-off word on a small tile; the
+                // hover shows the motion.
+                Drawing::Words(pass) => {
+                    let (w, h) = (painter.still.width(), painter.still.height());
+                    let slate = Arc::clone(&painter.slate);
+                    let whole = painter
+                        .titled(Arc::clone(&slate), None, Rational::ZERO, w, h)
+                        .expect("the title");
+                    // How far a frame is from the title at rest, 0..=1.
+                    let apart = |frame: &Frame| {
+                        let sum: u64 = frame
+                            .pixels()
+                            .iter()
+                            .zip(whole.pixels())
+                            .map(|(a, b)| u64::from(a.abs_diff(*b)))
+                            .sum();
+                        sum as f64 / (frame.pixels().len() as f64 * 255.0)
+                    };
+                    let mut best = (f64::MAX, None);
+                    for step in 0..=24 {
+                        let at = Rational::approximate(f64::from(step) * 0.1).expect("a time");
+                        let frame = painter
+                            .titled(Arc::clone(&slate), Some(pass), at, w, h)
+                            .expect("drawn");
+                        let off = apart(&frame);
+                        let landed = off < 0.002;
+                        if off < best.0 {
+                            best = (off, Some(frame));
+                        }
+                        if landed {
+                            break;
+                        }
+                    }
+                    best.1.expect("a frame")
+                }
+                _ => painter.frame(&card).expect("drawn"),
+            };
             let file = std::fs::File::create(folder.join("preview.png")).expect("writable");
             let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), frame.width(), frame.height());
             encoder.set_color(png::ColorType::Rgba);
@@ -738,7 +842,7 @@ mod tests {
                 .expect("written");
             drawn += 1;
         }
-        assert!(drawn > 300, "only {drawn} stickers drawn");
+        assert!(drawn > 400, "only {drawn} stickers and text animations drawn");
     }
 
     #[test]

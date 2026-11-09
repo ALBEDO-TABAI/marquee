@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.taoutrotate"
-name = "旋出出场"
+name = "旋转出场"
 kind = "textanim"
 category = "出场"
 order = 632

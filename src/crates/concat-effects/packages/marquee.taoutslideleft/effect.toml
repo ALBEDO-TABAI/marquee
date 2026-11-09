@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.taoutslideleft"
-name = "左滑出出场"
+name = "左滑出场"
 kind = "textanim"
 category = "出场"
 order = 626

@@ -8,7 +8,9 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let dur = max(frame.clip_duration, window + 0.05);
     let ct = frame.clip_time;
     let progress = clamp(ct / max(window * 0.75, 0.08), 0.0, 1.0);
-    let local = smoothstep(rank - 0.045, rank + 0.22, progress);
+    // The last glyph (rank 1) is whole at progress 1: the old window
+    // `rank - 0.045 .. rank + 0.22` left it at ~8% when the motion ended.
+    let local = smoothstep(rank * 0.78, rank * 0.78 + 0.22, progress);
 
     var suv = uv;
     suv = suv + vec2<f32>(sin(ct * 42.0), cos(ct * 37.0)) * 0.007 * (1.0 - 0.4 * local);

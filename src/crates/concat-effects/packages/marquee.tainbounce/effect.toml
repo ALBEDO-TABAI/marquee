@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.tainbounce"
-name = "弹入入场"
+name = "弹跳入场"
 kind = "textanim"
 category = "入场"
 order = 613

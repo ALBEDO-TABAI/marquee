@@ -2,7 +2,7 @@ format = 2
 
 [effect]
 id = "marquee.taoutmaskwipe"
-name = "擦出出场"
+name = "擦除出场"
 kind = "textanim"
 category = "出场"
 order = 634
