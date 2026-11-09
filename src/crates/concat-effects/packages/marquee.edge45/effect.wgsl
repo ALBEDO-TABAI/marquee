@@ -9,5 +9,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let e = smoothstep(0.08, 0.5, edge_at(uv));
     let hue = saturation(c.rgb, 1.8) * 1.4 + vec3<f32>(0.15);
     let look = hue * e;
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

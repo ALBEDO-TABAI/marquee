@@ -15,5 +15,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let shade = 1.0 - clamp(luma(c.rgb) * 1.4, 0.0, 1.0);
     let dot = 1.0 - smoothstep(shade * 0.55 - 0.05, shade * 0.55 + 0.05, length(f));
     let look = vivid * (1.0 - dot * 0.55) * (1.0 - ink);
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

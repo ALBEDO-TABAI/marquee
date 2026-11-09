@@ -15,5 +15,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let tooth = (hash(floor(px / 2.0), 140.0) - 0.5) * 0.06;
     let hatch = step(fract((px.x + px.y) / 5.0), 0.25) * (1.0 - smoothstep(0.15, 0.45, l)) * 0.25;
     let look = vec3<f32>(clamp(graphite - hatch + tooth, 0.0, 1.0)) * vec3<f32>(0.98, 0.97, 0.94);
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

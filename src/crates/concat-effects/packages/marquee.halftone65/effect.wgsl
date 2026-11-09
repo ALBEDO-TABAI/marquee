@@ -19,5 +19,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let ink = saturation(s.rgb, 1.3) * 0.75;
     let paper = vec3<f32>(0.97, 0.95, 0.88);
     let look = mix(paper, ink, dot);
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

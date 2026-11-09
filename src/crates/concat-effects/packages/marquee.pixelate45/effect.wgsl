@@ -10,6 +10,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let cell = frame.size.y / n;
     let at = floor(uv * frame.size / cell);
     let s = sample((at + vec2<f32>(0.5)) * cell / frame.size);
-    let look = floor(clamp(s.rgb, vec3<f32>(0.0), vec3<f32>(1.0)) * 5.0 + vec3<f32>(0.5)) / 5.0;
+    let look = floor(clamp(s.rgb, vec3<f32>(0.0), vec3<f32>(1.0)) * 5.0 + vec3<f32>(0.5)) / 5.0 + max(s.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
     return vec4<f32>(mix(c.rgb, mix(s.rgb, look, a), min(a * 4.0, 1.0)), c.a);
 }

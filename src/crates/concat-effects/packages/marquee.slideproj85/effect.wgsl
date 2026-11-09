@@ -16,5 +16,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let click = exp(-ph * 30.0) * 0.4;
     let wall = vec3<f32>(0.06, 0.055, 0.05) + vec3<f32>(0.12, 0.1, 0.07) * hot;
     let look = mix(wall, s * lamp, inside) + vec3<f32>(click);
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

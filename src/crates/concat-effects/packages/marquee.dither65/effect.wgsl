@@ -18,5 +18,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let levels = 2.0;
     let v = clamp(s.rgb, vec3<f32>(0.0), vec3<f32>(1.0)) * levels;
     let look = (floor(v) + step(vec3<f32>(thr), fract(v))) / levels;
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

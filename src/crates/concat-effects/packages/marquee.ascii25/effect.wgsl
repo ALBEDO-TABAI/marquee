@@ -32,5 +32,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     glyph = clamp(glyph * inside, 0.0, 1.0);
     let ink = saturation(s.rgb, 1.3) * 1.25 + vec3<f32>(0.08);
     let look = ink * glyph + vec3<f32>(0.02) * (1.0 - glyph);
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }

@@ -21,5 +21,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let outline = smoothstep(0.25, 0.6, edge_at(uv));
     let paper = vec3<f32>(0.97, 0.95, 0.9);
     let look = paper * (1.0 - max(ink * 0.85, outline));
-    return vec4<f32>(mix(c.rgb, look, a), c.a);
+    let over = max(c.rgb - vec3<f32>(1.0), vec3<f32>(0.0));
+    return vec4<f32>(mix(c.rgb, look + over, a), c.a);
 }
