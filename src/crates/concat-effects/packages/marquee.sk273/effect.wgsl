@@ -5,10 +5,17 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let amp = params.amount / 100.0;
     var p = uv * 2.0 - vec2<f32>(1.0);
     p.y = p.y + 0.08 * abs(sin(frame.clip_time * 6.0));
-    let a = atan2(p.y, p.x);
-    let r = length(p);
-    let k = 0.32 + 0.16 * abs(cos(a * 2.5));
-    let d = r - k;
+    // A five-point star with sharp tips, one tip up (uv runs down).
+    var sq = vec2<f32>(abs(p.x), 0.05 - p.y);
+    let sk1 = vec2<f32>(0.809016994, -0.587785252);
+    let sk2 = vec2<f32>(-0.809016994, -0.587785252);
+    sq = sq - 2.0 * max(dot(sk1, sq), 0.0) * sk1;
+    sq = sq - 2.0 * max(dot(sk2, sq), 0.0) * sk2;
+    sq.x = abs(sq.x);
+    sq.y = sq.y - 0.52;
+    let sba = 0.45 * vec2<f32>(0.587785252, 0.809016994) - vec2<f32>(0.0, 1.0);
+    let sh = clamp(dot(sq, sba) / dot(sba, sba), 0.0, 0.52);
+    let d = length(sq - sba * sh) * sign(sq.y * sba.x - sq.x * sba.y);
     let shape = 1.0 - smoothstep(-0.02, 0.03, d);
     let col = vec3<f32>(0.973, 0.980, 0.988);
     let over = mix(src.rgb, col, shape * 0.92);

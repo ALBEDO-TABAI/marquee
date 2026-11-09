@@ -80,8 +80,9 @@ enum Drawing {
     },
     /// A title over the still, the pass on the title.
     Title(ShaderPass),
-    /// A sticker: the pass over nothing, on the checkerboard, so the card
-    /// is the sticker itself and not the still with something on it.
+    /// A sticker: the pass over nothing, left transparent, so the card is
+    /// the sticker itself on the shelf's own tile, not the still with
+    /// something on it or a checkerboard that fights the light theme.
     Sticker(ShaderPass),
     /// A cut from the still to its turned copy.
     Cut(TransitionPass),
@@ -312,7 +313,9 @@ impl Painter {
                     ..FramePlan::empty(width, height)
                 })
             }
-            Drawing::Sticker(pass) => self.sticker(pass, moment, width, height),
+            // At rest: a turning or bouncing sticker's card is upright and
+            // in place; its motion is what the hover shows.
+            Drawing::Sticker(pass) => self.sticker(pass, Rational::ZERO, width, height),
             Drawing::Title(pass) => {
                 let (title, reveal) = self.title(width, height)?;
                 let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.still));
@@ -348,15 +351,15 @@ impl Painter {
         Ok(frame)
     }
 
-    /// A sticker's pass over nothing, on the checkerboard, at `moment`.
+    /// A sticker's pass over nothing at `moment`, transparent around it.
     fn sticker(&mut self, pass: &ShaderPass, moment: Rational, width: u32, height: u32) -> Frame {
-        let ground = PlannedLayer::picture(detached_clip(), Arc::clone(&self.checker));
         let mut picture = PlannedLayer::picture(detached_clip(), Arc::clone(&self.blank));
         picture.track = 1;
         picture.effects = vec![pass.clone()];
         self.compositor.render(&FramePlan {
             time: moment,
-            layers: vec![ground, picture],
+            layers: vec![picture],
+            canvas: [0, 0, 0, 0],
             ..FramePlan::empty(width, height)
         })
     }
@@ -705,7 +708,7 @@ mod tests {
     }
 
     /// Redraws every built-in sticker's `preview.png` from its own shader,
-    /// over nothing on the checkerboard, so the shelf shows the sticker:
+    /// over nothing, transparent around it, so the shelf shows the sticker:
     /// `CONCAT_STICKER_PREVIEWS=src/crates/concat-effects/packages cargo
     /// test -p concat-host --lib -- --ignored draw_sticker_previews`.
     #[test]
