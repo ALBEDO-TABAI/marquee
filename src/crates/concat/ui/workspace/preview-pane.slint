@@ -1291,10 +1291,22 @@ export component PreviewPane inherits Rectangle {
                 property <int> wake-token: Editor.transport-wake;
                 changed wake-token => { self.awake = true; }
                 property <bool> shown: !root.playing || self.awake || wake.has-hover;
+                /// A small picture: the stacked capsule would hide a third of
+                /// it. Left alone while paused, it folds to the play row.
+                property <bool> tight: self.stacked || self.height < 300px;
+                property <bool> folded: self.tight && !root.playing && !self.awake;
+                property <bool> pointer-near: view.has-hover || cap-hover.has-hover;
+                changed pointer-near => { if (self.pointer-near) { self.awake = true; } }
+                // A seek while paused (a step, a typed time) is a use of it.
+                property <float> at-frame: root.shown-frames;
+                changed at-frame => { if (!root.playing) { self.awake = true; } }
 
+                // Playing: fade out after a pause. Paused on a small picture:
+                // fold after the same pause once the pointer has left.
                 idle := Timer {
                     interval: 2500ms;
-                    running: root.playing && transport.awake && !wake.has-hover;
+                    running: transport.awake && !wake.has-hover && !cap-hover.has-hover
+                        && (root.playing || (transport.tight && !view.has-hover));
                     triggered => { transport.awake = false; }
                 }
 
@@ -1309,8 +1321,9 @@ export component PreviewPane inherits Rectangle {
                 }
 
                 capsule := Rectangle {
-                    width: transport.stacked ? transport.stacked-w : transport.single-w;
-                    height: transport.capsule-h;
+                    width: transport.folded ? play-group.preferred-width + 2 * 8px
+                        : transport.stacked ? transport.stacked-w : transport.single-w;
+                    height: transport.folded ? transport.line-h + 8px : transport.capsule-h;
                     x: (parent.width - self.width) / 2;
                     y: parent.height - self.height - transport.margin;
                     border-radius: self.height / 2;
@@ -1321,6 +1334,12 @@ export component PreviewPane inherits Rectangle {
                     opacity: transport.shown ? 1.0 : 0.0;
                     visible: self.opacity > 0.01;
                     animate opacity { duration: 220ms; easing: ease-in-out; }
+                    animate width, height { duration: 200ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+
+                    cap-hover := TouchArea {
+                        width: 100%;
+                        height: 100%;
+                    }
 
                     Rectangle {
                         width: 100%;
@@ -1341,6 +1360,7 @@ export component PreviewPane inherits Rectangle {
 
                         // Current time bright, total dim, one readout.
                         time-group := HorizontalLayout {
+                            visible: !transport.folded;
                             x: transport.pad;
                             y: transport.stacked
                                 ? parent.height - 5px - transport.line-h
@@ -1379,10 +1399,10 @@ export component PreviewPane inherits Rectangle {
                         }
 
                         play-group := HorizontalLayout {
-                            x: transport.stacked || transport.even ? (parent.width - self.width) / 2
+                            x: transport.folded || transport.stacked || transport.even ? (parent.width - self.width) / 2
                                 : transport.pad + time-group.width
                                     + (parent.width - 2 * transport.pad - time-group.width - view-group.width - self.width) / 2;
-                            y: transport.stacked ? 5px : (parent.height - transport.line-h) / 2;
+                            y: transport.stacked && !transport.folded ? 5px : (parent.height - transport.line-h) / 2;
                             width: self.preferred-width;
                             height: transport.line-h;
                             spacing: 2px;
@@ -1434,6 +1454,7 @@ export component PreviewPane inherits Rectangle {
                         }
 
                         view-group := HorizontalLayout {
+                            visible: !transport.folded;
                             x: parent.width - transport.pad - self.width;
                             y: transport.stacked
                                 ? parent.height - 5px - transport.line-h
