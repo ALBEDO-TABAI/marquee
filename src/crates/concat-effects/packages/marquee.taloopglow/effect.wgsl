@@ -7,7 +7,7 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let ct = frame.clip_time;
     // A halo that swells and settles round the glyphs, the glyphs themselves
     // untouched. Zero at the start of the loop. (Was a copy of 闪烁.)
-    let swell = 0.5 - 0.5 * cos(ct * mix(2.2, 6.0, amt) + rank * 6.0);
+    let swell = (0.5 - 0.5 * cos(ct * mix(2.2, 6.0, amt))) * (0.7 + 0.3 * sin(rank * 6.0 + ct));
     let c = sample(uv);
     let r = mix(0.006, 0.018, amt);
     var halo = 0.0;
