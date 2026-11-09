@@ -276,12 +276,15 @@ impl SettingsPane {
     pub fn update(&mut self, msg: SettingsMsg, studio: &mut Studio) {
         match msg {
             SettingsMsg::Restore => {
+                // Unset, the interface opens in Simplified Chinese
+                // (studio.rs, at start), so that is what the list shows:
+                // "English" over a Chinese window said the opposite of what
+                // was on screen.
+                let shown = studio.prefs.locale.as_deref().unwrap_or("zh-Hans");
                 self.language = studio
                     .languages
                     .iter()
-                    .position(|language| {
-                        Some(language.code.as_str()) == studio.prefs.locale.as_deref()
-                    })
+                    .position(|language| language.code == shown)
                     .unwrap_or(0);
                 self.playhead_stops = studio.prefs.playhead_stops_at_end;
                 // Not a choice: the app decodes on whatever hardware the
