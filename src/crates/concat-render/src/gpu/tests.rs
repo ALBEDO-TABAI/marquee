@@ -1662,12 +1662,32 @@ fn every_look_carries_a_highlight_past_white() {
         if !display {
             continue;
         }
+        // A sticker is not a look: where it covers the picture it is its
+        // own colour, whatever light was under it.
+        if package.kind() == concat_effects::Kind::Sticker {
+            continue;
+        }
+        // A negative turns light past white darker, as a negative does:
+        // brightness reversed is what 反相 and X光 are for.
+        if ["marquee.invert", "marquee.xray"]
+            .iter()
+            .any(|id| package.id().starts_with(id))
+        {
+            continue;
+        }
+        // A title's entrance starts hidden: it is read where it has come
+        // to rest, as its probes are.
+        let (at, length) = if package.kind() == concat_effects::Kind::Textanim {
+            (3.0, 6.0)
+        } else {
+            (0.0, 0.0)
+        };
         let pass = package.trial_pass().expect("a shader");
         let white = gpu
-            .probe(std::slice::from_ref(&pass), [1.0, 1.0, 1.0, 1.0], 8, 0.0)
+            .probe_clip(std::slice::from_ref(&pass), [1.0, 1.0, 1.0, 1.0], 8, at, length)
             .expect("reads back");
         let bright = gpu
-            .probe(&[pass], [4.0, 4.0, 4.0, 1.0], 8, 0.0)
+            .probe_clip(&[pass], [4.0, 4.0, 4.0, 1.0], 8, at, length)
             .expect("reads back");
         if luma(bright) <= luma(white) * 1.5 {
             clipped.push(format!(
