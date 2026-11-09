@@ -389,6 +389,20 @@ fn apply(line: &str) -> String {
             });
             "ok".into()
         }
+        // Clicks a sticker / filter / text-animation tile without a pointer:
+        // the same Editor callback the tile fires.
+        "apply_filter" => {
+            let id = value.get("id").and_then(|v| v.as_str()).unwrap_or("").to_owned();
+            let label = value.get("label").and_then(|v| v.as_str()).unwrap_or("").to_owned();
+            if id.is_empty() {
+                return "err apply_filter needs id".into();
+            }
+            Shell::with(|_, app| {
+                app.global::<Editor>()
+                    .invoke_library_apply_filter(id.as_str().into(), label.as_str().into())
+            });
+            "ok".into()
+        }
         // Moves the playhead, in seconds.
         "seek" => {
             let at = value.get("at").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
