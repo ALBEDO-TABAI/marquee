@@ -29,6 +29,9 @@ export component FontPicker inherits Rectangle {
     /// Nothing on this machine has that family.
     in property <bool> missing;
     callback picked(family: string);
+    /// A font of your own, from a file: the list's last row, so the row the
+    /// trigger sits in gives all its width to the family's name.
+    callback import-font();
 
     height: Theme.h;
     horizontal-stretch: 1;
@@ -159,6 +162,42 @@ export component FontPicker inherits Rectangle {
                                 root.picked(name);
                                 list.close();
                             }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Theme.line;
+                }
+                Rectangle {
+                    height: 28px;
+                    border-radius: Theme.r-sm;
+                    background: imp.has-hover ? Theme.field-hover : transparent;
+                    HorizontalLayout {
+                        padding-left: 8px;
+                        spacing: 8px;
+                        VerticalLayout {
+                            alignment: center;
+                            Icon {
+                                glyph: Glyph.import;
+                                size: 13px;
+                                tint: Theme.fg-muted;
+                            }
+                        }
+                        Text {
+                            text: I18n.t("textPanel.importFont");
+                            font-size: Theme.fs;
+                            color: Theme.fg;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+                    }
+                    imp := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            list.close();
+                            root.import-font();
                         }
                     }
                 }

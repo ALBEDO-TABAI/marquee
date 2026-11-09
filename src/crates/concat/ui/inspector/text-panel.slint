@@ -384,13 +384,9 @@ export component TextPanel inherits VerticalLayout {
                     root.set-text(ClipTextField.font-family, family);
                     root.commit();
                 }
-            }
-            // A font of your own, from a file: it joins the list for good
-            // and the title is set in it.
-            IconButton {
-                glyph: Glyph.import;
-                label: I18n.t("textPanel.importFont");
-                clicked => { root.import-font(); }
+                // A font of your own, from a file, at the foot of the list:
+                // it joins the list for good and the title is set in it.
+                import-font => { root.import-font(); }
             }
         }
 
