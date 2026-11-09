@@ -1,10 +1,11 @@
 struct Params { amount: f32 }
+// 水下: a ripple and the colour of water.
 fn effect(uv: vec2<f32>) -> vec4<f32> {
     let c = sample(uv);
     let a = params.amount / 100.0;
-    let luma = dot(c.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
-    let tint = vec3<f32>(0.96, 1.0, 0.97);
-    let graded = mix(vec3<f32>(luma), c.rgb, 1.2) * tint + vec3<f32>(0.02);
-    let contrasted = (graded - vec3<f32>(0.5)) * 1.08 + vec3<f32>(0.5);
-    return vec4<f32>(mix(c.rgb, clamp(contrasted, vec3<f32>(0.0), vec3<f32>(1.0)), a), c.a);
+    // A slow ripple, red absorbed, a blue-green cast.
+    let wave = vec2<f32>(sin(uv.y * 28.0 + frame.time * 1.7) * 0.004, 0.0);
+    let w = sample(uv + wave);
+    let look = w.rgb * vec3<f32>(0.55, 0.95, 1.08) + vec3<f32>(0.0, 0.03, 0.07);
+    return vec4<f32>(mix(c.rgb, look, a), c.a);
 }

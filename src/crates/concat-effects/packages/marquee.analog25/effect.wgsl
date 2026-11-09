@@ -1,10 +1,10 @@
 struct Params { amount: f32 }
+// 胶片模拟: a warm, lifted print with grain.
 fn effect(uv: vec2<f32>) -> vec4<f32> {
     let c = sample(uv);
     let a = params.amount / 100.0;
-    let luma = dot(c.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
-    let tint = vec3<f32>(0.96, 1.0, 0.97);
-    let graded = mix(vec3<f32>(luma), c.rgb, 1.2) * tint + vec3<f32>(0.02);
-    let contrasted = (graded - vec3<f32>(0.5)) * 1.08 + vec3<f32>(0.5);
-    return vec4<f32>(mix(c.rgb, clamp(contrasted, vec3<f32>(0.0), vec3<f32>(1.0)), a), c.a);
+    // A print: toe and shoulder rolled, blacks lifted, warm, a fine grain.
+    let curved = film_curve(c.rgb, 0.35, 0.3) * vec3<f32>(1.05, 1.0, 0.9);
+    let look = matte(curved, 0.06, 0.95) + grain_at(uv, 0.06);
+    return vec4<f32>(mix(c.rgb, look, a), c.a);
 }
