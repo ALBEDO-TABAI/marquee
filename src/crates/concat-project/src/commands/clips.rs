@@ -1797,9 +1797,26 @@ pub fn consolidation_clips(
 }
 
 /// Sticker package ids look like `marquee.sk01`, `marquee.ch01`, `marquee.de13`:
-/// the last dotted segment starts with a short sticker prefix.
+/// the last dotted segment starts with a short sticker prefix. The named
+/// group (`marquee.stkheart`, `marquee.stkstar`) is all letters, so it is
+/// told by its `stk` stem rather than by the letters before a number.
 pub(super) fn looks_like_sticker(effect_id: &str) -> bool {
     let tail = effect_id.rsplit('.').next().unwrap_or(effect_id);
     let prefix: String = tail.chars().take_while(|c| c.is_ascii_alphabetic()).collect();
-    matches!(prefix.as_str(), "sk" | "ti" | "de" | "ch" | "st")
+    matches!(prefix.as_str(), "sk" | "ti" | "de" | "ch" | "st") || prefix.starts_with("stk")
+}
+
+#[cfg(test)]
+mod sticker_ids {
+    use super::looks_like_sticker;
+
+    #[test]
+    fn every_sticker_family_is_told_and_effects_are_not() {
+        for id in ["marquee.sk000", "marquee.ch01", "marquee.ti01", "marquee.de13", "marquee.stkheart", "marquee.stkstar"] {
+            assert!(looks_like_sticker(id), "{id}");
+        }
+        for id in ["concat.glow", "concat.spin", "marquee.tacapblur", "concat.film-grain"] {
+            assert!(!looks_like_sticker(id), "{id}");
+        }
+    }
 }

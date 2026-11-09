@@ -3,7 +3,9 @@ struct Params { amount: f32 }
 fn effect(uv: vec2<f32>) -> vec4<f32> {
     let src = sample(uv);
     let amp = params.amount / 100.0;
-    var p = uv * 2.0 - vec2<f32>(1.0);
+    // Drawn in a square of the frame's shorter side, centred: a circle stays
+    // round on a 16:9 picture as it is on its square card.
+    var p = (uv * 2.0 - vec2<f32>(1.0)) * frame.size / min(frame.size.x, frame.size.y);
     p.y = p.y + 0.08 * abs(sin(frame.clip_time * 6.0));
     // A five-point star with sharp tips, one tip up (uv runs down).
     var sq = vec2<f32>(abs(p.x), 0.05 - p.y);
@@ -18,6 +20,6 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let d = length(sq - sba * sh) * sign(sq.y * sba.x - sq.x * sba.y);
     let shape = 1.0 - smoothstep(-0.02, 0.03, d);
     let col = vec3<f32>(0.984, 0.573, 0.235);
-    let over = mix(src.rgb, col, shape * 0.92);
+    let over = mix(src.rgb, col, shape);
     return vec4<f32>(mix(src.rgb, over, amp), max(src.a, shape * amp));
 }

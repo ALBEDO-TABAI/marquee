@@ -3,7 +3,9 @@ struct Params { amount: f32 }
 fn effect(uv: vec2<f32>) -> vec4<f32> {
     let src = sample(uv);
     let a = params.amount / 100.0;
-    var p = uv * 2.0 - vec2<f32>(1.0);
+    // Drawn in a square of the frame's shorter side, centred: a circle stays
+    // round on a 16:9 picture as it is on its square card.
+    var p = (uv * 2.0 - vec2<f32>(1.0)) * frame.size / min(frame.size.x, frame.size.y);
     let wobble = 1.0 + 0.03 * sin(frame.clip_time * 4.0 + f32(26));
     p = p / wobble;
     let boxp = abs(p) - vec2<f32>(0.72, 0.38);
