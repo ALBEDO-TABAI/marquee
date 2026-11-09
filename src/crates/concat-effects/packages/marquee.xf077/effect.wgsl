@@ -1,8 +1,19 @@
+// 俯仰: a whip tilt - the scene rushes down, smeared, into the next.
+fn strip(q: vec2<f32>, dir: vec2<f32>) -> vec4<f32> {
+    // The two pictures side by side along the camera's move.
+    let inside = all(q >= vec2<f32>(0.0)) && all(q <= vec2<f32>(1.0));
+    return select(to_at(q - dir), from_at(q), inside);
+}
+
 fn transition(uv: vec2<f32>, progress: f32) -> vec4<f32> {
+    let dir = vec2<f32>(0.0, -1.0);
     let t = smoothstep(0.0, 1.0, progress);
-    let o = 0.000 * sin(t * 3.14159265);
-    let off = vec2<f32>(0.0, 1.0) * (t + o);
-    let a = from_at(uv + off);
-    let b = to_at(uv - (vec2<f32>(0.0, 1.0) - off));
-    return mix(a, b, t);
+    let pos = uv + dir * t;
+    // A whip: the faster the move, the longer the smear along it.
+    let smear = sin(progress * 3.1416) * 0.12;
+    var sum = vec4<f32>(0.0);
+    for (var i = 0; i < 16; i++) {
+        sum += strip(pos + dir * (f32(i) / 15.0 - 0.5) * smear, dir);
+    }
+    return sum / 16.0;
 }
