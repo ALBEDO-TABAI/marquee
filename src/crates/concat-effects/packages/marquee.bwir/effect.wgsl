@@ -6,5 +6,5 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
     let tint = vec3<f32>(1.0880392156862744, 1.0880392156862744, 1.0880392156862744);
     let graded = mix(vec3<f32>(luma), c.rgb, 1.05) * tint + vec3<f32>(0.02);
     let contrasted = (graded - vec3<f32>(0.5)) * 1.08 + vec3<f32>(0.5);
-    return vec4<f32>(mix(c.rgb, clamp(contrasted, vec3<f32>(0.0), vec3<f32>(1.0)), a), c.a);
+    return vec4<f32>(mix(c.rgb, max(contrasted, vec3<f32>(0.0)), a), c.a);
 }

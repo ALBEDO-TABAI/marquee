@@ -8,5 +8,5 @@ fn effect(uv: vec2<f32>) -> vec4<f32> {
         c.g * (1.0 + 0.05 * a),
         c.b * (1.0 + 0.20 * a),
     );
-    return vec4<f32>(mix(c.rgb, clamp(graded, vec3<f32>(0.0), vec3<f32>(1.0)), a), c.a);
+    return vec4<f32>(mix(c.rgb, max(graded, vec3<f32>(0.0)), a), c.a);
 }
