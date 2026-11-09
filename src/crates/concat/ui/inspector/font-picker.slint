@@ -38,6 +38,12 @@ export component FontPicker inherits Rectangle {
     border-width: 1px;
     border-color: root.missing ? Theme.danger : Theme.line;
 
+    /// A long family name ("Noto Sans CJK SC") steps down a size before it
+    /// elides in a narrow inspector, and the whole name is in the tip. By
+    /// length rather than by measuring: the trigger's own width depends on
+    /// its words, and measuring against it would loop.
+    property <bool> long: root.family.character-count > 13;
+
     HorizontalLayout {
         padding-left: 8px;
         padding-right: 6px;
@@ -45,13 +51,14 @@ export component FontPicker inherits Rectangle {
 
         Text {
             horizontal-stretch: 1;
+            min-width: 0px;
             text: root.missing
                 ? I18n.t("textPanel.fontNotFound") + " · " + root.family
                 : root.family;
             color: root.missing ? Theme.danger : Theme.fg;
             // The name in its own face, unless there is no such face.
             font-family: root.missing ? "" : root.family;
-            font-size: Theme.fs;
+            font-size: root.long ? Theme.fs-sm : Theme.fs;
             font-weight: root.missing ? Theme.weight-title : 400;
             vertical-alignment: center;
             overflow: elide;
@@ -76,14 +83,17 @@ export component FontPicker inherits Rectangle {
     }
 
     Tip {
-        text: root.missing ? I18n.t("textPanel.fontNotFoundTip") : "";
+        text: root.missing ? I18n.t("textPanel.fontNotFoundTip")
+            : root.long ? root.family : "";
         active: touch.has-hover;
     }
 
     list := PopupWindow {
-        x: 0;
+        // Wider than a narrow trigger, so every family reads whole; it grows
+        // leftwards, into the panel, since the inspector sits at the right.
+        x: Math.min(0px, root.width - self.width);
         y: root.height + 4px;
-        width: Math.max(root.width, 220px);
+        width: Math.max(root.width, 280px);
         height: 300px;
         close-policy: close-on-click-outside;
 
