@@ -6,7 +6,7 @@ name = "辉光 65"
 kind = "effect"
 category = "光"
 order = 2666
-description = "Original 辉光 family look."
+description = "the whole picture glowing softly, dreamlike."
 intensity = "amount"
 
 [[param]]

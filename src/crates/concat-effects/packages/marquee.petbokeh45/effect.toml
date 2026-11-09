@@ -6,7 +6,7 @@ name = "软焦宠物 45"
 kind = "effect"
 category = "宠物"
 order = 2793
-description = "Original 软焦宠物 family look."
+description = "a soft, warm portrait focus with pastel bokeh drifting around the edges."
 intensity = "amount"
 
 [[param]]

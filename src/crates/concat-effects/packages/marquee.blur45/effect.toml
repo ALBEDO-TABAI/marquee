@@ -6,7 +6,7 @@ name = "柔化 45"
 kind = "effect"
 category = "基础"
 order = 2549
-description = "Original 柔化 family look."
+description = "the whole picture softened into a smooth blur."
 intensity = "amount"
 
 [[param]]

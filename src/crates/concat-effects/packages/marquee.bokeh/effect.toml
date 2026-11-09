@@ -6,7 +6,7 @@ name = "散景"
 kind = "effect"
 category = "光"
 order = 309
-description = "Original 散景 family look."
+description = "a fast lens wide open - everything melted, the lights into round discs."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

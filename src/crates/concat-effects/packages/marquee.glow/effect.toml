@@ -6,7 +6,7 @@ name = "辉光"
 kind = "effect"
 category = "光"
 order = 303
-description = "Original 辉光 family look."
+description = "the whole picture glowing softly, dreamlike."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

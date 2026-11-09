@@ -6,7 +6,7 @@ name = "移轴 45"
 kind = "effect"
 category = "基础"
 order = 2925
-description = "Original 移轴 family look."
+description = "a sharp band across the middle, the top and bottom blurred - a miniature."
 intensity = "amount"
 
 [[param]]

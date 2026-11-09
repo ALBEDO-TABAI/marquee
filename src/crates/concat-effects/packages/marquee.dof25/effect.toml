@@ -6,7 +6,7 @@ name = "浅景深 25"
 kind = "effect"
 category = "基础"
 order = 2604
-description = "Original 浅景深 family look."
+description = "the middle in focus, the picture falling away to blur around it."
 intensity = "amount"
 
 [[param]]

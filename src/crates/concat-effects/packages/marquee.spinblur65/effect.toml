@@ -6,7 +6,7 @@ name = "旋转模糊 65"
 kind = "effect"
 category = "动感"
 order = 2894
-description = "Original 旋转模糊 family look."
+description = "the picture smeared round in a spin about the middle."
 intensity = "amount"
 
 [[param]]
