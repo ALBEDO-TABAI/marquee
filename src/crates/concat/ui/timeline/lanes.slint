@@ -1932,9 +1932,11 @@ export component Lanes inherits Rectangle {
 
                 x: root.at(self.seconds);
                 y: 0;
-                // Wide enough for the label it carries; the mark itself is the
-                // 1px child pinned at this cell's leading edge.
-                width: 64px;
+                // Wide enough for the label it carries - an hour's eleven
+                // characters, "00:00:00:00", without clipping its last
+                // digit - and under the ladder's 90px minimum spacing; the
+                // mark itself is the 1px child pinned at the leading edge.
+                width: 84px;
                 height: root.ruler-height;
                 background: Colors.transparent;
                 // And none before the cut starts; see the grid.
@@ -2208,7 +2210,11 @@ export component Lanes inherits Rectangle {
         // https://github.com/jub0t/Concat/issues/468
         if !root.finger && root.at(root.playhead) >= 0px
             && root.at(root.playhead) <= root.width: Rectangle {
-            x: root.at(root.playhead) - self.width / 2;
+            // Kept whole inside the lanes: at the very start the playhead is
+            // the lanes' left edge, and a chip centred on it was cut in half
+            // there - half a razor reading as a stray mark.
+            x: Math.max(0px, Math.min(root.width - self.width,
+                root.at(root.playhead) - self.width / 2));
             y: root.ruler-height + 6px;
             width: 18px;
             height: 18px;

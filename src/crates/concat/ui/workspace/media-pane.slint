@@ -186,7 +186,9 @@ component StripEnd inherits Rectangle {
     callback clicked();
 
     y: 0;
-    width: 22px;
+    // Wide enough that a chip running under it fades out rather than
+    // being cut at a hard edge beside the button.
+    width: 40px;
     background: root.fade;
 
     Rectangle {
@@ -2232,7 +2234,7 @@ export component MediaPane inherits Rectangle {
                         x: 0;
                         height: parent.height;
                         glyph: Glyph.chevron-left;
-                        fade: @linear-gradient(90deg, Theme.panel 60%, transparent);
+                        fade: @linear-gradient(90deg, Theme.panel 45%, transparent);
                         clicked => {
                             strip.content-x = Math.min(0px, strip.content-x + strip.width * 0.6);
                         }
@@ -2241,7 +2243,7 @@ export component MediaPane inherits Rectangle {
                         x: parent.width - self.width;
                         height: parent.height;
                         glyph: Glyph.chevron-right;
-                        fade: @linear-gradient(270deg, Theme.panel 60%, transparent);
+                        fade: @linear-gradient(270deg, Theme.panel 45%, transparent);
                         clicked => {
                             strip.content-x = Math.max(root.strip-floor, strip.content-x - strip.width * 0.6);
                         }

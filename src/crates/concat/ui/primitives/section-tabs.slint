@@ -4,6 +4,7 @@
 import { Theme } from "../theme/theme.slint";
 import { Glyph, Icon } from "../icons.slint";
 import { FocusRing } from "focus-ring.slint";
+import { Tip } from "tooltip.slint";
 
 // The inspector's sections, inside a tab: a row of marks and words on the
 // panel itself, with no track of its own, and a bar under the one that is
@@ -23,6 +24,11 @@ export component SectionTabs inherits Rectangle {
 
     property <bool> ring;
     property <length> seg-w: root.width / Math.max(root.options.length, 1);
+    /// Every segment wears its word, or none does: a row of marks each
+    /// trailed by "…" says nothing the marks alone do not, and a row half
+    /// worded and half not looks broken. Marks only below the width a
+    /// mark and a two-word label need; the word is then the tooltip.
+    property <bool> worded: root.icons.length == 0 || root.seg-w >= 88px;
 
     min-width: 120px;
     horizontal-stretch: 1;
@@ -91,7 +97,7 @@ export component SectionTabs inherits Rectangle {
                     tint: tab.ink;
                 }
             }
-            Text {
+            if root.worded: Text {
                 text: option;
                 color: tab.ink;
                 font-size: Theme.fs;
@@ -109,6 +115,11 @@ export component SectionTabs inherits Rectangle {
                 fs.focus();
                 root.select(index);
             }
+        }
+
+        if !root.worded: Tip {
+            text: option;
+            active: segment.has-hover;
         }
     }
 

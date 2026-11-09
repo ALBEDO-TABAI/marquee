@@ -207,8 +207,13 @@ export component Row inherits HorizontalLayout {
     spacing: 8px;
     min-height: Theme.h;
 
+    // The label's column is a preference, not a floor: in an inspector
+    // narrower than the row's controls want, the label gives way rather
+    // than the last control running past the panel's edge.
     if root.label != "": Text {
-        width: root.label-width;
+        preferred-width: root.label-width;
+        min-width: Math.min(root.label-width, 40px);
+        horizontal-stretch: 0;
         text: root.label;
         color: Theme.fg-muted;
         font-size: Theme.fs;

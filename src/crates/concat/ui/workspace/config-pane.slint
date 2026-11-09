@@ -79,6 +79,39 @@ component FactRow inherits HorizontalLayout {
     }
 }
 
+// A fact too long for the value column - a folder path - under its label
+// rather than beside it: a path wrapped into a right-aligned stack of
+// six ragged lines beside a one-word label reads as a layout fault.
+component FactBlock inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+
+    padding-left: Theme.pad;
+    padding-right: Theme.pad;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    spacing: 2px;
+
+    Text {
+        text: root.label;
+        color: Theme.fg-muted;
+        font-size: Theme.fs;
+    }
+
+    // Selectable for the reason FactRow's value is.
+    TextInput {
+        text: root.value;
+        color: Theme.fg;
+        font-family: Theme.font-technical;
+        font-size: Theme.fs-sm;
+        read-only: true;
+        single-line: false;
+        wrap: char-wrap;
+        selection-background-color: Theme.accent;
+        selection-foreground-color: Theme.on-accent;
+    }
+}
+
 // "PROJECT", "CONTENTS" — the muted caps that break the facts into groups.
 component FactHeading inherits HorizontalLayout {
     in property <string> title;
@@ -501,7 +534,7 @@ export component ConfigPane inherits Rectangle {
 
                     FactHeading { title: I18n.t("configPane.project"); }
                     FactRow { label: I18n.t("common.name"); value: root.project-name; }
-                    FactRow { label: I18n.t("configPane.folder"); value: root.project-folder; }
+                    FactBlock { label: I18n.t("configPane.folder"); value: root.project-folder; }
 
                     // The frame is a timeline's, not the project's: two cuts
                     // of one edit can be two shapes, and these rows say which

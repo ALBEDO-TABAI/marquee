@@ -424,6 +424,9 @@ export component Param inherits VerticalLayout {
     /// assigned to it is its first variant and not "none" - every unkeyable
     /// row would otherwise claim to be keying scale.
     in property <bool> keyable: false;
+    /// Keep the cluster's room on a row that has none, so its field lines
+    /// up under the keyable rows of the same section.
+    in property <bool> key-gutter: false;
     in property <ClipField> field;
     /// See KeyCluster: a row keyed by name is handed its key state.
     in property <string> key-name;
@@ -500,6 +503,8 @@ export component Param inherits VerticalLayout {
 
         // After the number field: the cluster is about the value, and it
         // trails whatever last states the value.
+        // 6px of air and the cluster's three 17px buttons, 1px apart.
+        if !root.keyable && root.key-gutter: Rectangle { width: 6px + 3 * 17px + 2px; }
         if root.keyable: Rectangle { width: 6px; }
         if root.keyable: VerticalLayout {
             alignment: center;

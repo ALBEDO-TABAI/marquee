@@ -1534,8 +1534,11 @@ export component VideoPanel inherits VerticalLayout {
                 changed(v) => { root.set(ClipField.rotation, v); root.commit(); }
             }
 
+            // Not keyable, but in the keyable column: the fields of one
+            // section line up whether or not a row carries the cluster.
             Param {
                 label: I18n.t("common.width");
+                key-gutter: true;
                 value <=> root.stretch-x;
                 minimum: 0.1;
                 maximum: 4;
@@ -1549,6 +1552,7 @@ export component VideoPanel inherits VerticalLayout {
 
             Param {
                 label: I18n.t("common.height");
+                key-gutter: true;
                 value <=> root.stretch-y;
                 minimum: 0.1;
                 maximum: 4;
@@ -1565,15 +1569,19 @@ export component VideoPanel inherits VerticalLayout {
             // vertical cut needs one way or the other.
             if root.canvas && Backdrop.can-frame: Row {
                 label: I18n.t("common.size");
+                // `block`: the pair shares what the row has, and a narrow
+                // inspector no longer pushes Fill past the panel's edge.
                 Button {
                     label: I18n.t("clipInspector.fit");
                     glyph: Glyph.fit;
+                    block: true;
                     horizontal-stretch: 1;
                     clicked => { Backdrop.frame(false); }
                 }
                 Button {
                     label: I18n.t("clipInspector.fill");
                     glyph: Glyph.maximize;
+                    block: true;
                     horizontal-stretch: 1;
                     clicked => { Backdrop.frame(true); }
                 }
