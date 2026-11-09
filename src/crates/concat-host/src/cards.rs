@@ -807,6 +807,57 @@ mod tests {
         assert!(drawn > 0);
     }
 
+    /// Draws picture packages at several moments of a clip, as PNG frames
+    /// `<id>-<n>.png` in `CONCAT_FRAMES_OUT`: the moving looks checked by
+    /// eye and turned into the evidence's GIFs. `CONCAT_FRAMES_IDS` names
+    /// the packages (comma separated, all picture looks when unset) and
+    /// `CONCAT_FRAMES_TIMES` the seconds (default 0.9, the card's moment).
+    #[test]
+    #[ignore = "needs a GPU and writes frames to a folder of your choosing"]
+    fn draw_effect_frames() {
+        let out = PathBuf::from(std::env::var("CONCAT_FRAMES_OUT").expect("CONCAT_FRAMES_OUT"));
+        std::fs::create_dir_all(&out).expect("a folder");
+        let ids: Option<HashSet<String>> = std::env::var("CONCAT_FRAMES_IDS")
+            .ok()
+            .map(|ids| ids.split(',').map(str::to_owned).collect());
+        let times: Vec<f64> = std::env::var("CONCAT_FRAMES_TIMES")
+            .unwrap_or_else(|_| "0.9".to_owned())
+            .split(',')
+            .map(|t| t.parse().expect("seconds"))
+            .collect();
+        let catalogue = Catalogue::builtin();
+        let scratch = scratch("frames");
+        let compositor = WgpuCompositor::new().expect("a GPU");
+        let mut painter = Painter::new(compositor, &still_in(&scratch).expect("the still"), 200, 200)
+            .expect("a painter");
+        let mut drawn = 0;
+        for package in catalogue.packages() {
+            if ids.as_ref().is_some_and(|ids| !ids.contains(package.id())) {
+                continue;
+            }
+            let Some(mut card) = Card::of(catalogue, package, &scratch) else { continue };
+            if !matches!(card.drawing, Drawing::Picture { .. }) {
+                continue;
+            }
+            for (n, moment) in times.iter().enumerate() {
+                card.moment = *moment;
+                let frame = painter.frame(&card).expect("drawn");
+                let file = std::fs::File::create(out.join(format!("{}-{n}.png", package.id())))
+                    .expect("writable");
+                let mut encoder =
+                    png::Encoder::new(std::io::BufWriter::new(file), frame.width(), frame.height());
+                encoder.set_color(png::ColorType::Rgba);
+                encoder.set_depth(png::BitDepth::Eight);
+                encoder
+                    .write_header()
+                    .and_then(|mut writer| writer.write_image_data(frame.pixels()))
+                    .expect("written");
+                drawn += 1;
+            }
+        }
+        assert!(drawn > 0);
+    }
+
     /// Redraws every built-in sticker's and text animation's `preview.png`
     /// from its own shader - a sticker over nothing, transparent around
     /// it, a text animation's title on the slate - so the shelf shows

@@ -187,6 +187,55 @@ fn sample_premultiplied(uv: vec2<f32>) -> vec4<f32> {
 }
 "#;
 
+/// What every effect can read to move: its own clock, a loop timed to the
+/// clip, and smooth noise to drift by.
+const EFFECT_MOTION: &str = r#"
+/// The seconds a moving look is timed to: the clip's own, so it starts the
+/// same wherever the clip sits; the timeline's where the pass has no clip of
+/// its own (a treatment, a probe), so it still moves there.
+fn look_time() -> f32 {
+    return select(frame.time, frame.clip_time, frame.clip_duration > 0.0);
+}
+
+/// How far through its current round, 0..1, a look that repeats about every
+/// `period` seconds is. On a clip the period is stretched so whole rounds
+/// fit it: the loop ends where it began, at the clip's last frame.
+fn loop_phase(period: f32) -> f32 {
+    var p = max(period, 1e-3);
+    if (frame.clip_duration > 0.0) {
+        p = frame.clip_duration / max(round(frame.clip_duration / p), 1.0);
+    }
+    return fract(look_time() / p);
+}
+
+/// Smooth noise, 0..1, over a lattice of whole numbers: `hash` at the four
+/// corners around `p`, eased between. The same on every GPU, as `hash` is.
+fn value_noise(p: vec2<f32>, seed: f32) -> f32 {
+    let i = floor(p);
+    let f = fract(p);
+    let u = f * f * (vec2<f32>(3.0) - 2.0 * f);
+    let a = hash(i, seed);
+    let b = hash(i + vec2<f32>(1.0, 0.0), seed);
+    let c = hash(i + vec2<f32>(0.0, 1.0), seed);
+    let d = hash(i + vec2<f32>(1.0, 1.0), seed);
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+/// Four octaves of `value_noise`, each twice as fine and half as strong:
+/// fog, smoke, a burn's edge. 0..1.
+fn fbm(p: vec2<f32>, seed: f32) -> f32 {
+    var sum = 0.0;
+    var amp = 0.5;
+    var q = p;
+    for (var i = 0; i < 4; i++) {
+        sum += value_noise(q, seed + f32(i) * 17.0) * amp;
+        q = q * 2.03 + vec2<f32>(1.7, 9.2);
+        amp *= 0.5;
+    }
+    return sum / 0.9375;
+}
+"#;
+
 /// What a transition's shader binds: the outgoing picture and the incoming
 /// one at group 0, the frame block - its spare slot the progress - and the
 /// parameters at group 1, the table at group 2, and no reveal map.
@@ -911,7 +960,7 @@ impl Contract {
             _ => &[FORMAT2_BASICS, LINEAR_LIBRARY],
         };
         let reading: &[&str] = match (entry, self) {
-            (Entry::Effect, _) => &[EFFECT_SAMPLE_PREMULTIPLIED],
+            (Entry::Effect, _) => &[EFFECT_SAMPLE_PREMULTIPLIED, EFFECT_MOTION],
             (Entry::Transition, _) => &[],
         };
         [
