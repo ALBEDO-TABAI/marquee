@@ -1485,6 +1485,65 @@ fn package_art(
         .clone()
 }
 
+thread_local! {
+    /// [`art_tone`]'s answers by package id: a still does not change once
+    /// drawn, and the shelves are rebuilt on every keystroke of a search.
+    static ART_TONES: RefCell<HashMap<String, i32>> = RefCell::new(HashMap::new());
+}
+
+/// Whether a card's still is mostly white (1) or mostly black (-1) where
+/// it is opaque, else 0: the stickers that would vanish on a light or a
+/// dark tile and want a backdrop. Sampled on a grid of at most 64x64; an
+/// empty still (one still being drawn) answers 0 and is asked again later.
+fn art_tone(id: &str, art: &slint::Image) -> i32 {
+    if let Some(tone) = ART_TONES.with(|tones| tones.borrow().get(id).copied()) {
+        return tone;
+    }
+    let Some(buffer) = art.to_rgba8() else {
+        return 0;
+    };
+    let (width, height) = (buffer.width() as usize, buffer.height() as usize);
+    if width == 0 || height == 0 {
+        return 0;
+    }
+    let tone = tone_of(buffer.as_slice(), width, height);
+    ART_TONES.with(|tones| tones.borrow_mut().insert(id.to_owned(), tone));
+    tone
+}
+
+fn tone_of(pixels: &[slint::Rgba8Pixel], width: usize, height: usize) -> i32 {
+    let step = (width.max(height) / 64).max(1);
+    let (mut seen, mut light, mut dark) = (0u32, 0u32, 0u32);
+    for y in (0..height).step_by(step) {
+        for x in (0..width).step_by(step) {
+            let Some(pixel) = pixels.get(y * width + x) else {
+                continue;
+            };
+            if pixel.a < 128 {
+                continue;
+            }
+            seen += 1;
+            let luma = 0.2126 * f32::from(pixel.r)
+                + 0.7152 * f32::from(pixel.g)
+                + 0.0722 * f32::from(pixel.b);
+            if luma > 0.85 * 255.0 {
+                light += 1;
+            } else if luma < 0.15 * 255.0 {
+                dark += 1;
+            }
+        }
+    }
+    if seen == 0 {
+        0
+    } else if light * 2 >= seen {
+        1
+    } else if dark * 2 >= seen {
+        -1
+    } else {
+        0
+    }
+}
+
 /// Whether two project paths name one folder: the same string, or the same
 /// folder once both are resolved, so a path spelled another way is not
 /// mistaken for another project.
@@ -1566,6 +1625,7 @@ fn shelves(
             continue;
         }
         let art = package_art(package, look_art, card_paths);
+        let tone = art_tone(meta.id.as_str(), &art);
         entries.push(CatalogueEntryData {
             id: meta.id.as_str().into(),
             name: name.into(),
@@ -1574,6 +1634,7 @@ fn shelves(
             description: description.into(),
             favourite: starred,
             art,
+            tone,
         });
     }
     (
@@ -3803,5 +3864,29 @@ mod tests {
                 "one undo puts {id} back"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tone_tests {
+    use super::tone_of;
+    use slint::Rgba8Pixel;
+
+    fn px(r: u8, g: u8, b: u8, a: u8) -> Rgba8Pixel {
+        Rgba8Pixel { r, g, b, a }
+    }
+
+    #[test]
+    fn white_black_and_coloured_stills() {
+        let clear = px(0, 0, 0, 0);
+        let mut white = vec![clear; 16];
+        white[5] = px(250, 250, 250, 255);
+        white[6] = px(255, 255, 255, 255);
+        assert_eq!(tone_of(&white, 4, 4), 1);
+        let black = vec![px(10, 10, 12, 255); 16];
+        assert_eq!(tone_of(&black, 4, 4), -1);
+        let teal = vec![px(0, 170, 190, 255); 16];
+        assert_eq!(tone_of(&teal, 4, 4), 0);
+        assert_eq!(tone_of(&vec![clear; 16], 4, 4), 0);
     }
 }

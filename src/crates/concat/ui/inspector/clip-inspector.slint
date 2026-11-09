@@ -71,6 +71,11 @@ export struct CatalogueEntryData {
     /// package's shader. Empty while that is still being drawn, and for a
     /// sound.
     art: image,
+    /// The still's ink where it is opaque: 1 mostly white, -1 mostly
+    /// black, 0 neither. A sticker card puts a faint checker under the one
+    /// that would vanish on its tile (white in a light window, black in a
+    /// dark one) and leaves every other tile plain.
+    tone: int,
 }
 
 /// What one effect library is currently showing.
