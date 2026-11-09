@@ -6,7 +6,7 @@ name = "数据马赛克 25"
 kind = "effect"
 category = "潮酷"
 order = 2596
-description = "Original 数据马赛克 family look."
+description = "blocks of the picture smeared and stuck, the compression broken."
 intensity = "amount"
 
 [[param]]

@@ -6,7 +6,7 @@ name = "RGB 分离"
 kind = "effect"
 category = "潮酷"
 order = 301
-description = "Original RGB 分离 family look."
+description = "the red and blue pulled apart sideways, throbbing."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

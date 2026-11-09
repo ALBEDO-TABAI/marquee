@@ -6,7 +6,7 @@ name = "RGB 分离 65"
 kind = "effect"
 category = "潮酷"
 order = 2838
-description = "Original RGB 分离 family look."
+description = "the red and blue pulled apart sideways, throbbing."
 intensity = "amount"
 
 [[param]]

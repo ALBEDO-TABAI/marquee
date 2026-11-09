@@ -6,7 +6,7 @@ name = "显像管"
 kind = "effect"
 category = "复古"
 order = 328
-description = "Original 显像管 family look."
+description = "an old tube screen - curved glass, scanlines, a phosphor grid."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

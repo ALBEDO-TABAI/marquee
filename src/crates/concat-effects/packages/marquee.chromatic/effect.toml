@@ -6,7 +6,7 @@ name = "色散"
 kind = "effect"
 category = "潮酷"
 order = 338
-description = "Original 色散 family look."
+description = "colour fringes spreading towards the edges, red out and blue in."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

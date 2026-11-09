@@ -6,7 +6,7 @@ name = "切片故障 45"
 kind = "effect"
 category = "潮酷"
 order = 2657
-description = "Original 切片故障 family look."
+description = "horizontal slices of the picture jumping sideways, colours split."
 intensity = "amount"
 
 [[param]]
