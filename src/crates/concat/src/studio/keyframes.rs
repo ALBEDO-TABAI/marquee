@@ -1713,7 +1713,7 @@ impl Studio {
                 let plate = colour_of(&preset.style.background);
                 TextPresetData {
                     id: preset.id.as_str().into(),
-                    name: preset.name.as_str().into(),
+                    name: crate::shelf_names::shown(&preset.name).into(),
                     language: preset.language.as_str().into(),
                     sample: preset.sample.as_str().into(),
                     family: preset.style.font_family.trim_matches('"').into(),

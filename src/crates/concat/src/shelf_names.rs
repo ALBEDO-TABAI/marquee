@@ -4,8 +4,10 @@
 //! ones. Most built-in packages are named in Chinese already; the older
 //! `concat.*` set was named in English, so a Chinese window listed
 //! "Blur Dissolve" beside 叠化 and had a Dissolve rail beside a 叠化 rail.
-//! A Chinese interface - either standard; the rest of the shelf is in
-//! Simplified - reads these instead. Any other language keeps the manifest.
+//! A Chinese interface reads these instead; any other language keeps the
+//! manifest. A Traditional one (zh-TW, zh-Hant, zh-HK) reads every Chinese
+//! shelf word - these and the built-in Simplified names alike - through
+//! `shelf_names_hant`, OpenCC's Taiwan conversion of them.
 
 use concat_effects::catalogue::Package;
 
@@ -14,15 +16,46 @@ fn chinese() -> bool {
     crate::i18n::current().starts_with("zh")
 }
 
+/// Whether the interface is in Traditional Chinese.
+fn traditional() -> bool {
+    let tag = crate::i18n::current();
+    let tag = tag.as_str();
+    tag.starts_with("zh") && (tag.contains("Hant") || tag.contains("TW") || tag.contains("HK") || tag.contains("MO"))
+}
+
+/// A shelf word as this interface reads it: Simplified, as written, or in
+/// a Traditional window its Taiwan form - the whole phrase where the table
+/// has it, character by character where it does not (a preset of your own).
+pub fn shown(words: &str) -> String {
+    if !traditional() {
+        return words.to_owned();
+    }
+    hant(words)
+}
+
+fn hant(words: &str) -> String {
+    use crate::shelf_names_hant::{CHARS, PHRASES};
+    if let Ok(at) = PHRASES.binary_search_by(|(simplified, _)| (*simplified).cmp(words)) {
+        return PHRASES[at].1.to_owned();
+    }
+    words
+        .chars()
+        .map(|c| match CHARS.binary_search_by(|(simplified, _)| simplified.cmp(&c)) {
+            Ok(at) => CHARS[at].1,
+            Err(_) => c,
+        })
+        .collect()
+}
+
 /// The name a shelf, a chip or an inspector shows for `package`.
 pub fn name(package: &Package) -> String {
     let meta = &package.manifest.effect;
     if chinese() {
         if let Some(zh) = name_zh(&meta.id) {
-            return zh.to_owned();
+            return shown(zh);
         }
     }
-    meta.name.clone()
+    shown(&meta.name)
 }
 
 /// The rail a manifest's `category` is shown under. Two spellings of one
@@ -30,10 +63,10 @@ pub fn name(package: &Package) -> String {
 pub fn category(raw: &str) -> String {
     if chinese() {
         if let Some(zh) = category_zh(raw) {
-            return zh.to_owned();
+            return shown(zh);
         }
     }
-    raw.to_owned()
+    shown(raw)
 }
 
 fn category_zh(raw: &str) -> Option<&'static str> {
@@ -200,5 +233,20 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn traditional_reads_whole_phrases_then_characters() {
+        assert_eq!(hant("AI·数据卡"), "AI·資料卡");
+        assert_eq!(hant("圆点·青·静"), "圓點·青·靜");
+        assert_eq!(hant("会话框 1"), "會話框 1");
+        assert_eq!(hant("Glow"), "Glow");
+    }
+
+    #[test]
+    fn the_traditional_tables_are_sorted_for_search() {
+        use crate::shelf_names_hant::{CHARS, PHRASES};
+        assert!(PHRASES.windows(2).all(|w| w[0].0 < w[1].0));
+        assert!(CHARS.windows(2).all(|w| w[0].0 < w[1].0));
     }
 }
