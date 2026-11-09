@@ -6,7 +6,7 @@ name = "胶片模拟 85"
 kind = "effect"
 category = "复古"
 order = 2503
-description = "Original 胶片模拟 family look."
+description = "a warm, lifted print with soft colour and grain."
 intensity = "amount"
 
 [[param]]

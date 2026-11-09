@@ -6,7 +6,7 @@ name = "褐色"
 kind = "effect"
 category = "氛围"
 order = 315
-description = "Original 褐色 family look."
+description = "the classic sepia print, brown from black to cream."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 

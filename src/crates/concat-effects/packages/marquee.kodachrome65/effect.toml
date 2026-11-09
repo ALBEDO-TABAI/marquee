@@ -6,7 +6,7 @@ name = "柯达彩 65"
 kind = "effect"
 category = "电影"
 order = 2730
-description = "Original 柯达彩 family look."
+description = "dense, saturated, warm reds and deep shadows."
 intensity = "amount"
 
 [[param]]

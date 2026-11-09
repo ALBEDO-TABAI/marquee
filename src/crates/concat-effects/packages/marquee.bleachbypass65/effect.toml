@@ -6,7 +6,7 @@ name = "漂白旁路 65"
 kind = "effect"
 category = "电影"
 order = 2538
-description = "Original 漂白旁路 family look."
+description = "the silver kept - low saturation, hard contrast."
 intensity = "amount"
 
 [[param]]

@@ -6,7 +6,7 @@ name = "褐色 85"
 kind = "effect"
 category = "氛围"
 order = 2859
-description = "Original 褐色 family look."
+description = "the classic sepia print, brown from black to cream."
 intensity = "amount"
 
 [[param]]

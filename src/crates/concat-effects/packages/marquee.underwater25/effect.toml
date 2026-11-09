@@ -6,7 +6,7 @@ name = "水下 25"
 kind = "effect"
 category = "自然"
 order = 2932
-description = "Original 水下 family look."
+description = "rippling light, red absorbed, a blue-green cast."
 intensity = "amount"
 
 [[param]]

@@ -6,7 +6,7 @@ name = "新潮颗粒 65"
 kind = "effect"
 category = "最新"
 order = 2774
-description = "Original 新潮颗粒 family look."
+description = "crushed contrast and a heavy, coarse grain."
 intensity = "amount"
 
 [[param]]

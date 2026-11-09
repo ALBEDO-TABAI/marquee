@@ -6,7 +6,7 @@ name = "金肤"
 kind = "filter"
 category = "人像"
 order = 433
-description = "Original 金肤 grade."
+description = "a golden glow on the skin, the rest warmed a little."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 45
+default = 100
 step = 1
 unit = "%"
 

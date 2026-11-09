@@ -6,7 +6,7 @@ name = "漂白 25"
 kind = "effect"
 category = "电影"
 order = 2532
-description = "Original 漂白 family look."
+description = "washed high key, the colour nearly gone."
 intensity = "amount"
 
 [[param]]

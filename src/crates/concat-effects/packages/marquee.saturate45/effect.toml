@@ -6,7 +6,7 @@ name = "过饱和 45"
 kind = "effect"
 category = "基础"
 order = 2845
-description = "Original 过饱和 family look."
+description = "colour pushed to twice as rich."
 intensity = "amount"
 
 [[param]]

@@ -6,7 +6,7 @@ name = "拍立得"
 kind = "effect"
 category = "复古"
 order = 364
-description = "Original 拍立得 family look."
+description = "milky blacks, cyan shadows, cream highlights, soft corners."
 intensity = "amount"
 
 [[param]]
@@ -14,7 +14,7 @@ key = "amount"
 label = "Amount"
 min = 0
 max = 100
-default = 40
+default = 100
 step = 1
 unit = "%"
 
