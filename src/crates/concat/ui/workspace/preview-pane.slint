@@ -889,12 +889,11 @@ export component PreviewPane inherits Rectangle {
         // ── the viewport ─────────────────────────────────────────────────
         viewport := Rectangle {
             vertical-stretch: 1;
-            // Sunken, and darker than the header and transport either side of
-            // it. A monitor's ground should fall away from the chrome around
-            // it rather than sit level with it — the darker the surround, the
-            // less the picture has to fight to be the brightest thing in the
-            // pane.
-            background: Theme.well;
+            // The pane's own surface, not a sunken well: the picture letter-
+            // boxes on the same panel colour as the media and details panes,
+            // so the preview reads as one panel rather than a black box set
+            // into one. The stage keeps its own hairline to mark the frame.
+            background: transparent;
             clip: true;
 
             // Less air on a phone, where the pane is the screen's width and
@@ -1247,19 +1246,26 @@ export component PreviewPane inherits Rectangle {
                 width: parent.width;
                 height: parent.height;
 
-                property <length> margin: 16px;
-                property <length> pad: 14px;
-                property <length> gap: 16px;
+                property <length> margin: 12px;
+                property <length> pad: 12px;
+                property <length> gap: 20px;
+                property <length> line-h: 26px;
                 property <length> avail: Math.max(0px, self.width - 2 * self.margin);
                 property <length> side: Math.max(time-group.preferred-width, view-group.preferred-width);
-                property <length> single-w: 2 * self.side + play-group.preferred-width
+                // Play centred on the capsule when both sides fit evenly;
+                // otherwise centred in the room between the side groups.
+                property <length> even-w: 2 * self.side + play-group.preferred-width
                     + 2 * self.gap + 2 * self.pad;
+                property <length> tight-w: time-group.preferred-width + play-group.preferred-width
+                    + view-group.preferred-width + 2 * self.gap + 2 * self.pad;
+                property <bool> even: self.even-w <= self.avail;
+                property <length> single-w: self.even ? self.even-w : self.tight-w;
                 property <bool> stacked: self.single-w > self.avail;
                 property <length> stacked-w: Math.min(self.avail,
                     Math.max(play-group.preferred-width,
                         time-group.preferred-width + view-group.preferred-width + self.gap)
                     + 2 * self.pad);
-                property <length> capsule-h: self.stacked ? 80px : 44px;
+                property <length> capsule-h: self.stacked ? 2 * self.line-h + 16px : 38px;
 
                 property <bool> awake: true;
                 property <bool> playing: root.playing;
@@ -1291,8 +1297,8 @@ export component PreviewPane inherits Rectangle {
                     y: parent.height - self.height - transport.margin;
                     border-radius: self.height / 2;
                     background: transparent;
-                    drop-shadow-blur: 18px;
-                    drop-shadow-offset-y: 6px;
+                    drop-shadow-blur: 14px;
+                    drop-shadow-offset-y: 4px;
                     drop-shadow-color: Theme.glass-shadow;
                     opacity: transport.shown ? 1.0 : 0.0;
                     visible: self.opacity > 0.01;
@@ -1319,17 +1325,18 @@ export component PreviewPane inherits Rectangle {
                         time-group := HorizontalLayout {
                             x: transport.pad;
                             y: transport.stacked
-                                ? parent.height - 6px - 32px
-                                : (parent.height - 32px) / 2;
+                                ? parent.height - 5px - transport.line-h
+                                : (parent.height - transport.line-h) / 2;
                             width: self.preferred-width;
-                            height: 32px;
+                            height: transport.line-h;
                             spacing: 2px;
                             alignment: start;
                             VerticalLayout {
                                 alignment: center;
                                 NumberField {
                                     bare: true;
-                                    width: 92px;
+                                    width: 76px;
+                                    text-size: Theme.fs-sm;
                                     value <=> root.shown-frames;
                                     minimum: 0;
                                     maximum: root.playhead-free ? 1000000000 : root.total-frames;
@@ -1348,20 +1355,24 @@ export component PreviewPane inherits Rectangle {
                                 text: "/ " + Fmt.frames-timecode(root.duration, root.frame-rate);
                                 color: Theme.fg-dim;
                                 font-family: Theme.font-technical;
-                                font-size: Theme.fs-sm;
+                                font-size: Theme.fs-xs;
                                 vertical-alignment: center;
                             }
                         }
 
                         play-group := HorizontalLayout {
-                            x: (parent.width - self.width) / 2;
-                            y: transport.stacked ? 6px : (parent.height - 32px) / 2;
+                            x: transport.stacked || transport.even ? (parent.width - self.width) / 2
+                                : transport.pad + time-group.width
+                                    + (parent.width - 2 * transport.pad - time-group.width - view-group.width - self.width) / 2;
+                            y: transport.stacked ? 5px : (parent.height - transport.line-h) / 2;
                             width: self.preferred-width;
-                            height: 32px;
+                            height: transport.line-h;
                             spacing: 2px;
                             alignment: center;
                             IconButton {
                                 glyph: Glyph.skip-back;
+                                compact: true;
+                                icon-size: 12px;
                                 label: I18n.t("common.goToStart");
                                 enabled: !root.at-start;
                                 idle: Theme.fg;
@@ -1369,6 +1380,8 @@ export component PreviewPane inherits Rectangle {
                             }
                             IconButton {
                                 glyph: Glyph.step-back;
+                                compact: true;
+                                icon-size: 12px;
                                 label: I18n.t("previewPane.previousFrame");
                                 enabled: !root.at-start;
                                 idle: Theme.fg;
@@ -1377,12 +1390,15 @@ export component PreviewPane inherits Rectangle {
                             IconButton {
                                 glyph: root.playing ? Glyph.pause : Glyph.play;
                                 label: root.playing ? I18n.t("previewPane.pause") : I18n.t("previewPane.play");
-                                icon-size: 15px;
+                                icon-size: 11px;
                                 filled: true;
+                                compact: true;
                                 clicked => { root.play-toggled(); }
                             }
                             IconButton {
                                 glyph: Glyph.step-forward;
+                                compact: true;
+                                icon-size: 12px;
                                 label: I18n.t("previewPane.nextFrame");
                                 enabled: !root.at-end;
                                 idle: Theme.fg;
@@ -1390,6 +1406,8 @@ export component PreviewPane inherits Rectangle {
                             }
                             IconButton {
                                 glyph: Glyph.skip-forward;
+                                compact: true;
+                                icon-size: 12px;
                                 label: I18n.t("common.goToEnd");
                                 enabled: !root.at-end;
                                 idle: Theme.fg;
@@ -1400,10 +1418,10 @@ export component PreviewPane inherits Rectangle {
                         view-group := HorizontalLayout {
                             x: parent.width - transport.pad - self.width;
                             y: transport.stacked
-                                ? parent.height - 6px - 32px
-                                : (parent.height - 32px) / 2;
+                                ? parent.height - 5px - transport.line-h
+                                : (parent.height - transport.line-h) / 2;
                             width: self.preferred-width;
-                            height: 32px;
+                            height: transport.line-h;
                             spacing: 2px;
                             alignment: end;
                             VerticalLayout {
@@ -1432,6 +1450,8 @@ export component PreviewPane inherits Rectangle {
                             }
                             IconButton {
                                 glyph: Glyph.fit;
+                                compact: true;
+                                icon-size: 12px;
                                 label: I18n.t("previewPane.fitFramePane");
                                 enabled: !viewport.fitted;
                                 clicked => { viewport.fit(); }

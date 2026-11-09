@@ -251,6 +251,9 @@ export component IconButton inherits Rectangle {
     /// A filled accent disc. The preview's play control, whose state has to
     /// be obvious on the picture. The glyph is `on-accent`.
     in property <bool> filled;
+    /// A step smaller all round: the floating transport, where the
+    /// controls sit on the picture and must not crowd it.
+    in property <bool> compact;
 
     callback clicked();
 
@@ -268,7 +271,7 @@ export component IconButton inherits Rectangle {
         : root.accent ? (root.lit ? Theme.accent-hover : Theme.accent)
         : root.lit ? Theme.fg-hot
         : root.idle;
-    property <length> side: root.filled ? 32px : 26px;
+    property <length> side: root.compact ? (root.filled ? 26px : 22px) : (root.filled ? 32px : 26px);
     property <bool> ring;
 
     // Fixed across, free along. A Slint layout start-aligns a fixed-size child

@@ -40,6 +40,8 @@ export component NumberField inherits Rectangle {
     /// sits on a surface which is already the control's ground — the
     /// preview transport — so it does not read as a second well.
     in property <bool> bare;
+    /// The digits' size; the preview's glass readout runs a step smaller.
+    in property <length> text-size: Theme.fs;
     /// The corners, a side at a time; see Field.
     in property <length> radius-left: Theme.r;
     in property <length> radius-right: Theme.r;
@@ -124,7 +126,7 @@ export component NumberField inherits Rectangle {
             // A number, so the technical face — this is the control the rest
             // of the app reaches for whenever it needs a dimension typed.
             font-family: Theme.font-technical;
-            font-size: Theme.fs;
+            font-size: root.text-size;
             single-line: true;
             enabled: root.enabled;
             vertical-alignment: center;
