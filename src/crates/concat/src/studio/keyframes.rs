@@ -2809,6 +2809,7 @@ fn template_card(info: &templates::TemplateInfo) -> TemplateCardData {
         category: info.category.clone().into(),
         note: info.note.clone().into(),
         tall: info.height > info.width,
+        seconds: info.seconds as f32,
         poster: info
             .has_poster
             .then(|| crate::host::image_at(&std::path::Path::new(&info.path).join("poster.jpg")))

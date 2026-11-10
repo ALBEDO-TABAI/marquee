@@ -73,6 +73,8 @@ export struct TemplateCardData {
     note: string,
     /// Taller than wide: its frames are fitted whole, not cropped.
     tall: bool,
+    /// How long its edit runs, for the stamp on the card.
+    seconds: float,
     /// A frame of the recipe, when the bundle has one. Empty otherwise:
     /// the card stays a name, and nothing is invented in its place.
     poster: image,
@@ -3390,6 +3392,40 @@ export component MediaPane inherits Rectangle {
                                 still: pack.poster;
                                 hover: pack-touch.has-hover;
                                 fit-whole: pack.tall;
+                            }
+
+                            // That it plays, and for how long, small in the
+                            // corner the way a clip's card stamps its length:
+                            // the middle of the picture is the pack's own.
+                            Rectangle {
+                                x: parent.width - self.width - 5px;
+                                y: parent.height - 48px - self.height - 5px;
+                                width: stamp-row.preferred-width + 8px;
+                                height: 16px;
+                                border-radius: Theme.r-xs;
+                                background: Theme.scrim;
+
+                                stamp-row := HorizontalLayout {
+                                    x: 4px;
+                                    spacing: 3px;
+                                    alignment: center;
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Icon {
+                                            glyph: Glyph.play;
+                                            size: 8px;
+                                            filled: true;
+                                            tint: Theme.on-scrim;
+                                        }
+                                    }
+                                    Text {
+                                        text: Fmt.short-duration(pack.seconds);
+                                        color: Theme.on-scrim;
+                                        font-family: Theme.font-technical;
+                                        font-size: Theme.fs-xs;
+                                        vertical-alignment: center;
+                                    }
+                                }
                             }
 
                             VerticalLayout {

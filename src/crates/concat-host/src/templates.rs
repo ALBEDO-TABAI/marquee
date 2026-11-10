@@ -534,15 +534,167 @@ fn drop_slots(document: &mut Value, ids: &[String]) {
     }
 }
 
-/// The square still every built-in pack's poster and hover are drawn
-/// with: the shelf cards' own picture, in every picture slot, so a pack
-/// shows its titles, cuts and looks on something neutral.
-pub fn placeholder_still() -> Result<PathBuf, String> {
-    let path = std::env::temp_dir().join("marquee-card-still.jpg");
-    if !path.is_file() {
-        std::fs::write(&path, crate::cards::STILL).map_err(|error| error.to_string())?;
+/// What a shot's placeholder shows, read off its label: a faceless bust
+/// for a shot of someone talking, a still life for a product or a detail,
+/// and a landscape - by night for a night shot - for anything else.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Motif {
+    /// Someone talking to the camera: a faceless head and shoulders.
+    Person,
+    /// A product or a detail: a block and a ball on a table.
+    Object,
+    /// Anything else: hills under a sun.
+    Scene,
+    /// A night shot: the hills under a moon.
+    Night,
+}
+
+impl Motif {
+    /// The motif a shot labelled `label` gets.
+    pub fn of(label: &str) -> Motif {
+        let has = |words: &[&str]| words.iter().any(|word| label.contains(word));
+        if has(&["人物", "口播", "主播", "嘉宾", "主讲", "演唱", "团聚", "团圆", "讲解"]) {
+            Motif::Person
+        } else if has(&["产品", "单品", "菜品", "细节", "特写", "开箱", "上手", "桌面", "操作", "结算"]) {
+            Motif::Object
+        } else if has(&["夜", "月"]) {
+            Motif::Night
+        } else {
+            Motif::Scene
+        }
     }
+}
+
+/// The art a pack's poster and hover put in one picture slot: drawn, not
+/// photographed - no one's face under the pack's titles - in the pack's
+/// own shape, in a hue of the pack's own turned a step for each shot so
+/// its cuts read, and of the kind the shot asks for. Written once, as a
+/// JPEG in the temp folder, and read back like any still.
+pub fn placeholder_art(
+    pack: &str,
+    slot: usize,
+    motif: Motif,
+    width: u32,
+    height: u32,
+) -> Result<PathBuf, String> {
+    let seed = pack
+        .bytes()
+        .fold(0x811c_9dc5_u32, |hash, byte| (hash ^ u32::from(byte)).wrapping_mul(0x0100_0193));
+    let path = std::env::temp_dir().join("marquee-pack-art").join(format!(
+        "v2-{seed:08x}-{slot}-{motif:?}-{width}x{height}.jpg"
+    ));
+    if path.is_file() {
+        return Ok(path);
+    }
+    let frame = draw_art(seed, slot, motif, width, height);
+    let bytes = concat_media::jpeg(&frame, 92).map_err(|error| error.to_string())?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    // Written aside and moved in, so a hover drawing at the same time as
+    // a poster never reads half a file.
+    let partial = path.with_extension(format!("{}.part", std::process::id()));
+    std::fs::write(&partial, bytes).map_err(|error| error.to_string())?;
+    std::fs::rename(&partial, &path).map_err(|error| error.to_string())?;
     Ok(path)
+}
+
+/// Hue in degrees, saturation and value in 0..1, to linear-ish 0..1 RGB.
+fn hsv(hue: f32, saturation: f32, value: f32) -> [f32; 3] {
+    let h = hue.rem_euclid(360.0) / 60.0;
+    let c = value * saturation;
+    let x = c * (1.0 - (h % 2.0 - 1.0).abs());
+    let (r, g, b) = match h as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    let m = value - c;
+    [r + m, g + m, b + m]
+}
+
+fn mix(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
+    let t = t.clamp(0.0, 1.0);
+    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
+}
+
+/// Coverage of a shape whose signed distance, in pixels, is `d`: a pixel
+/// and a half of soft edge.
+fn cover(d: f32) -> f32 {
+    (0.5 - d / 1.5).clamp(0.0, 1.0)
+}
+
+fn draw_art(seed: u32, slot: usize, motif: Motif, width: u32, height: u32) -> concat_core::frame::Frame {
+    let (w, h) = (width as f32, height as f32);
+    let short = w.min(h);
+    let hue = (seed % 360) as f32 + slot as f32 * 47.0;
+    let phase = (seed >> 9) as f32 / 4096.0;
+    let night = motif == Motif::Night;
+    let (top, bottom) = if night {
+        (hsv(hue + 200.0, 0.45, 0.16), hsv(hue + 220.0, 0.40, 0.30))
+    } else {
+        // Mid-toned rather than pale: most packs' titles are light, and
+        // they have to read on it as they would on a picture.
+        (hsv(hue, 0.24, 0.72), hsv(hue + 20.0, 0.34, 0.50))
+    };
+    let mut frame = concat_core::frame::Frame::black(width, height);
+    let pixels = frame.pixels_mut();
+    for y in 0..height {
+        for x in 0..width {
+            let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
+            let mut c = mix(top, bottom, py / h);
+            match motif {
+                Motif::Scene | Motif::Night => {
+                    // A sun or a moon, and two ridges in front of it.
+                    let (sx, sy, r) = (w * 0.70, h * 0.34, short * 0.11);
+                    let glow = if night { hsv(hue + 40.0, 0.10, 0.95) } else { hsv(hue - 25.0, 0.30, 0.99) };
+                    let d = ((px - sx).powi(2) + (py - sy).powi(2)).sqrt() - r;
+                    c = mix(c, glow, cover(d));
+                    let ridge = |base: f32, amp: f32, freq: f32, shift: f32| {
+                        h * base + h * amp * (px / w * std::f32::consts::TAU * freq + shift + phase).sin()
+                    };
+                    let far = if night { hsv(hue + 215.0, 0.35, 0.22) } else { hsv(hue + 10.0, 0.30, 0.42) };
+                    let near = if night { hsv(hue + 225.0, 0.40, 0.12) } else { hsv(hue + 30.0, 0.38, 0.30) };
+                    c = mix(c, far, cover(ridge(0.60, 0.05, 1.3, 0.0) - py));
+                    c = mix(c, near, cover(ridge(0.74, 0.04, 2.1, 1.7) - py));
+                }
+                Motif::Person => {
+                    // Head and shoulders, no face: who speaks, not who.
+                    let figure = hsv(hue + 15.0, 0.24, 0.30);
+                    let (hx, hy, hr) = (w * 0.5, h * 0.42, short * 0.15);
+                    let head = ((px - hx).powi(2) + (py - hy).powi(2)).sqrt() - hr;
+                    let (bx, by, rx, ry) = (w * 0.5, h * 0.42 + short * 0.52, short * 0.42, short * 0.30);
+                    let body = (((px - bx) / rx).powi(2) + ((py - by) / ry).powi(2)).sqrt() - 1.0;
+                    let body = body * rx.min(ry);
+                    c = mix(c, figure, cover(head.min(body)));
+                }
+                Motif::Object => {
+                    // A table's edge, a block and a ball standing on it.
+                    let table = h * 0.70;
+                    let surface = hsv(hue + 25.0, 0.26, 0.38);
+                    c = mix(c, surface, cover(table - py));
+                    let (bx0, bx1, by0) = (w * 0.30, w * 0.30 + short * 0.26, table - short * 0.34);
+                    let block = (bx0 - px).max(px - bx1).max(by0 - py).max(py - table);
+                    c = mix(c, hsv(hue + 190.0, 0.30, 0.62), cover(block));
+                    let (cx, r) = (w * 0.62, short * 0.12);
+                    let ball = ((px - cx).powi(2) + (py - (table - r)).powi(2)).sqrt() - r;
+                    c = mix(c, hsv(hue - 20.0, 0.35, 0.82), cover(ball));
+                }
+            }
+            // A little fall-off to the corners, as a lens would.
+            let (dx, dy) = (px / w - 0.5, py / h - 0.5);
+            let fall = 1.0 - 0.22 * (dx * dx + dy * dy) * 2.0;
+            let index = ((y * width + x) * 4) as usize;
+            for (k, channel) in c.iter().enumerate() {
+                pixels[index + k] = (channel * fall * 255.0).round().clamp(0.0, 255.0) as u8;
+            }
+            pixels[index + 3] = 255;
+        }
+    }
+    frame
 }
 
 /// The instants a pack's hover plays, in seconds: `count` of them spread
@@ -605,7 +757,7 @@ fn preview_frames_until(
     let mut document: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("{} is not a template: {error}", manifest.display()))?;
     let info = read_info(&bundle)?;
-    let still = placeholder_still()?;
+    let (width, height) = preview_size(info.width, info.height);
 
     // Bundled assets are read where they are.
     for section in ["media", "fonts"] {
@@ -628,32 +780,12 @@ fn preview_frames_until(
         .map(|slot| slot.media_id.clone())
         .collect();
     drop_slots(&mut document, &sound);
-    // The still is square: each shot's clip is scaled up to cover the
-    // frame, so the card shows a picture edge to edge, not a square in
-    // bars.
-    let cover = f64::from(info.width.max(info.height)) / f64::from(info.width.min(info.height).max(1));
-    let pictures: Vec<&str> = info
-        .slots
-        .iter()
-        .filter(|slot| slot.kind != concat_project::model::MediaKind::Audio)
-        .map(|slot| slot.media_id.as_str())
-        .collect();
-    let mut clip_lists: Vec<&mut Vec<Value>> = Vec::new();
-    if let Some(Value::Array(clips)) = document.get_mut("clips") {
-        clip_lists.push(clips);
-    }
-    for clips in clip_lists {
-        for clip in clips.iter_mut() {
-            let shows = clip
-                .get("mediaId")
-                .and_then(Value::as_str)
-                .is_some_and(|id| pictures.contains(&id));
-            if shows {
-                let scale = clip.get("scale").and_then(Value::as_f64).unwrap_or(1.0);
-                clip["scale"] = Value::from(scale * cover);
-            }
-        }
-    }
+    // Each shot's art is drawn in the pack's own shape, so it fills the
+    // frame as the shot it stands in for would.
+    let pack_key = bundle
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
 
     let mut editor = Editor::from_document(&document)
         .ok_or("this template holds a document this build cannot read")?;
@@ -664,26 +796,30 @@ fn preview_frames_until(
         .slots
         .iter()
         .filter(|slot| slot.kind != concat_project::model::MediaKind::Audio)
-        .map(|slot| Command::FillSlot {
-            media_id: slot.media_id.clone(),
-            item: concat_project::commands::NewMedia {
-                path: still.to_string_lossy().into_owned(),
-                name: slot.label.clone(),
-                duration: None,
-                kind: concat_project::model::MediaKind::Image,
-                width: Some(crate::cards::WIDTH),
-                height: Some(crate::cards::HEIGHT),
-                frame_rate: None,
-                frame_rate_fraction: None,
-                video_codec: None,
-                audio_codec: None,
-                has_audio: false,
-                audio_tracks: Vec::new(),
-                origin: None,
-                color_space: Default::default(),
-            },
+        .enumerate()
+        .map(|(index, slot)| {
+            let art = placeholder_art(&pack_key, index, Motif::of(&slot.label), width, height)?;
+            Ok(Command::FillSlot {
+                media_id: slot.media_id.clone(),
+                item: concat_project::commands::NewMedia {
+                    path: art.to_string_lossy().into_owned(),
+                    name: slot.label.clone(),
+                    duration: None,
+                    kind: concat_project::model::MediaKind::Image,
+                    width: Some(width),
+                    height: Some(height),
+                    frame_rate: None,
+                    frame_rate_fraction: None,
+                    video_codec: None,
+                    audio_codec: None,
+                    has_audio: false,
+                    audio_tracks: Vec::new(),
+                    origin: None,
+                    color_space: Default::default(),
+                },
+            })
         })
-        .collect();
+        .collect::<Result<_, String>>()?;
     if !fills.is_empty() {
         editor
             .apply(Command::Batch { commands: fills })
@@ -691,7 +827,6 @@ fn preview_frames_until(
     }
 
     let project = editor.project();
-    let (width, height) = preview_size(info.width, info.height);
     let mut clips = concat_export::flatten::flatten_timeline(project, None);
     // The titles and shapes, painted as the export paints them, in a
     // scratch folder of the pack preview's own.
@@ -1164,6 +1299,21 @@ mod tests {
             let bytes = concat_media::jpeg(&frames[0], 92).expect("encodes");
             std::fs::write(Path::new(&pack.path).join(POSTER), bytes).expect("writes");
         }
+    }
+
+    /// A pack's placeholder is drawn, of the kind each shot asks for, and
+    /// differs from pack to pack and from shot to shot.
+    #[test]
+    fn placeholder_art_is_the_packs_own_and_fits_the_shot() {
+        assert_eq!(Motif::of("人物口播"), Motif::Person);
+        assert_eq!(Motif::of("产品特写"), Motif::Object);
+        assert_eq!(Motif::of("夜景空镜"), Motif::Night);
+        assert_eq!(Motif::of("开场空镜"), Motif::Scene);
+        let one = draw_art(1, 0, Motif::Scene, 64, 36);
+        assert_eq!((one.width(), one.height()), (64, 36));
+        assert_ne!(one.pixels(), draw_art(2, 0, Motif::Scene, 64, 36).pixels(), "pack to pack");
+        assert_ne!(one.pixels(), draw_art(1, 1, Motif::Scene, 64, 36).pixels(), "shot to shot");
+        assert_ne!(one.pixels(), draw_art(1, 0, Motif::Person, 64, 36).pixels(), "kind to kind");
     }
 
     #[test]
