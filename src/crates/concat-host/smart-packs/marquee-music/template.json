@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "music",
     "category": "竖屏",
-    "note": "歌词卡 + 节拍硬切"
+    "note": "歌词卡 + 节拍硬切",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "演唱画面",
+        "hint": "歌手或演奏的竖拍"
+      },
+      {
+        "media": "slot-b",
+        "label": "氛围画面",
+        "hint": "配合歌词的空镜"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

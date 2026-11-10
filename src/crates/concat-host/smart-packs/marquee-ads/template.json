@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "ads",
     "category": "带货",
-    "note": "价格角标 + 热词 + 硬切"
+    "note": "价格角标 + 热词 + 硬切",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "产品特写",
+        "hint": "产品居中，背景干净"
+      },
+      {
+        "media": "slot-b",
+        "label": "使用场景",
+        "hint": "上手或使用中的画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

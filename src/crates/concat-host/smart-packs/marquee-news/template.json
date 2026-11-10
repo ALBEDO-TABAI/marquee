@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "news",
     "category": "教程",
-    "note": "字幕条 + 左擦除"
+    "note": "字幕条 + 左擦除",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "新闻画面",
+        "hint": "现场或主画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "补充画面",
+        "hint": "资料或现场补充"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

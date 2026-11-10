@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "talk4",
     "category": "口播",
-    "note": "章节卡 + 角标"
+    "note": "章节卡 + 角标",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "桌面口播",
+        "hint": "桌前讲解的中景"
+      },
+      {
+        "media": "slot-b",
+        "label": "桌面特写",
+        "hint": "手部或物品特写"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

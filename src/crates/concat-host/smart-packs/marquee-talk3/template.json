@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "talk3",
     "category": "口播",
-    "note": "热词 + 字幕条"
+    "note": "热词 + 字幕条",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "街访口播",
+        "hint": "受访人回答问题"
+      },
+      {
+        "media": "slot-b",
+        "label": "街景空镜",
+        "hint": "街头环境"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

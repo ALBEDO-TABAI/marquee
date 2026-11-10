@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "ads2",
     "category": "带货",
-    "note": "柔肤滤镜 + 对话条"
+    "note": "柔肤滤镜 + 对话条",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "上手效果",
+        "hint": "使用前后或上脸效果"
+      },
+      {
+        "media": "slot-b",
+        "label": "产品细节",
+        "hint": "包装、质地或特写"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

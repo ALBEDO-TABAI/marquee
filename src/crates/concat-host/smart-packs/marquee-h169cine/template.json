@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "h169cine",
     "category": "横屏",
-    "note": "宽银幕 + 叠化 + 章节卡"
+    "note": "宽银幕 + 叠化 + 章节卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场空镜",
+        "hint": "宽画幅的环境镜头"
+      },
+      {
+        "media": "slot-b",
+        "label": "主体镜头",
+        "hint": "人物或故事画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

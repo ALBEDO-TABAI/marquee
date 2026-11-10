@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "film2",
     "category": "混剪",
-    "note": "急推 + 闪白 + 标题"
+    "note": "急推 + 闪白 + 标题",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场镜头",
+        "hint": "最有冲击力的一段"
+      },
+      {
+        "media": "slot-b",
+        "label": "高潮镜头",
+        "hint": "动作或转折"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

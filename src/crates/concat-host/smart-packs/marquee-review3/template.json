@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "review3",
     "category": "评测",
-    "note": "左右分屏条 + 硬切"
+    "note": "左右分屏条 + 硬切",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "产品一",
+        "hint": "第一款的画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "产品二",
+        "hint": "第二款的同角度画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

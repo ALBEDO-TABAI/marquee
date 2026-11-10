@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "vlog2",
     "category": "Vlog",
-    "note": "地图角标 + 暖滤"
+    "note": "地图角标 + 暖滤",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "目的地全景",
+        "hint": "风景或地标"
+      },
+      {
+        "media": "slot-b",
+        "label": "旅途片段",
+        "hint": "路上或体验中的画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

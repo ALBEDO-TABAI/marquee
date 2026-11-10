@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "fest4",
     "category": "节日",
-    "note": "月色滤镜 + 书法标题"
+    "note": "月色滤镜 + 书法标题",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "月色空镜",
+        "hint": "月亮或夜景"
+      },
+      {
+        "media": "slot-b",
+        "label": "团圆人物",
+        "hint": "赏月、聚餐的画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

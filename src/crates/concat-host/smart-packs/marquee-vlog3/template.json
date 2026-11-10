@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "vlog3",
     "category": "Vlog",
-    "note": "手写花字 + 叠化"
+    "note": "手写花字 + 叠化",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "日常开场",
+        "hint": "起床、出门或桌面"
+      },
+      {
+        "media": "slot-b",
+        "label": "生活片段",
+        "hint": "日常记录"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

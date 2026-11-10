@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "sq",
     "category": "横屏",
-    "note": "短内容包装"
+    "note": "短内容包装",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "主体画面",
+        "hint": "主体居中，适合方形"
+      },
+      {
+        "media": "slot-b",
+        "label": "补充画面",
+        "hint": "细节或场景"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

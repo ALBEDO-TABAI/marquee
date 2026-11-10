@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "game",
     "category": "混剪",
-    "note": "故障 + 急推"
+    "note": "故障 + 急推",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "高光操作",
+        "hint": "最精彩的一段操作"
+      },
+      {
+        "media": "slot-b",
+        "label": "结算画面",
+        "hint": "胜利或结算界面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

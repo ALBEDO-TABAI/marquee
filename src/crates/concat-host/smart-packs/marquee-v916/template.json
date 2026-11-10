@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "v916",
     "category": "竖屏",
-    "note": "标题 + 花字 + 字幕条 + 转场"
+    "note": "标题 + 花字 + 字幕条 + 转场",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场竖拍",
+        "hint": "交代主题的竖拍"
+      },
+      {
+        "media": "slot-b",
+        "label": "内容画面",
+        "hint": "主体内容"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

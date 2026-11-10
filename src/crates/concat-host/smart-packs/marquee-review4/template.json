@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "review4",
     "category": "评测",
-    "note": "三行列表 + 章节卡"
+    "note": "三行列表 + 章节卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场画面",
+        "hint": "盘点主题或合影"
+      },
+      {
+        "media": "slot-b",
+        "label": "逐项画面",
+        "hint": "每一项的展示"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

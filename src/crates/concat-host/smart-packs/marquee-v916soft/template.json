@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "v916soft",
     "category": "竖屏",
-    "note": "叠化 + 人名条 + 暖滤"
+    "note": "叠化 + 人名条 + 暖滤",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场竖拍",
+        "hint": "柔和光线的画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "人物画面",
+        "hint": "人物中近景"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

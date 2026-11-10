@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "ads4",
     "category": "带货",
-    "note": "三行列表 + 数据卡"
+    "note": "三行列表 + 数据卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "清单开场",
+        "hint": "全部单品的合影"
+      },
+      {
+        "media": "slot-b",
+        "label": "单品展示",
+        "hint": "逐个展示的近景"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

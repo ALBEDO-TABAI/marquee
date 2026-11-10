@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "edu",
     "category": "教程",
-    "note": "打字机 + 字幕条"
+    "note": "打字机 + 字幕条",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "讲解口播",
+        "hint": "人物正对镜头讲解"
+      },
+      {
+        "media": "slot-b",
+        "label": "操作画面",
+        "hint": "屏幕录制或演示"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

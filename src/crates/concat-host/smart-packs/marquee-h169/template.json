@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "h169",
     "category": "横屏",
-    "note": "人名条 + 章节卡"
+    "note": "人名条 + 章节卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场横拍",
+        "hint": "交代场景的横拍画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "内容画面",
+        "hint": "主体内容"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "film3",
     "category": "混剪",
-    "note": "慢叠化 + 引语卡"
+    "note": "慢叠化 + 引语卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "情绪空镜",
+        "hint": "慢节奏的环境画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "人物特写",
+        "hint": "表情或背影"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

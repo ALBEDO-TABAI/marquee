@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "talk",
     "category": "口播",
-    "note": "人名条 + 字幕条 + 硬切"
+    "note": "人名条 + 字幕条 + 硬切",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "人物口播",
+        "hint": "人物正对镜头说话"
+      },
+      {
+        "media": "slot-b",
+        "label": "补充画面",
+        "hint": "配合内容的空镜"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "edu4",
     "category": "教程",
-    "note": "热词 + 倒计时"
+    "note": "热词 + 倒计时",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "要点口播",
+        "hint": "人物讲重点"
+      },
+      {
+        "media": "slot-b",
+        "label": "示意画面",
+        "hint": "配合要点的画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

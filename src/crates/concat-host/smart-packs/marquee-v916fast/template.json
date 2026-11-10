@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "v916fast",
     "category": "竖屏",
-    "note": "硬切 + 热词 + 贴纸"
+    "note": "硬切 + 热词 + 贴纸",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场竖拍",
+        "hint": "最抓人的一段"
+      },
+      {
+        "media": "slot-b",
+        "label": "快切画面",
+        "hint": "节奏快的短镜头"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

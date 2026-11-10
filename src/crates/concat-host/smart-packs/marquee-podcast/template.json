@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "podcast",
     "category": "口播",
-    "note": "人名条 + 波形装饰"
+    "note": "人名条 + 波形装饰",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "主播画面",
+        "hint": "主播正面中景"
+      },
+      {
+        "media": "slot-b",
+        "label": "嘉宾画面",
+        "hint": "嘉宾正面中景"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

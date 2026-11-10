@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "fest2",
     "category": "节日",
-    "note": "朱砂花字 + 纸屑"
+    "note": "朱砂花字 + 纸屑",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "节日氛围",
+        "hint": "灯笼、烟花或年货"
+      },
+      {
+        "media": "slot-b",
+        "label": "团聚人物",
+        "hint": "家人朋友的画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

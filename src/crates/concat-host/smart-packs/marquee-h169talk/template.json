@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "h169talk",
     "category": "横屏",
-    "note": "双人条 + 硬切"
+    "note": "双人条 + 硬切",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "主讲人",
+        "hint": "主讲人正面中景"
+      },
+      {
+        "media": "slot-b",
+        "label": "嘉宾",
+        "hint": "嘉宾正面中景"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

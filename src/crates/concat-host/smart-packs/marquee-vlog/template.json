@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "vlog",
     "category": "Vlog",
-    "note": "花字 + 漏光转场 + 胶片颗粒"
+    "note": "花字 + 漏光转场 + 胶片颗粒",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场空镜",
+        "hint": "交代地点的画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "生活片段",
+        "hint": "日常记录"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

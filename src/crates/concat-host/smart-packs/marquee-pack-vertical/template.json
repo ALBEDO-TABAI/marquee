@@ -374,6 +374,28 @@
     "id": "marquee-pack-vertical",
     "category": "包装",
     "note": "三镜位 + 标题 + 字幕 + 贴纸 + 转场 + 配乐（竖屏）",
-    "slots": 4
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场",
+        "hint": "交代主题的竖拍"
+      },
+      {
+        "media": "slot-b",
+        "label": "主体",
+        "hint": "主要内容"
+      },
+      {
+        "media": "slot-c",
+        "label": "结尾空镜",
+        "hint": "收尾的环境镜头"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

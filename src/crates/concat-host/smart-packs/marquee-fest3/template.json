@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "fest3",
     "category": "节日",
-    "note": "暖金标题 + 飘雪"
+    "note": "暖金标题 + 飘雪",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "节日氛围",
+        "hint": "圣诞树、灯饰或雪景"
+      },
+      {
+        "media": "slot-b",
+        "label": "人物画面",
+        "hint": "拆礼物或聚会"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

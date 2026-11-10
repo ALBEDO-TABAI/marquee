@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "edu3",
     "category": "教程",
-    "note": "章节卡 + 资讯条"
+    "note": "章节卡 + 资讯条",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "白板讲解",
+        "hint": "白板或手写画面"
+      },
+      {
+        "media": "slot-b",
+        "label": "示例画面",
+        "hint": "补充的例子或图示"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

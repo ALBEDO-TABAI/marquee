@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "review",
     "category": "评测",
-    "note": "章节卡 + 放大入场"
+    "note": "章节卡 + 放大入场",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "产品开场",
+        "hint": "产品全貌"
+      },
+      {
+        "media": "slot-b",
+        "label": "细节特写",
+        "hint": "做工、接口或屏幕"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

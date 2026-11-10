@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "review2",
     "category": "评测",
-    "note": "角标 + 数据卡"
+    "note": "角标 + 数据卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开箱画面",
+        "hint": "拆封过程"
+      },
+      {
+        "media": "slot-b",
+        "label": "上手画面",
+        "hint": "第一次使用"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

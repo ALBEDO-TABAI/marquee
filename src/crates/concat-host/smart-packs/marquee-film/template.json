@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "film",
     "category": "混剪",
-    "note": "叠化 + 暗角 + 章节卡"
+    "note": "叠化 + 暗角 + 章节卡",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "开场空镜",
+        "hint": "环境或远景"
+      },
+      {
+        "media": "slot-b",
+        "label": "情绪特写",
+        "hint": "人物或细节特写"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

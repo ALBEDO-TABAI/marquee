@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "vlog4",
     "category": "Vlog",
-    "note": "颗粒 + 霓虹滤镜"
+    "note": "颗粒 + 霓虹滤镜",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "夜景空镜",
+        "hint": "城市夜景"
+      },
+      {
+        "media": "slot-b",
+        "label": "夜拍片段",
+        "hint": "夜里的人或街"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

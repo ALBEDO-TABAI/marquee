@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "v916night",
     "category": "竖屏",
-    "note": "暗角 + 霓虹花字"
+    "note": "暗角 + 霓虹花字",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "夜景空镜",
+        "hint": "霓虹或街灯"
+      },
+      {
+        "media": "slot-b",
+        "label": "人物画面",
+        "hint": "夜色中的人物"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }

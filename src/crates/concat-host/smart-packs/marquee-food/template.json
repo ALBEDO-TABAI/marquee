@@ -314,6 +314,24 @@
   "marqueePack": {
     "id": "food",
     "category": "Vlog",
-    "note": "暖色滤镜 + 弹出花字"
+    "note": "暖色滤镜 + 弹出花字",
+    "slots": [
+      {
+        "media": "slot-a",
+        "label": "菜品特写",
+        "hint": "出锅或摆盘的近景"
+      },
+      {
+        "media": "slot-b",
+        "label": "用餐环境",
+        "hint": "餐桌或店内画面"
+      },
+      {
+        "media": "slot-music",
+        "label": "配乐",
+        "hint": "不选就用静音，节奏照旧",
+        "optional": true
+      }
+    ]
   }
 }
