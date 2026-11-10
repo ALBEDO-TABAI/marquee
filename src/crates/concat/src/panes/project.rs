@@ -166,7 +166,7 @@ impl ProjectPane {
         let folder: SharedString = studio
             .session
             .as_ref()
-            .map(|session| session.path().to_owned())
+            .map(|session| crate::format::home_short(session.path()))
             .unwrap_or_else(|| "—".to_owned())
             .into();
         ProjectSheetData {

@@ -583,14 +583,14 @@ impl ExportPane {
             // Where the file ends up: on a phone, the folder its gallery
             // shows, not the app's own that the export writes into.
             // The name as it will be written: trimmed, as `begin` trims it.
-            path: match platform::published_folder() {
+            path: crate::format::home_short(&match platform::published_folder() {
                 Some(folder) => format!("{folder}/{}.{container}", self.name.trim()),
                 None => format!(
                     "{}/{}.{container}",
                     self.folder.trim_end_matches('/'),
                     self.name.trim()
                 ),
-            }
+            })
             .into(),
             format: format!("{width} × {height} · {rate:.2} fps").into(),
             duration: {

@@ -829,8 +829,8 @@ impl SettingsPane {
                         downloading.get(&model.id).copied().unwrap_or((None, false));
                     ModelState {
                         id: model.id.clone(),
-                        name: model.label.clone(),
-                        note: model.blurb.clone(),
+                        name: model_words(&model.id, "name", &model.label),
+                        note: model_words(&model.id, "note", &model.blurb),
                         megabytes: model.size_bytes as f32 / 1_000_000.0,
                         accuracy: if model.id.starts_with("tiny") {
                             2
@@ -858,8 +858,8 @@ impl SettingsPane {
                         downloading.get(&model.id).copied().unwrap_or((None, false));
                     ModelState {
                         id: model.id.clone(),
-                        name: model.label.clone(),
-                        note: model.blurb.clone(),
+                        name: model_words(&model.id, "name", &model.label),
+                        note: model_words(&model.id, "note", &model.blurb),
                         megabytes: model.size_bytes as f32 / 1_000_000.0,
                         accuracy: if model.id.contains("int8") { 4 } else { 5 },
                         installed: model.downloaded,
@@ -1364,5 +1364,38 @@ mod listen_tests {
             "bare IPv6 is a host"
         );
         assert_eq!(join_listen("", 9000), "127.0.0.1:9000");
+    }
+}
+
+/// A model's name or note in the interface's language, when the locale has
+/// it as `models.<id>.<part>` (the id in lowerCamel: `tiny.en` is
+/// `tinyEn`); the engine's English otherwise.
+fn model_words(id: &str, part: &str, english: &str) -> String {
+    let mut camel = String::new();
+    let mut upper = false;
+    for ch in id.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if upper && !camel.is_empty() {
+                camel.push(ch.to_ascii_uppercase());
+            } else {
+                camel.push(ch.to_ascii_lowercase());
+            }
+            upper = false;
+        } else {
+            upper = true;
+        }
+    }
+    let key = format!("models.{camel}.{part}");
+    let words = i18n::t(&key);
+    if words == key { english.to_owned() } else { words }
+}
+
+#[cfg(test)]
+mod model_words_tests {
+    use super::model_words;
+
+    #[test]
+    fn a_model_without_words_keeps_the_engines_english() {
+        assert_eq!(model_words("no.such-model", "note", "As shipped."), "As shipped.");
     }
 }

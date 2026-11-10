@@ -161,24 +161,30 @@ component ModelMeta inherits HorizontalLayout {
 
     spacing: 10px;
 
+    // Fixed columns, so the quality, the size and the button line up from
+    // one model's row to the next whatever each one says.
     VerticalLayout {
+        width: 23px;
         alignment: center;
         Pips { value: root.model.accuracy; }
     }
 
     VerticalLayout {
+        width: 52px;
         alignment: center;
         Text {
             text: root.model.size;
             color: Theme.fg-dim;
             font-family: Theme.font-technical;
             font-size: Theme.fs-sm;
+            horizontal-alignment: right;
         }
     }
 
     if root.spread: Rectangle { horizontal-stretch: 1; }
 
     VerticalLayout {
+        width: 84px;
         alignment: center;
 
         if root.model.downloading: Button {
@@ -439,6 +445,42 @@ component AccentSwatch inherits Rectangle {
     touch := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
+    }
+}
+
+// A titled card of settings, the way the system's own settings group
+// them: a small caption, then the rows on one rounded ground, each row's
+// control against the far edge and a hairline between rows.
+component SettingsGroup inherits VerticalLayout {
+    in property <string> title;
+    /// The first on its page: no gap above the caption.
+    in property <bool> first;
+
+    padding-top: root.first ? 0px : 16px;
+    spacing: 6px;
+
+    if root.title != "": HorizontalLayout {
+        padding-left: 4px;
+        Text {
+            text: root.title;
+            color: Theme.fg-muted;
+            font-size: Theme.fs-sm;
+            font-weight: 500;
+        }
+    }
+
+    Rectangle {
+        background: Theme.raised;
+        border-radius: Theme.r;
+        border-width: 1px;
+        border-color: Theme.line;
+        clip: true;
+
+        VerticalLayout {
+            padding-top: 2px;
+            padding-bottom: 4px;
+            @children
+        }
     }
 }
 
@@ -772,10 +814,10 @@ export component SettingsDialog inherits Modal {
     open: root.data.open;
     title: I18n.t("common.settings");
     glyph: Glyph.settings;
-    surface-width: 640px;
+    surface-width: 720px;
     // Fixed rather than fitted: the pages are different lengths and a sheet
     // that resized as you moved between them would be its own distraction.
-    surface-height: 460px;
+    surface-height: 540px;
 
     HorizontalLayout {
         // The clipboard takes text, so there has to be a TextInput holding
@@ -899,141 +941,163 @@ export component SettingsDialog inherits Modal {
             finger: root.phone;
 
             if root.data.tab == 0: VerticalLayout {
-                padding-top: 10px;
+                padding: 16px;
+                padding-top: 12px;
 
-                DialogSection {
-                    ruled: false;
+                SettingsGroup {
+                    title: I18n.t("settings.groupLanguage");
                     first: true;
-                    title: I18n.t("settings.language");
-                    // Native names: whoever is stranded in a language they
-                    // cannot read must still recognise their own in this list.
-                    choices: root.languages;
-                    choice: root.data.language;
-                    open: false;
-                    chose(index) => { root.language-changed(index); }
-                }
 
-                // What the log records. Normal is what a bug report needs
-                // most days; Debug and Everything are for when a report
-                // asks, and the file grows faster for them. CONCAT_LOG in
-                // the environment overrides this for one run.
-                // https://github.com/jub0t/Concat/issues/223
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.logLevel");
-                    hint: I18n.t("settings.logLevelHint");
-                    choices: [
-                        I18n.t("settings.logErrors"),
-                        I18n.t("settings.logWarnings"),
-                        I18n.t("settings.logNormal"),
-                        I18n.t("settings.logDebug"),
-                        I18n.t("settings.logEverything"),
-                    ];
-                    choice: root.data.log-level;
-                    open: false;
-                    chose(index) => { root.log-level-changed(index); }
-                }
+                    DialogSection {
+                        as-row: true;
+                        first: true;
+                        title: I18n.t("settings.language");
+                        // Native names: whoever is stranded in a language they
+                        // cannot read must still recognise their own in this list.
+                        choices: root.languages;
+                        choice: root.data.language;
+                        open: false;
+                        chose(index) => { root.language-changed(index); }
+                    }
 
-                // The models are open weights from elsewhere, mirrored so
-                // they stay reachable; where a download looks first is a
-                // matter of where you are. Every source is still tried.
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.downloads");
-                    hint: I18n.t("settings.modelsFetchedFirstTime");
-                    choices: [
-                        I18n.t("settings.automatic"),
-                        I18n.t("settings.concatsMirror"),
-                        "hf-mirror.com",
-                        I18n.t("settings.originalSource"),
-                        I18n.t("settings.customUrl"),
-                    ];
-                    choice-details: [
-                        "",
-                        "github.com",
-                        I18n.t("settings.forMainlandChina"),
-                        I18n.t("settings.whereEachModelCame"),
-                        I18n.t("settings.mirrorOwn"),
-                    ];
-                    choice: root.data.download-source;
-                    chose(index) => { root.download-source-changed(index); }
-                    // The body is only the custom source's address, so it
-                    // folds away for every other choice.
-                    open: root.data.download-source == 4;
-
-                    if root.data.download-source == 4: Field {
-                        value: root.data.download-base;
-                        placeholder: "https://models.example.com/concat";
-                        technical: true;
-                        edited(text) => { root.download-base-edited(text); }
+                    // What the log records. Normal is what a bug report needs
+                    // most days; Debug and Everything are for when a report
+                    // asks, and the file grows faster for them. CONCAT_LOG in
+                    // the environment overrides this for one run.
+                    // https://github.com/jub0t/Concat/issues/223
+                    DialogSection {
+                        as-row: true;
+                        title: I18n.t("settings.logLevel");
+                        hint: I18n.t("settings.logLevelHint");
+                        choices: [
+                            I18n.t("settings.logErrors"),
+                            I18n.t("settings.logWarnings"),
+                            I18n.t("settings.logNormal"),
+                            I18n.t("settings.logDebug"),
+                            I18n.t("settings.logEverything"),
+                        ];
+                        choice: root.data.log-level;
+                        open: false;
+                        chose(index) => { root.log-level-changed(index); }
                     }
                 }
 
-                // Off, a delete leaves its hole and a trim moves one edge.
-                // On, the lane closes up behind either - the magnetic
-                // timeline of the mainstream editors, asked for in
-                // https://github.com/jub0t/Concat/issues/106
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("common.magneticTimeline");
-                    hint: I18n.t("settings.deletingClipPullsWhat");
-                    switchable: true;
-                    on: root.data.magnetic;
-                    open: false;
-                    switched(on) => { root.magnetic-changed(on); }
+                SettingsGroup {
+                    title: I18n.t("settings.groupDownloads");
+
+                    // The models are open weights from elsewhere, mirrored so
+                    // they stay reachable; where a download looks first is a
+                    // matter of where you are. Every source is still tried.
+                    DialogSection {
+                        as-row: true;
+                        first: true;
+                        title: I18n.t("settings.downloads");
+                        hint: I18n.t("settings.modelsFetchedFirstTime");
+                        choices: [
+                            I18n.t("settings.automatic"),
+                            I18n.t("settings.concatsMirror"),
+                            "hf-mirror.com",
+                            I18n.t("settings.originalSource"),
+                            I18n.t("settings.customUrl"),
+                        ];
+                        choice-details: [
+                            "",
+                            "github.com",
+                            I18n.t("settings.forMainlandChina"),
+                            I18n.t("settings.whereEachModelCame"),
+                            I18n.t("settings.mirrorOwn"),
+                        ];
+                        choice: root.data.download-source;
+                        chose(index) => { root.download-source-changed(index); }
+                        // The body is only the custom source's address, so it
+                        // folds away for every other choice.
+                        open: root.data.download-source == 4;
+
+                        if root.data.download-source == 4: Field {
+                            value: root.data.download-base;
+                            placeholder: "https://models.example.com/concat";
+                            technical: true;
+                            edited(text) => { root.download-base-edited(text); }
+                        }
+                    }
                 }
 
-                // Off, the playhead goes wherever the ruler is clicked, past
-                // the last clip included, so a clip can be placed out there.
-                // On, it stops where the content does.
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.playhead");
-                    hint: I18n.t("settings.offClickRulerPast");
-                    switchable: true;
-                    on: root.data.playhead-stops;
-                    open: false;
-                    switched(on) => { root.playhead-stops-changed(on); }
+                SettingsGroup {
+                    title: I18n.t("settings.groupTimeline");
+
+                    // Off, a delete leaves its hole and a trim moves one edge.
+                    // On, the lane closes up behind either - the magnetic
+                    // timeline of the mainstream editors, asked for in
+                    // https://github.com/jub0t/Concat/issues/106
+                    DialogSection {
+                        as-row: true;
+                        first: true;
+                        title: I18n.t("common.magneticTimeline");
+                        hint: I18n.t("settings.deletingClipPullsWhat");
+                        switchable: true;
+                        on: root.data.magnetic;
+                        open: false;
+                        switched(on) => { root.magnetic-changed(on); }
+                    }
+
+                    // Off, the playhead goes wherever the ruler is clicked, past
+                    // the last clip included, so a clip can be placed out there.
+                    // On, it stops where the content does.
+                    DialogSection {
+                        as-row: true;
+                        title: I18n.t("settings.playhead");
+                        hint: I18n.t("settings.offClickRulerPast");
+                        switchable: true;
+                        on: root.data.playhead-stops;
+                        open: false;
+                        switched(on) => { root.playhead-stops-changed(on); }
+                    }
                 }
 
-                // Off, playback reads the files themselves. On, a file
-                // larger than HD gets a smaller copy, written once in the
-                // background, which Half and Quarter play from.
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.proxies");
-                    hint: I18n.t("settings.proxiesHint");
-                    switchable: true;
-                    on: root.data.proxies;
-                    open: false;
-                    switched(on) => { root.proxies-changed(on); }
-                }
+                SettingsGroup {
+                    title: I18n.t("settings.groupPerformance");
 
-                // On, the next launch opens with the panels where this one
-                // left them, and the window at its size. Off, every launch
-                // starts on the default arrangement.
-                if root.data.layout-switchable: DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.rememberLayout");
-                    hint: I18n.t("settings.rememberLayoutHint");
-                    switchable: true;
-                    on: root.data.remember-layout;
-                    open: false;
-                    switched(on) => { root.remember-layout-changed(on); }
-                }
+                    // Off, playback reads the files themselves. On, a file
+                    // larger than HD gets a smaller copy, written once in the
+                    // background, which Half and Quarter play from.
+                    DialogSection {
+                        as-row: true;
+                        first: true;
+                        title: I18n.t("settings.proxies");
+                        hint: I18n.t("settings.proxiesHint");
+                        switchable: true;
+                        on: root.data.proxies;
+                        open: false;
+                        switched(on) => { root.proxies-changed(on); }
+                    }
 
-                // Off, the window and the compositor draw in software:
-                // slower, but out of the way of a graphics driver that
-                // closes the app. A launch that dies while starting turns
-                // it off by itself. Read when Concat starts. Only where
-                // there is a software rasteriser: WARP, lavapipe.
-                if root.data.gpu-switchable: DialogSection {
-                    title: I18n.t("settings.gpu");
-                    hint: I18n.t("settings.gpuHint");
-                    switchable: true;
-                    on: root.data.gpu;
-                    open: false;
-                    switched(on) => { root.gpu-changed(on); }
+                    // On, the next launch opens with the panels where this one
+                    // left them, and the window at its size. Off, every launch
+                    // starts on the default arrangement.
+                    if root.data.layout-switchable: DialogSection {
+                        as-row: true;
+                        title: I18n.t("settings.rememberLayout");
+                        hint: I18n.t("settings.rememberLayoutHint");
+                        switchable: true;
+                        on: root.data.remember-layout;
+                        open: false;
+                        switched(on) => { root.remember-layout-changed(on); }
+                    }
+
+                    // Off, the window and the compositor draw in software:
+                    // slower, but out of the way of a graphics driver that
+                    // closes the app. A launch that dies while starting turns
+                    // it off by itself. Read when Concat starts. Only where
+                    // there is a software rasteriser: WARP, lavapipe.
+                    if root.data.gpu-switchable: DialogSection {
+                        as-row: true;
+                        title: I18n.t("settings.gpu");
+                        hint: I18n.t("settings.gpuHint");
+                        switchable: true;
+                        on: root.data.gpu;
+                        open: false;
+                        switched(on) => { root.gpu-changed(on); }
+                    }
                 }
 
             }
@@ -1045,203 +1109,214 @@ export component SettingsDialog inherits Modal {
             // the first. The change still goes out as a callback, so Rust
             // stays the one place a remembered preference will be written.
             if root.data.tab == 1: VerticalLayout {
-                padding-top: 10px;
+                padding: 16px;
+                padding-top: 12px;
 
-                // The interface scale: how much larger than the display's own
-                // scale the window is drawn. Most of Concat was built on a
-                // small laptop and reads small on a large screen, which is
-                // what this row is for. First on the page: it changes the
-                // size of everything else on it.
-                //
-                // The desk's alone. It rides on the window backend's
-                // SLINT_SCALE_FACTOR, which winit reads and the phone's
-                // backend does not: on Android the scale comes from the
-                // display density and a config change would take the choice
-                // back, so offering the row there would be a control that
-                // does not hold. Phones set their size the system's way
-                // anyway. The backend takes it as a multiplier rather than as
-                // a property, so Rust hands the window a scale-factor event
-                // to apply it (lib.rs, `on_settings_scale_changed`).
-                // https://github.com/jub0t/Concat/issues/320
-                if !root.phone: DialogSection {
-                    ruled: false;
+                SettingsGroup {
+                    title: I18n.t("settings.groupInterface");
                     first: true;
-                    title: I18n.t("settings.scale");
-                    hint: I18n.t("settings.scaleHint");
-                    choices: [
-                        I18n.t("settings.scaleSystem"),
-                        "100%", "110%", "125%", "150%", "175%", "200%",
-                    ];
-                    choice: Theme.ui-scale;
-                    open: false;
-                    chose(index) => { root.scale-changed(index); }
-                }
 
-                DialogSection {
-                    ruled: false;
-                    first: root.phone;
-                    title: I18n.t("settings.theme");
-
-                    SegmentedControl {
-                        options: [I18n.t("settings.dark"), I18n.t("settings.light")];
-                        current: Theme.dark ? 0 : 1;
-                        changed(index) => { root.theme-changed(index == 0); }
+                    // The interface scale: how much larger than the display's own
+                    // scale the window is drawn. Most of Concat was built on a
+                    // small laptop and reads small on a large screen, which is
+                    // what this row is for. First on the page: it changes the
+                    // size of everything else on it.
+                    //
+                    // The desk's alone. It rides on the window backend's
+                    // SLINT_SCALE_FACTOR, which winit reads and the phone's
+                    // backend does not: on Android the scale comes from the
+                    // display density and a config change would take the choice
+                    // back, so offering the row there would be a control that
+                    // does not hold. Phones set their size the system's way
+                    // anyway. The backend takes it as a multiplier rather than as
+                    // a property, so Rust hands the window a scale-factor event
+                    // to apply it (lib.rs, `on_settings_scale_changed`).
+                    // https://github.com/jub0t/Concat/issues/320
+                    if !root.phone: DialogSection {
+                        as-row: true;
+                        first: true;
+                        title: I18n.t("settings.scale");
+                        hint: I18n.t("settings.scaleHint");
+                        choices: [
+                            I18n.t("settings.scaleSystem"),
+                            "100%", "110%", "125%", "150%", "175%", "200%",
+                        ];
+                        choice: Theme.ui-scale;
+                        open: false;
+                        chose(index) => { root.scale-changed(index); }
                     }
-                }
 
-                // The accent: the colour every selection, activated tool and
-                // focus ring is drawn in. Read off the Theme global for the
-                // same reason the theme is, and each one is shown in the
-                // palette that is on, so the choice is made in the room it
-                // will be worn in. The chosen one's name sits at the end of
-                // the row: a dot is a colour, not a word, and the word is
-                // what the settings file remembers.
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.accent");
+                    DialogSection {
+                        as-row: true;
+                        first: root.phone;
+                        title: I18n.t("settings.theme");
 
-                    HorizontalLayout {
-                        spacing: 6px;
-                        alignment: start;
-
-                        for name[index] in Theme.accent-names: AccentSwatch {
-                            colour: Theme.accent-of(index);
-                            label: root.accent-labels[index];
-                            chosen: Theme.accent-choice == index;
-                            clicked => { root.accent-changed(index); }
-                        }
-
-                        // The seventh dot is any colour at all. Grey with a
-                        // plus until one is picked — a grey dot is a blank,
-                        // not an offer of grey — and the picked colour once
-                        // one is. It opens the same picker a title's colour
-                        // does, seeded with the accent that is on, so the
-                        // picking starts from what the window already wears.
-                        Rectangle {
-                            width: 26px;
-                            height: 26px;
-
-                            AccentSwatch {
-                                colour: Theme.accent-is-custom ? Theme.accent-custom : Theme.fg-dim;
-                                label: I18n.t("common.custom");
-                                chosen: Theme.accent-is-custom;
-                                blank: !Theme.accent-is-custom;
-                                clicked => { GlassChrome.refresh();
- picker.show(); }
-                            }
-
-                            picker := PopupWindow {
-                                x: 0;
-                                y: parent.height + 4px;
-                                width: 236px;
-                                close-policy: close-on-click-outside;
-
-                                Rectangle {
-                                    background: Theme.raised;
-                                    border-width: 1px;
-                                    border-color: Theme.line-strong;
-                                    border-radius: Theme.r;
-
-                                    ColorPicker {
-                                        value: Theme.accent-is-custom ? Theme.accent-custom : Theme.accent;
-                                        alpha: false;
-                                        changed(next) => { root.accent-custom-changed(next); }
-                                    }
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: Theme.accent-is-custom ? I18n.t("common.custom")
-                                : root.accent-labels[Theme.accent-choice];
-                            color: Theme.fg-muted;
-                            font-size: Theme.fs;
-                            vertical-alignment: center;
-                        }
-
-                        if Theme.accent-is-custom: Text {
-                            text: Fmt.hex-of(Theme.accent-custom, false);
-                            color: Theme.fg-dim;
-                            font-family: Theme.font-technical;
-                            font-size: Theme.fs-sm;
-                            vertical-alignment: center;
+                        SegmentedControl {
+                            options: [I18n.t("settings.dark"), I18n.t("settings.light")];
+                            current: Theme.dark ? 0 : 1;
+                            changed(index) => { root.theme-changed(index == 0); }
                         }
                     }
                 }
 
-                // The playhead: the one line over the lanes that has to be
-                // found at a glance, whatever the clips under it are wearing.
-                // The same seven dots the accent has: the six on the list,
-                // each worn as the palette that is on has it - the first,
-                // Lime, is the palette's own playhead - and the seventh any
-                // colour at all, through the same picker, one colour under
-                // both palettes. Read off the Theme global for the same
-                // reason the accent is, and the hex is always shown: what the
-                // line is wearing is the whole point of the row.
-                DialogSection {
-                    ruled: false;
-                    title: I18n.t("settings.playhead");
-                    hint: I18n.t("settings.lineAcrossLanesMarks");
+                SettingsGroup {
+                    title: I18n.t("settings.groupColour");
 
-                    HorizontalLayout {
-                        spacing: 6px;
-                        alignment: start;
+                    // The accent: the colour every selection, activated tool and
+                    // focus ring is drawn in. Read off the Theme global for the
+                    // same reason the theme is, and each one is shown in the
+                    // palette that is on, so the choice is made in the room it
+                    // will be worn in. The chosen one's name sits at the end of
+                    // the row: a dot is a colour, not a word, and the word is
+                    // what the settings file remembers.
+                    DialogSection {
+                        as-row: true;
+                        first: true;
+                        title: I18n.t("settings.accent");
 
-                        for name[index] in Theme.accent-names: AccentSwatch {
-                            colour: index == 0 ? Theme.playhead-default : Theme.accent-of(index);
-                            label: root.accent-labels[index];
-                            chosen: Theme.playhead-choice == index;
-                            clicked => { root.playhead-chosen(index); }
-                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            alignment: start;
 
-                        Rectangle {
-                            width: 26px;
-                            height: 26px;
-
-                            AccentSwatch {
-                                colour: Theme.playhead-is-custom ? Theme.playhead-custom : Theme.fg-dim;
-                                label: I18n.t("common.custom");
-                                chosen: Theme.playhead-is-custom;
-                                blank: !Theme.playhead-is-custom;
-                                clicked => { GlassChrome.refresh();
- playhead-picker.show(); }
+                            for name[index] in Theme.accent-names: AccentSwatch {
+                                colour: Theme.accent-of(index);
+                                label: root.accent-labels[index];
+                                chosen: Theme.accent-choice == index;
+                                clicked => { root.accent-changed(index); }
                             }
 
-                            playhead-picker := PopupWindow {
-                                x: 0;
-                                y: parent.height + 4px;
-                                width: 236px;
-                                close-policy: close-on-click-outside;
+                            // The seventh dot is any colour at all. Grey with a
+                            // plus until one is picked — a grey dot is a blank,
+                            // not an offer of grey — and the picked colour once
+                            // one is. It opens the same picker a title's colour
+                            // does, seeded with the accent that is on, so the
+                            // picking starts from what the window already wears.
+                            Rectangle {
+                                width: 26px;
+                                height: 26px;
 
-                                Rectangle {
-                                    background: Theme.raised;
-                                    border-width: 1px;
-                                    border-color: Theme.line-strong;
-                                    border-radius: Theme.r;
+                                AccentSwatch {
+                                    colour: Theme.accent-is-custom ? Theme.accent-custom : Theme.fg-dim;
+                                    label: I18n.t("common.custom");
+                                    chosen: Theme.accent-is-custom;
+                                    blank: !Theme.accent-is-custom;
+                                    clicked => { GlassChrome.refresh();
+     picker.show(); }
+                                }
 
-                                    ColorPicker {
-                                        value: Theme.playhead;
-                                        alpha: false;
-                                        changed(next) => { root.playhead-changed(next); }
+                                picker := PopupWindow {
+                                    x: 0;
+                                    y: parent.height + 4px;
+                                    width: 236px;
+                                    close-policy: close-on-click-outside;
+
+                                    Rectangle {
+                                        background: Theme.raised;
+                                        border-width: 1px;
+                                        border-color: Theme.line-strong;
+                                        border-radius: Theme.r;
+
+                                        ColorPicker {
+                                            value: Theme.accent-is-custom ? Theme.accent-custom : Theme.accent;
+                                            alpha: false;
+                                            changed(next) => { root.accent-custom-changed(next); }
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        Text {
-                            text: Theme.playhead-is-custom ? I18n.t("common.custom")
-                                : root.accent-labels[Math.max(0, Theme.playhead-choice)];
-                            color: Theme.fg-muted;
-                            font-size: Theme.fs;
-                            vertical-alignment: center;
-                        }
+                            Text {
+                                text: Theme.accent-is-custom ? I18n.t("common.custom")
+                                    : root.accent-labels[Theme.accent-choice];
+                                color: Theme.fg-muted;
+                                font-size: Theme.fs;
+                                vertical-alignment: center;
+                            }
 
-                        Text {
-                            text: Fmt.hex-of(Theme.playhead, false);
-                            color: Theme.fg-dim;
-                            font-family: Theme.font-technical;
-                            font-size: Theme.fs-sm;
-                            vertical-alignment: center;
+                            if Theme.accent-is-custom: Text {
+                                text: Fmt.hex-of(Theme.accent-custom, false);
+                                color: Theme.fg-dim;
+                                font-family: Theme.font-technical;
+                                font-size: Theme.fs-sm;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    // The playhead: the one line over the lanes that has to be
+                    // found at a glance, whatever the clips under it are wearing.
+                    // The same seven dots the accent has: the six on the list,
+                    // each worn as the palette that is on has it - the first,
+                    // Lime, is the palette's own playhead - and the seventh any
+                    // colour at all, through the same picker, one colour under
+                    // both palettes. Read off the Theme global for the same
+                    // reason the accent is, and the hex is always shown: what the
+                    // line is wearing is the whole point of the row.
+                    DialogSection {
+                        as-row: true;
+                        title: I18n.t("settings.playhead");
+                        hint: I18n.t("settings.lineAcrossLanesMarks");
+
+                        HorizontalLayout {
+                            spacing: 6px;
+                            alignment: start;
+
+                            for name[index] in Theme.accent-names: AccentSwatch {
+                                colour: index == 0 ? Theme.playhead-default : Theme.accent-of(index);
+                                label: root.accent-labels[index];
+                                chosen: Theme.playhead-choice == index;
+                                clicked => { root.playhead-chosen(index); }
+                            }
+
+                            Rectangle {
+                                width: 26px;
+                                height: 26px;
+
+                                AccentSwatch {
+                                    colour: Theme.playhead-is-custom ? Theme.playhead-custom : Theme.fg-dim;
+                                    label: I18n.t("common.custom");
+                                    chosen: Theme.playhead-is-custom;
+                                    blank: !Theme.playhead-is-custom;
+                                    clicked => { GlassChrome.refresh();
+     playhead-picker.show(); }
+                                }
+
+                                playhead-picker := PopupWindow {
+                                    x: 0;
+                                    y: parent.height + 4px;
+                                    width: 236px;
+                                    close-policy: close-on-click-outside;
+
+                                    Rectangle {
+                                        background: Theme.raised;
+                                        border-width: 1px;
+                                        border-color: Theme.line-strong;
+                                        border-radius: Theme.r;
+
+                                        ColorPicker {
+                                            value: Theme.playhead;
+                                            alpha: false;
+                                            changed(next) => { root.playhead-changed(next); }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: Theme.playhead-is-custom ? I18n.t("common.custom")
+                                    : root.accent-labels[Math.max(0, Theme.playhead-choice)];
+                                color: Theme.fg-muted;
+                                font-size: Theme.fs;
+                                vertical-alignment: center;
+                            }
+
+                            Text {
+                                text: Fmt.hex-of(Theme.playhead, false);
+                                color: Theme.fg-dim;
+                                font-family: Theme.font-technical;
+                                font-size: Theme.fs-sm;
+                                vertical-alignment: center;
+                            }
                         }
                     }
                 }

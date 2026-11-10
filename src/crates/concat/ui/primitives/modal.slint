@@ -548,6 +548,10 @@ export component DialogSection inherits VerticalLayout {
     /// A hairline above the group, setting it off from the one before. Off,
     /// the groups are told apart by a gap alone, as the Settings sheet's are.
     in property <bool> ruled: true;
+    /// One setting in a grouped card (Settings): a 40px row, the title in
+    /// the body size, and an inset hairline between it and the row above
+    /// in place of the gap.
+    in property <bool> as-row;
     /// The paragraph that would otherwise sit under the controls, moved to
     /// a question mark beside the title: read on hover, out of the way
     /// otherwise.
@@ -571,11 +575,18 @@ export component DialogSection inherits VerticalLayout {
     in property <int> choice;
     callback chose(index: int);
 
-    if !root.first && root.ruled: Rectangle {
+    if !root.first && root.as-row: HorizontalLayout {
+        padding-left: 14px;
+        Rectangle {
+            height: 1px;
+            background: Theme.line;
+        }
+    }
+    if !root.first && root.ruled && !root.as-row: Rectangle {
         height: 1px;
         background: Theme.line;
     }
-    if !root.first && !root.ruled: Rectangle {
+    if !root.first && !root.ruled && !root.as-row: Rectangle {
         height: 6px;
     }
 
@@ -584,7 +595,7 @@ export component DialogSection inherits VerticalLayout {
     // together were reading as a break between groups rather than as a title
     // sitting on the thing it names.
     Rectangle {
-        height: 30px;
+        height: root.as-row ? 40px : 30px;
         background: !root.collapsible ? Colors.transparent
             : head.has-hover ? Theme.field
             : Theme.raised;
@@ -617,8 +628,8 @@ export component DialogSection inherits VerticalLayout {
             Text {
                 text: root.title;
                 color: Theme.fg;
-                font-size: Theme.fs-lg;
-                font-weight: Theme.weight-title;
+                font-size: root.as-row ? Theme.fs : Theme.fs-lg;
+                font-weight: root.as-row ? 500 : Theme.weight-title;
                 vertical-alignment: center;
             }
 
