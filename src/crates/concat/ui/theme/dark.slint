@@ -85,6 +85,10 @@ export global Dark {
     out property <color> field: #2c2c32;
     out property <color> field-hover: #35353c;
     out property <color> field-active: #3e3e46;
+    // A slider's groove: a step past field-active, so it reads at about
+    // 1.9:1 against the panel - field-active alone sat at 1.6:1, a groove
+    // seen only once you knew it was there.
+    out property <color> rail: #4b4b55;
 
     // the launch screen's own ladder — a deeper cut of the one above
     //

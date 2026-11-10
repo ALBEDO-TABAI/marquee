@@ -197,9 +197,9 @@ export component Rail inherits Rectangle {
         width: parent.width;
         height: 4px;
         border-radius: 2px;
-        // field-active rather than the well: the well is darker than the
-        // panel in the dark theme and the groove all but vanished there.
-        background: Theme.field-active;
+        // Its own step, brighter than the well and than field-active: the
+        // groove has to read against the panel in the dark theme as well.
+        background: Theme.rail;
 
         // Runs to the dragger's middle rather than to its near edge, so the
         // fill and the chip meet instead of leaving a gap that grows with
