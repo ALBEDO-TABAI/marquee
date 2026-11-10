@@ -625,4 +625,17 @@ mod home_short_tests {
         assert_eq!(home_short_under("/Users/baiyu/x", "/Users/bai"), "/Users/baiyu/x");
         assert_eq!(home_short_under("/Volumes/Work/x", "/Users/bai"), "/Volumes/Work/x");
     }
+
+    /// The real thing reads the home folder the process runs with.
+    #[test]
+    fn the_home_folder_itself_reads_as_the_tilde() {
+        let Some(home) = std::env::home_dir().filter(|home| !home.as_os_str().is_empty()) else {
+            return;
+        };
+        let movie = home.join("Movies").join("a.mp4");
+        assert_eq!(
+            super::home_short(&movie.to_string_lossy()),
+            format!("~{}Movies{}a.mp4", std::path::MAIN_SEPARATOR, std::path::MAIN_SEPARATOR)
+        );
+    }
 }
