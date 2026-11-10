@@ -197,9 +197,9 @@ export component Rail inherits Rectangle {
         width: parent.width;
         height: 4px;
         border-radius: 2px;
-        border-width: 1px;
-        border-color: Theme.line;
-        background: Theme.well;
+        // field-active rather than the well: the well is darker than the
+        // panel in the dark theme and the groove all but vanished there.
+        background: Theme.field-active;
 
         // Runs to the dragger's middle rather than to its near edge, so the
         // fill and the chip meet instead of leaving a gap that grows with
@@ -420,24 +420,32 @@ export component ResetButton inherits Rectangle {
 
     callback reset();
 
+    // No height of its own, as HelpButton: it sits in the middle of the
+    // row it is given, so beside a "?" in a header the two stay level.
     width: 16px;
-    height: 16px;
-    border-radius: 8px;
-    background: touch.has-hover && root.dirty ? Theme.field-hover : Theme.field;
-    opacity: root.dirty ? 1.0 : 0.4;
+    min-height: 16px;
 
-    animate background { duration: 100ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: touch.has-hover && root.dirty ? Theme.field-hover : Theme.field;
+        opacity: root.dirty ? 1.0 : 0.4;
 
-    Icon {
-        glyph: Glyph.reset;
-        size: 10px;
-        tint: touch.has-hover && root.dirty ? Theme.fg : Theme.fg-muted;
-    }
+        animate background { duration: 100ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
 
-    touch := TouchArea {
-        enabled: root.dirty;
-        mouse-cursor: pointer;
-        clicked => { root.reset(); }
+        Icon {
+            glyph: Glyph.reset;
+            size: 10px;
+            tint: touch.has-hover && root.dirty ? Theme.fg : Theme.fg-muted;
+        }
+
+        touch := TouchArea {
+            enabled: root.dirty;
+            mouse-cursor: pointer;
+            clicked => { root.reset(); }
+        }
     }
 }
 
@@ -514,8 +522,8 @@ export component Param inherits VerticalLayout {
         if root.help != "": Rectangle { width: 6px; }
         if root.help != "": HelpButton { text: root.help; }
 
-        if root.resettable: Rectangle { width: 6px; }
-        if root.resettable: VerticalLayout {
+        if root.resettable && !root.rail: Rectangle { width: 6px; }
+        if root.resettable && !root.rail: VerticalLayout {
             alignment: center;
             ResetButton {
                 dirty: Math.abs(root.value - root.default-value) > root.step / 2;
@@ -569,6 +577,19 @@ export component Param inherits VerticalLayout {
         // trails whatever last states the value.
         // 6px of air and the cluster's three 17px buttons, 1px apart.
         if !root.keyable && root.key-gutter: Rectangle { width: 6px + 3 * 17px + 2px; }
+        // A rail row's reset trails with the keys: the label is then the
+        // only thing at the start of every row, and the reset of every row
+        // is in one column.
+        if root.resettable && root.rail: VerticalLayout {
+            alignment: center;
+            ResetButton {
+                dirty: Math.abs(root.value - root.default-value) > root.step / 2;
+                reset => {
+                    root.value = root.default-value;
+                    root.changed(root.default-value);
+                }
+            }
+        }
         if root.keyable: Rectangle { width: 6px; }
         if root.keyable: VerticalLayout {
             alignment: center;
@@ -595,8 +616,12 @@ export component Param inherits VerticalLayout {
             changed(v) => { root.changed(v); }
         }
 
+        // Every rail row has the same geometry - rail, a small value box of
+        // one width, a unit column of one width, empty or not - so the
+        // rails of a column line up and a knob's middle is everywhere at
+        // the same x. A unit inside the box made 色温 and 曝光 shorter.
         NumberField {
-            width: root.unit == "" ? 64px : 84px;
+            width: 56px;
             value <=> root.value;
             minimum: root.minimum;
             maximum: root.maximum;
@@ -604,7 +629,7 @@ export component Param inherits VerticalLayout {
             // The model's precision, as above.
             precision: InspectorFmt.precision-of(root.step);
             enabled: root.enabled;
-            unit: root.unit;
+            unit: "";
             format(v) => {
                 return Fmt.round-to(v * root.unit-scale,
                     InspectorFmt.precision-of(root.step * root.unit-scale));
@@ -613,6 +638,14 @@ export component Param inherits VerticalLayout {
                 return t.is-float() ? t.to-float() / root.unit-scale : root.value;
             }
             changed(v) => { root.changed(v); }
+        }
+
+        Text {
+            width: 18px;
+            text: root.unit;
+            color: Theme.fg-dim;
+            font-size: Theme.fs-sm;
+            vertical-alignment: center;
         }
     }
 }
