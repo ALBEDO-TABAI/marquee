@@ -11,9 +11,13 @@
 //!   have paths relative to the bundle (`assets/...`).
 //! - `assets/` - those bundled files, copied in at save time.
 //! - `poster.jpg` - a frame of the edit, for the gallery card. A built-in
-//!   pack's is drawn from the pack itself with the neutral card still in
-//!   every picture slot ([`preview_frames`]), the same render its hover
-//!   plays live.
+//!   pack's is drawn from the pack itself, at its `marqueePack.posterTime`,
+//!   with a drawn stand-in in every picture slot ([`preview_frames`]), the
+//!   same render its hover plays live.
+//! - `preview/<media id>.jpg` - a built-in pack's stand-ins: a drawing of
+//!   the shot each slot asks for (a moon over a roofline, a product on a
+//!   podium, a faceless bust), written with the pack's treatment by
+//!   `tools/smart_packs.py`.
 //!
 //! A bundle may say what each slot is for, beside the document:
 //! `marqueePack.slots` is a list of `{ media, label, hint, optional }`, one
@@ -65,6 +69,9 @@ pub struct TemplateInfo {
     pub note: String,
     /// The edit's length in seconds: where its last clip ends.
     pub seconds: f64,
+    /// Where the poster is taken: the pack's own `posterTime`, the moment
+    /// its titles and cards are all on screen, or [`poster_time`].
+    pub poster_at: f64,
 }
 
 /// Which way a picture slot's frame runs: the template's own shape.
@@ -267,6 +274,29 @@ fn read_info(root: &Path) -> Result<TemplateInfo, String> {
             .ok_or_else(|| format!("the template has no usable {field}"))
     };
 
+    let seconds = concat_project::from_document(&document)
+        .map(|project| {
+            let timeline = project
+                .timelines
+                .iter()
+                .find(|timeline| timeline.id == project.active_timeline_id)
+                .or_else(|| project.timelines.first());
+            timeline
+                .map(|timeline| {
+                    timeline
+                        .clips
+                        .iter()
+                        .map(|clip| clip.start + clip.duration)
+                        .fold(0.0, f64::max)
+                })
+                .unwrap_or(0.0)
+        })
+        .unwrap_or(0.0);
+    let poster_at = document
+        .pointer("/marqueePack/posterTime")
+        .and_then(Value::as_f64)
+        .filter(|at| *at >= 0.0 && *at < seconds)
+        .unwrap_or_else(|| poster_time(seconds));
     Ok(TemplateInfo {
         path: root.to_string_lossy().into_owned(),
         name: document
@@ -282,24 +312,8 @@ fn read_info(root: &Path) -> Result<TemplateInfo, String> {
         has_poster: root.join(POSTER).exists(),
         category: pack_text(&document, "category"),
         note: pack_text(&document, "note"),
-        seconds: concat_project::from_document(&document)
-            .map(|project| {
-                let timeline = project
-                    .timelines
-                    .iter()
-                    .find(|timeline| timeline.id == project.active_timeline_id)
-                    .or_else(|| project.timelines.first());
-                timeline
-                    .map(|timeline| {
-                        timeline
-                            .clips
-                            .iter()
-                            .map(|clip| clip.start + clip.duration)
-                            .fold(0.0, f64::max)
-                    })
-                    .unwrap_or(0.0)
-            })
-            .unwrap_or(0.0),
+        seconds,
+        poster_at,
     })
 }
 
@@ -798,7 +812,15 @@ fn preview_frames_until(
         .filter(|slot| slot.kind != concat_project::model::MediaKind::Audio)
         .enumerate()
         .map(|(index, slot)| {
-            let art = placeholder_art(&pack_key, index, Motif::of(&slot.label), width, height)?;
+            // A built-in pack carries a drawn stand-in for each of its
+            // shots (tools/smart_packs.py); a saved template gets one
+            // drawn here.
+            let bundled = bundle.join("preview").join(format!("{}.jpg", slot.media_id));
+            let art = if bundled.is_file() {
+                bundled
+            } else {
+                placeholder_art(&pack_key, index, Motif::of(&slot.label), width, height)?
+            };
             Ok(Command::FillSlot {
                 media_id: slot.media_id.clone(),
                 item: concat_project::commands::NewMedia {
@@ -1232,7 +1254,7 @@ mod tests {
     }
 
     /// The posters on disk are the live render: each built-in pack's
-    /// `poster.jpg` is its own edit at [`poster_time`] with the card still
+    /// `poster.jpg` is its own edit at its `poster_at` with the card still
     /// in its slots, drawn now, to within what JPEG and a GPU's rounding
     /// leave. Skips without FFmpeg or a GPU.
     #[test]
@@ -1241,7 +1263,7 @@ mod tests {
         let mut checked = 0;
         for pack in list_from(&builtin_smart_packs_dir()) {
             assert!(pack.has_poster, "{} has no poster", pack.name);
-            let Ok(frames) = preview_frames(&pack.path, &[poster_time(pack.seconds)], &pool)
+            let Ok(frames) = preview_frames(&pack.path, &[pack.poster_at], &pool)
             else {
                 return; // no FFmpeg or GPU here
             };
@@ -1286,6 +1308,23 @@ mod tests {
         assert!(checked >= 42);
     }
 
+    /// Debugging aid: one pack's hover, the frames the gallery plays, as
+    /// JPEGs in the temp folder. `MARQUEE_PACK=marquee-ads cargo test -p
+    /// concat-host --lib -- --ignored dump_pack_frames`.
+    #[test]
+    #[ignore]
+    fn dump_pack_frames() {
+        let name = std::env::var("MARQUEE_PACK").unwrap_or_else(|_| "marquee-ads".to_owned());
+        let pack = builtin_smart_packs_dir().join(&name);
+        let pool = concat_media::ReaderPool::new(64 * 1024 * 1024, 2);
+        let frames = hover_frames(&pack.to_string_lossy(), 12, &pool, &|| false).expect("renders");
+        for (index, frame) in frames.into_iter().enumerate() {
+            let out = std::env::temp_dir().join(format!("{name}-hover-{index:02}.jpg"));
+            std::fs::write(&out, concat_media::jpeg(&frame, 92).expect("encodes")).expect("writes");
+            eprintln!("{}", out.display());
+        }
+    }
+
     /// The offline tool: writes every built-in pack's poster from its live
     /// render. `cargo test -p concat-host --lib -- --ignored
     /// write_builtin_posters`.
@@ -1294,10 +1333,90 @@ mod tests {
     fn write_builtin_posters() {
         let pool = concat_media::ReaderPool::new(64 * 1024 * 1024, 2);
         for pack in list_from(&builtin_smart_packs_dir()) {
-            let frames = preview_frames(&pack.path, &[poster_time(pack.seconds)], &pool)
+            let frames = preview_frames(&pack.path, &[pack.poster_at], &pool)
                 .expect("renders");
             let bytes = concat_media::jpeg(&frames[0], 92).expect("encodes");
             std::fs::write(Path::new(&pack.path).join(POSTER), bytes).expect("writes");
+        }
+    }
+
+    /// No two packs' posters are the same picture tinted: each pack's
+    /// poster, its light and dark laid out on a small grid with its own
+    /// brightness and contrast taken out, stands apart from every other's.
+    /// A hue turn alone leaves that layout as it was; a pack only passes
+    /// with its own scene and its own titles and cards.
+    #[test]
+    fn builtin_posters_are_each_their_own_picture() {
+        const GRID: usize = 24;
+        let layout = |path: &Path| -> Option<Vec<f64>> {
+            let mut decoder =
+                concat_media::Decoder::open(path, &concat_media::DecodeOptions::default()).ok()?;
+            let frame = concat_media::FrameSource::next_frame(&mut decoder).ok()??;
+            let (w, h) = (frame.width() as usize, frame.height() as usize);
+            let pixels = frame.pixels();
+            let mut cells = vec![0.0_f64; GRID * GRID];
+            let mut counts = vec![0.0_f64; GRID * GRID];
+            for y in 0..h {
+                for x in 0..w {
+                    let i = (y * w + x) * 4;
+                    let luma = 0.2126 * f64::from(pixels[i])
+                        + 0.7152 * f64::from(pixels[i + 1])
+                        + 0.0722 * f64::from(pixels[i + 2]);
+                    let cell = (y * GRID / h) * GRID + x * GRID / w;
+                    cells[cell] += luma;
+                    counts[cell] += 1.0;
+                }
+            }
+            for (cell, count) in cells.iter_mut().zip(&counts) {
+                *cell /= count.max(1.0_f64);
+            }
+            let mean = cells.iter().sum::<f64>() / cells.len() as f64;
+            let spread = (cells.iter().map(|c| (c - mean).powi(2)).sum::<f64>()
+                / cells.len() as f64)
+                .sqrt()
+                .max(1.0);
+            Some(cells.iter().map(|c| (c - mean) / spread).collect())
+        };
+        let mut posters = Vec::new();
+        for pack in list_from(&builtin_smart_packs_dir()) {
+            let Some(cells) = layout(&Path::new(&pack.path).join(POSTER)) else {
+                return; // no FFmpeg here
+            };
+            posters.push((pack.name, cells));
+        }
+        assert!(posters.len() >= 42);
+        let mut closest = (f64::MAX, String::new());
+        for (i, (one, a)) in posters.iter().enumerate() {
+            for (other, b) in &posters[i + 1..] {
+                let apart =
+                    a.iter().zip(b).map(|(a, b)| (a - b).abs()).sum::<f64>() / a.len() as f64;
+                if apart < closest.0 {
+                    closest = (apart, format!("{one} and {other}"));
+                }
+            }
+        }
+        eprintln!("closest posters: {} at {:.2}", closest.1, closest.0);
+        assert!(
+            closest.0 > 0.35,
+            "{} are nearly the same picture ({:.2} apart)",
+            closest.1,
+            closest.0
+        );
+    }
+
+    /// A built-in pack has a drawn stand-in for every picture slot.
+    #[test]
+    fn builtin_packs_bring_a_stand_in_for_every_shot() {
+        for pack in list_from(&builtin_smart_packs_dir()) {
+            for slot in &pack.slots {
+                if slot.kind == concat_project::model::MediaKind::Audio {
+                    continue;
+                }
+                let art = Path::new(&pack.path)
+                    .join("preview")
+                    .join(format!("{}.jpg", slot.media_id));
+                assert!(art.is_file(), "{}: no stand-in for {}", pack.name, slot.label);
+            }
         }
     }
 
