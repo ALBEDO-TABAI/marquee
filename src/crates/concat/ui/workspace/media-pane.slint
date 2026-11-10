@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah and Concat contributors
 
 import { I18n } from "../i18n.slint";
-import { Theme, Fmt, Glyph, Icon, Payload, Tip } from "../primitives/primitives.slint";
+import { Theme, Fmt, Glyph, Icon, Payload, Tip, Button } from "../primitives/primitives.slint";
 import { Pane, PaneScroll } from "pane.slint";
 import { HairlineSplitter } from "splitter.slint";
 import { PaneKind, PaneSwitcher } from "pane-switcher.slint";
@@ -64,10 +64,35 @@ export struct TextPresetData {
 export struct TemplateCardData {
     path: string,
     name: string,
+    /// Shape, shots and length: 16:9 · 2 个镜头 · 7 秒.
     detail: string,
+    /// What it asks for: 需要 2 段素材，配乐可选.
+    needs: string,
+    /// The pack's shelf and its line, for a built-in one.
+    category: string,
+    note: string,
+    /// Taller than wide: its frames are fitted whole, not cropped.
+    tall: bool,
     /// A frame of the recipe, when the bundle has one. Empty otherwise:
     /// the card stays a name, and nothing is invented in its place.
     poster: image,
+}
+
+/// One slot of the 智能包装 open in its detail view.
+export struct TemplateSlotData {
+    /// The shot in a word: 开场横拍.
+    label: string,
+    /// What to put there.
+    hint: string,
+    /// 视频或照片 · 横拍 · 4 秒.
+    need: string,
+    optional: bool,
+    music: bool,
+    /// Needed and nothing chosen yet: drawn marked.
+    empty: bool,
+    /// The menu: "none" first, then the 素材 that fit.
+    options: [string],
+    choice: int,
 }
 
 export struct MediaItemData {
@@ -953,6 +978,12 @@ component LiveArt inherits Rectangle {
             Library.preview-hover(root.kind, root.id);
         } else if (Library.hover-id == root.id) {
             Library.preview-end();
+        }
+    }
+    // A tile born playing - the 智能包装 detail view's - starts at once.
+    init => {
+        if (root.hover && root.enabled && root.id != "") {
+            Library.preview-hover(root.kind, root.id);
         }
     }
 
@@ -2036,6 +2067,16 @@ export component MediaPane inherits Rectangle {
     callback save-template();
     /// Templates page: unpack the named recipe into a new project.
     callback use-template(path: string);
+    /// Templates page: a card's detail view - its preview, what each slot
+    /// wants and the 素材 chosen for it.
+    in property <bool> template-open;
+    in property <TemplateCardData> template-detail;
+    in property <[TemplateSlotData]> template-slots;
+    in property <string> template-status;
+    in property <bool> template-ready;
+    callback template-show(path: string);
+    callback template-close();
+    callback template-choose(slot: int, choice: int);
     /// Adjustments page: bring in `.cube` tables as looks of the user's own.
     callback import-lut();
     /// Adjustments page: lay an adjustment layer at the playhead, called
@@ -3301,7 +3342,7 @@ export component MediaPane inherits Rectangle {
 
                 // Templates: save this project, then the gallery of built-in
                 // 智能包装 recipes and anything the user has saved.
-                if root.tab == 6: VerticalLayout {
+                if root.tab == 6 && !root.template-open: VerticalLayout {
                     padding: 8px;
                     spacing: 8px;
 
@@ -3316,12 +3357,16 @@ export component MediaPane inherits Rectangle {
                         text: I18n.t("mediaPane.noTemplatesYetMark");
                     }
 
+                    // Two across: the pack's own edit as the picture -
+                    // played through while the pointer is on it - and
+                    // under it the name, then shape, shots and length.
                     if root.project-templates.length > 0: Rectangle {
                         property <length> gap: 8px;
                         property <length> card-w: (self.width - 8px) / 2;
-                        property <length> card-h: 72px;
+                        property <length> thumb-h: Math.round(self.card-w * 9 / 16 / 1px) * 1px;
+                        property <length> card-h: self.thumb-h + 48px;
                         property <int> pack-rows: Math.ceil(root.project-templates.length / 2);
-                        height: self.pack-rows * 80px - 8px;
+                        height: self.pack-rows * (self.card-h + self.gap) - self.gap;
 
                         for pack[index] in root.project-templates: Rectangle {
                             x: Math.mod(index, 2) * (parent.card-w + parent.gap);
@@ -3334,31 +3379,37 @@ export component MediaPane inherits Rectangle {
                             background: pack-touch.has-hover ? Theme.field-hover : Theme.field;
                             clip: true;
 
-                            if pack.poster.width > 0: Image {
-                                width: 100%;
-                                height: 100%;
-                                source: pack.poster;
-                                image-fit: cover;
-                            }
-                            if pack.poster.width > 0: Rectangle {
-                                y: parent.height - 36px;
-                                width: 100%;
-                                height: 36px;
-                                background: Theme.scrim;
+                            LiveArt {
+                                x: 0;
+                                y: 0;
+                                width: parent.width;
+                                height: parent.height - 48px;
+                                background: Theme.field-active;
+                                kind: "template";
+                                id: pack.path;
+                                still: pack.poster;
+                                hover: pack-touch.has-hover;
+                                fit-whole: pack.tall;
                             }
 
                             VerticalLayout {
-                                padding: 10px;
-                                spacing: 4px;
+                                y: parent.height - 48px;
+                                height: 48px;
+                                padding-left: 10px;
+                                padding-right: 10px;
+                                padding-top: 7px;
+                                padding-bottom: 8px;
+                                spacing: 2px;
                                 Text {
                                     text: pack.name;
-                                    color: pack.poster.width > 0 ? Theme.on-scrim : Theme.fg;
+                                    color: Theme.fg;
                                     font-size: Theme.fs;
+                                    font-weight: 500;
                                     overflow: elide;
                                 }
                                 Text {
                                     text: pack.detail;
-                                    color: pack.poster.width > 0 ? Theme.on-scrim : Theme.fg-muted;
+                                    color: Theme.fg-muted;
                                     font-size: Theme.fs-sm;
                                     overflow: elide;
                                 }
@@ -3366,9 +3417,159 @@ export component MediaPane inherits Rectangle {
 
                             pack-touch := TouchArea {
                                 mouse-cursor: pointer;
-                                clicked => { root.use-template(pack.path); }
+                                clicked => { root.template-show(pack.path); }
                             }
                         }
+                    }
+                }
+
+                // One pack, opened: its edit playing, what it is, each shot
+                // with what it wants and the 素材 chosen for it, and the one
+                // action. A shot still without a clip is marked, and the
+                // action waits for it, saying which.
+                if root.tab == 6 && root.template-open: VerticalLayout {
+                    padding: 8px;
+                    spacing: 10px;
+
+                    HorizontalLayout {
+                        alignment: start;
+                        Button {
+                            ghost: true;
+                            glyph: Glyph.chevron-left;
+                            label: I18n.t("templates.back");
+                            clicked => {
+                                Library.preview-end();
+                                root.template-close();
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        height: root.template-detail.tall
+                            ? Math.min(self.width * 16 / 9, 320px)
+                            : self.width * 9 / 16;
+                        border-radius: Theme.r-sm;
+                        background: Theme.field-active;
+                        clip: true;
+
+                        LiveArt {
+                            width: 100%;
+                            height: 100%;
+                            kind: "template";
+                            id: root.template-detail.path;
+                            still: root.template-detail.poster;
+                            hover: true;
+                            fit-whole: true;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text {
+                            text: root.template-detail.name;
+                            color: Theme.fg;
+                            font-size: Theme.fs-lg;
+                            font-weight: 600;
+                            overflow: elide;
+                        }
+                        Text {
+                            text: root.template-detail.category == "" ? root.template-detail.detail
+                                : root.template-detail.category + " · " + root.template-detail.detail;
+                            color: Theme.fg-muted;
+                            font-size: Theme.fs-sm;
+                            overflow: elide;
+                        }
+                        if root.template-detail.note != "": Text {
+                            text: root.template-detail.note;
+                            color: Theme.fg-dim;
+                            font-size: Theme.fs-sm;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    Text {
+                        text: root.template-detail.needs;
+                        color: Theme.fg;
+                        font-size: Theme.fs;
+                        font-weight: 500;
+                    }
+
+                    for slot[i] in root.template-slots: Rectangle {
+                        border-radius: Theme.r-sm;
+                        border-width: 1px;
+                        border-color: slot.empty ? Theme.accent : Theme.line;
+                        background: slot.empty ? Theme.accent-soft : Theme.field;
+
+                        VerticalLayout {
+                            padding: 10px;
+                            spacing: 6px;
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    Rectangle {
+                                        width: 18px;
+                                        height: 18px;
+                                        border-radius: 9px;
+                                        background: slot.empty ? Theme.accent : Theme.field-active;
+                                        Text {
+                                            text: slot.music ? "♪" : i + 1;
+                                            color: slot.empty ? Theme.on-scrim : Theme.fg-muted;
+                                            font-size: Theme.fs-xs;
+                                            font-weight: 600;
+                                            horizontal-alignment: center;
+                                            vertical-alignment: center;
+                                        }
+                                    }
+                                }
+                                Text {
+                                    text: slot.label;
+                                    color: Theme.fg;
+                                    font-size: Theme.fs;
+                                    font-weight: 500;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+                                Rectangle { horizontal-stretch: 1; }
+                                Text {
+                                    text: slot.need;
+                                    color: Theme.fg-muted;
+                                    font-size: Theme.fs-sm;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+                            }
+
+                            if slot.hint != "": Text {
+                                text: slot.hint;
+                                color: Theme.fg-dim;
+                                font-size: Theme.fs-sm;
+                                wrap: word-wrap;
+                            }
+
+                            Select {
+                                options: slot.options;
+                                current: slot.choice;
+                                changed(index) => { root.template-choose(i, index); }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: root.template-status;
+                        color: root.template-ready ? Theme.fg-muted : Theme.accent;
+                        font-size: Theme.fs-sm;
+                        wrap: word-wrap;
+                    }
+
+                    Button {
+                        primary: true;
+                        block: true;
+                        large: true;
+                        enabled: root.template-ready;
+                        label: I18n.t("templates.use");
+                        clicked => { root.use-template(root.template-detail.path); }
                     }
                 }
             }

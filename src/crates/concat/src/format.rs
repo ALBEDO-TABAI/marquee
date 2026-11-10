@@ -112,6 +112,28 @@ pub fn tick_interval(seconds_per_pixel: f32) -> f32 {
 
 // ─── the dialogs ────────────────────────────────────────────────────────────
 
+/// A path as a person reads it: the home folder as `~`, so the part that
+/// says where the thing is - the project's own folder, the file's name -
+/// is what fits, not `/Users/<name>`. Anything outside home is as it is.
+pub fn home_short(path: &str) -> String {
+    let Some(home) = std::env::home_dir().filter(|home| !home.as_os_str().is_empty()) else {
+        return path.to_owned();
+    };
+    home_short_under(path, &home.to_string_lossy())
+}
+
+fn home_short_under(path: &str, home: &str) -> String {
+    let home = home.trim_end_matches(['/', '\\']);
+    if home.is_empty() {
+        return path.to_owned();
+    }
+    match path.strip_prefix(home) {
+        Some("") => "~".to_owned(),
+        Some(rest) if rest.starts_with(['/', '\\']) => format!("~{rest}"),
+        _ => path.to_owned(),
+    }
+}
+
 pub fn bytes(count: f32) -> String {
     if count >= 1_000_000_000.0 {
         format!("{:.1} GB", count / 1_000_000_000.0)
@@ -589,5 +611,18 @@ mod tests {
         assert_eq!(span(12.0 * 60.0 + 10.0), "12 min");
         assert_eq!(span(3600.0), "1 h 0 min");
         assert_eq!(span(3.0 * 3600.0 + 20.0 * 60.0), "3 h 20 min");
+    }
+}
+
+#[cfg(test)]
+mod home_short_tests {
+    use super::home_short_under;
+
+    #[test]
+    fn a_path_under_home_reads_from_the_tilde() {
+        assert_eq!(home_short_under("/Users/bai/Movies/a.mp4", "/Users/bai"), "~/Movies/a.mp4");
+        assert_eq!(home_short_under("/Users/bai", "/Users/bai/"), "~");
+        assert_eq!(home_short_under("/Users/baiyu/x", "/Users/bai"), "/Users/baiyu/x");
+        assert_eq!(home_short_under("/Volumes/Work/x", "/Users/bai"), "/Volumes/Work/x");
     }
 }

@@ -9,7 +9,7 @@ import {
 import {
     CurveData, CurveGroupData, WheelData, WheelGroupData,
 } from "inspector/grading.slint";
-import { MediaFilter, MediaItemData, TemplateCardData, TextPresetData } from "workspace/media-pane.slint";
+import { MediaFilter, MediaItemData, TemplateCardData, TemplateSlotData, TextPresetData } from "workspace/media-pane.slint";
 import { CaptionsSheetData } from "dialogs/captions.slint";
 import { DockDivider, DockSide, SeatBox } from "dock.slint";
 import { PaneKind } from "workspace/pane-switcher.slint";
@@ -139,6 +139,15 @@ export global Editor {
     callback library-apply-audio(effect-id: string);
     callback library-save-template();
     callback library-use-template(path: string);
+    /// 智能包装 detail view; see MediaPane.template-open.
+    in-out property <bool> template-open;
+    in-out property <TemplateCardData> template-detail;
+    in-out property <[TemplateSlotData]> template-slots;
+    in-out property <string> template-status;
+    in-out property <bool> template-ready;
+    callback library-template-show(path: string);
+    callback library-template-close();
+    callback library-template-choose(slot: int, choice: int);
     /// Adjustments page: import `.cube` tables as looks of the user's own,
     /// which its LUTs shelf lists.
     callback library-import-lut();

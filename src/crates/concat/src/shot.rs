@@ -16,6 +16,7 @@ use crate::host::{self, Shell};
 use crate::panes::Msg;
 use crate::panes::captions::CaptionsMsg;
 use crate::panes::export::ExportMsg;
+use crate::panes::project::ProjectMsg;
 use crate::panes::settings::SettingsMsg;
 use crate::ui::{Editor, GlassChrome, Theme, Tips};
 
@@ -193,6 +194,42 @@ fn apply(line: &str) -> String {
                 {
                     let mut state = shell.studio.borrow_mut();
                     state.handle(Msg::Export(ExportMsg::Open));
+                }
+                shell.studio.borrow().publish(&app, &shell.models);
+            });
+            "ok".into()
+        }
+        "project" => {
+            Shell::with(|shell, app| {
+                {
+                    let mut state = shell.studio.borrow_mut();
+                    state.handle(Msg::Project(ProjectMsg::Open));
+                }
+                shell.studio.borrow().publish(&app, &shell.models);
+            });
+            "ok".into()
+        }
+        // The 智能包装 detail view of the `index`-th card, or closed with
+        // no index; `hover` plays a card's preview as the pointer would.
+        "template" => {
+            let index = value.get("index").and_then(|v| v.as_u64());
+            Shell::with(|shell, app| {
+                {
+                    let mut state = shell.studio.borrow_mut();
+                    match index {
+                        Some(index) => {
+                            use slint::Model;
+                            let path = shell
+                                .models
+                                .project_templates
+                                .row_data(index as usize)
+                                .map(|card| card.path.to_string());
+                            if let Some(path) = path {
+                                state.template_open(path);
+                            }
+                        }
+                        None => state.template_close(),
+                    }
                 }
                 shell.studio.borrow().publish(&app, &shell.models);
             });
@@ -443,6 +480,7 @@ fn apply(line: &str) -> String {
                     state.handle(Msg::Settings(SettingsMsg::Close));
                     state.handle(Msg::Export(ExportMsg::Close));
                     state.handle(Msg::Captions(CaptionsMsg::Close));
+                    state.handle(Msg::Project(ProjectMsg::Close));
                     state.open_menu = -1;
                     state.menu_bar_token = state.menu_bar_token.saturating_add(1);
                 }

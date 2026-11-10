@@ -236,45 +236,114 @@ impl Studio {
         self.notify(&tf("studio.importedLutsFindThem", &[&imported]), false);
     }
 
-    pub fn use_template(&mut self, path: String) {
-        let Some((project_path, candidates)) = self.session.as_ref().map(|session| {
-            (
-                std::path::PathBuf::from(session.path()),
+    /// The project's 素材 a pack's slots can take: every imported file
+    /// with a path, as (kind, path, name).
+    pub(crate) fn template_candidates(&self) -> Vec<(model::MediaKind, String, String)> {
+        self.session
+            .as_ref()
+            .map(|session| {
                 session
                     .project()
                     .media
                     .iter()
                     .filter(|item| !item.placeholder && !item.path.is_empty())
-                    .map(|item| (item.kind, item.path.clone()))
-                    .collect::<Vec<_>>(),
-            )
-        }) else {
+                    .map(|item| (item.kind, item.path.clone(), item.name.clone()))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// The pack at `path`, with the 素材 that would fill each slot: the
+    /// pick in the detail view when it is this pack's, the first unused
+    /// fitting file in the bin otherwise.
+    fn template_choices(
+        &self,
+        path: &str,
+    ) -> Option<(templates::TemplateInfo, Vec<Option<usize>>)> {
+        let info = templates::list(&self.host.dirs.config)
+            .into_iter()
+            .find(|item| item.path == path)?;
+        let candidates = self.template_candidates();
+        let choices = match &self.template_pick {
+            Some(pick) if pick.path == path && pick.choices.len() == info.slots.len() => {
+                pick.choices.clone()
+            }
+            _ => auto_choices(&info.slots, &candidates),
+        };
+        Some((info, choices))
+    }
+
+    /// Opens a pack's detail view: its preview, what each slot wants, and
+    /// the 素材 matched to each so far.
+    pub fn template_open(&mut self, path: String) {
+        let Some((_, choices)) = self.template_choices(&path) else {
             return;
         };
-        let packs = templates::list(&self.host.dirs.config);
-        let Some(info) = packs.iter().find(|item| item.path == path) else {
+        self.template_pick = Some(TemplatePick { path, choices });
+    }
+
+    pub fn template_close(&mut self) {
+        self.template_pick = None;
+    }
+
+    /// The detail view's menu for slot `slot`: 0 for none, `n` for the
+    /// n-th file that fits the slot.
+    pub fn template_choose(&mut self, slot: usize, choice: usize) {
+        let Some(pick) = self.template_pick.as_ref() else {
+            return;
+        };
+        let path = pick.path.clone();
+        let Some((info, mut choices)) = self.template_choices(&path) else {
+            return;
+        };
+        let Some(wanted) = info.slots.get(slot) else {
+            return;
+        };
+        let candidates = self.template_candidates();
+        let fitting: Vec<usize> = (0..candidates.len())
+            .filter(|index| slot_takes(wanted.kind, candidates[*index].0))
+            .collect();
+        choices[slot] = choice.checked_sub(1).and_then(|n| fitting.get(n).copied());
+        self.template_pick = Some(TemplatePick { path, choices });
+    }
+
+    /// Applies a pack: with the detail view's picks when it is open on
+    /// it, the bin's best matches otherwise. A slot still without a clip
+    /// opens the detail view with that slot marked, rather than refusing.
+    pub fn use_template(&mut self, path: String) {
+        let Some(project_path) = self
+            .session
+            .as_ref()
+            .map(|session| std::path::PathBuf::from(session.path()))
+        else {
+            return;
+        };
+        let Some((info, choices)) = self.template_choices(&path) else {
             self.notify(&t("mediaPane.noTemplatesYetMark"), true);
             return;
         };
+        let missing: Vec<&str> = info
+            .slots
+            .iter()
+            .zip(&choices)
+            .filter(|(slot, choice)| choice.is_none() && !slot.optional)
+            .map(|(slot, _)| slot.label.as_str())
+            .collect();
+        if !missing.is_empty() {
+            self.notify(&tf("studio.templateNeedsSlots", &[&missing.join("、")]), false);
+            self.template_pick = Some(TemplatePick { path, choices });
+            return;
+        }
 
-        let mut taken = vec![false; candidates.len()];
+        let candidates = self.template_candidates();
         let mut fills = Vec::new();
-        for slot in &info.slots {
-            let found = candidates
-                .iter()
-                .enumerate()
-                .find(|(index, (kind, _))| !taken[*index] && *kind == slot.kind);
-            let Some((index, (_, file))) = found else {
-                self.notify(
-                    &tf(
-                        "studio.templateNeedsMedia",
-                        &[&info.slots.len().to_string(), &candidates.len().to_string()],
-                    ),
-                    true,
-                );
-                return;
+        for (slot, choice) in info.slots.iter().zip(&choices) {
+            let Some(index) = choice else {
+                continue; // an optional slot, left out
             };
-            taken[index] = true;
+            let Some((_, file, _)) = candidates.get(*index) else {
+                continue;
+            };
             match media::probe(file) {
                 Ok(probed) => fills.push(templates::SlotFill {
                     media_id: slot.media_id.clone(),
@@ -305,6 +374,7 @@ impl Studio {
         match templates::instantiate(&path, &location.to_string_lossy(), &name, fills) {
             Ok(made) => {
                 let shown = made.name.clone();
+                self.template_pick = None;
                 if let Err(error) = self.open_project(made) {
                     self.notify(&error, true);
                 } else {
@@ -344,5 +414,105 @@ impl Studio {
             || self.relink.open
             || self.confirm.is_some()
             || self.speech.new_voice.open
+    }
+}
+
+/// A 智能包装 pack open in its detail view.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct TemplatePick {
+    /// The bundle.
+    pub path: String,
+    /// Per slot, in the pack's order: which of the bin's files fills it
+    /// (an index into `template_candidates`), or none yet.
+    pub choices: Vec<Option<usize>>,
+}
+
+/// Whether a slot of `slot` kind takes a file of `file` kind: music for
+/// the music, a video or a photo for a shot.
+pub(crate) fn slot_takes(slot: model::MediaKind, file: model::MediaKind) -> bool {
+    match slot {
+        model::MediaKind::Audio => file == model::MediaKind::Audio,
+        _ => matches!(file, model::MediaKind::Video | model::MediaKind::Image),
+    }
+}
+
+/// The bin's first fitting file for each slot in turn, each file used
+/// once; a video before a photo for a shot, as the pack was cut for one.
+pub(crate) fn auto_choices(
+    slots: &[templates::SlotInfo],
+    candidates: &[(model::MediaKind, String, String)],
+) -> Vec<Option<usize>> {
+    let mut taken = vec![false; candidates.len()];
+    slots
+        .iter()
+        .map(|slot| {
+            let pick = |kind: Option<model::MediaKind>| {
+                (0..candidates.len()).find(|index| {
+                    !taken[*index]
+                        && slot_takes(slot.kind, candidates[*index].0)
+                        && kind.is_none_or(|kind| candidates[*index].0 == kind)
+                })
+            };
+            let found = pick(Some(slot.kind)).or_else(|| pick(None));
+            if let Some(index) = found {
+                taken[index] = true;
+            }
+            found
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod template_tests {
+    use super::*;
+    use model::MediaKind;
+
+    fn slot(label: &str, kind: MediaKind, optional: bool) -> templates::SlotInfo {
+        templates::SlotInfo {
+            media_id: label.to_owned(),
+            name: label.to_owned(),
+            kind,
+            seconds: 3.0,
+            label: label.to_owned(),
+            hint: String::new(),
+            optional,
+            orientation: None,
+        }
+    }
+
+    fn file(kind: MediaKind, name: &str) -> (MediaKind, String, String) {
+        (kind, format!("/media/{name}"), name.to_owned())
+    }
+
+    /// Each slot takes the first unused file that fits it: a video for a
+    /// shot before a photo, music only for the music, nothing when the bin
+    /// has run out - left for the detail view to ask about.
+    #[test]
+    fn the_bin_is_matched_to_the_slots_in_order() {
+        let slots = [
+            slot("开场横拍", MediaKind::Video, false),
+            slot("人物口播", MediaKind::Video, false),
+            slot("结尾空镜", MediaKind::Video, false),
+            slot("配乐", MediaKind::Audio, true),
+        ];
+        let bin = [
+            file(MediaKind::Image, "photo.jpg"),
+            file(MediaKind::Audio, "song.m4a"),
+            file(MediaKind::Video, "a.mp4"),
+        ];
+        assert_eq!(
+            auto_choices(&slots, &bin),
+            [Some(2), Some(0), None, Some(1)]
+        );
+        assert_eq!(auto_choices(&slots, &[]), [None, None, None, None]);
+    }
+
+    #[test]
+    fn a_shot_takes_a_video_or_a_photo_and_the_music_takes_sound() {
+        assert!(slot_takes(MediaKind::Video, MediaKind::Image));
+        assert!(slot_takes(MediaKind::Video, MediaKind::Video));
+        assert!(!slot_takes(MediaKind::Video, MediaKind::Audio));
+        assert!(slot_takes(MediaKind::Audio, MediaKind::Audio));
+        assert!(!slot_takes(MediaKind::Audio, MediaKind::Video));
     }
 }

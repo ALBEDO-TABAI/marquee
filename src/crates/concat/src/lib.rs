@@ -1070,6 +1070,15 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     editor.on_library_use_template(on_window!(|state, path: SharedString| {
         state.use_template(path.to_string());
     }));
+    editor.on_library_template_show(on_window!(|state, path: SharedString| {
+        state.template_open(path.to_string());
+    }));
+    editor.on_library_template_close(on_window!(|state| {
+        state.template_close();
+    }));
+    editor.on_library_template_choose(on_window!(|state, slot: i32, choice: i32| {
+        state.template_choose(slot.max(0) as usize, choice.max(0) as usize);
+    }));
     // Nothing borrowed: the dialog is asked on a turn of its own, and the
     // files it answers with are imported there; see `host::after_dialog`.
     editor.on_library_import_lut(Studio::import_lut);

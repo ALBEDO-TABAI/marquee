@@ -1754,22 +1754,10 @@ impl Studio {
         );
         sync(&models.text_presets, cards);
 
-        let packs: Vec<TemplateCardData> = templates::list(&self.host.dirs.config)
-            .into_iter()
-            .map(|info| TemplateCardData {
-                path: info.path.clone().into(),
-                name: info.name.into(),
-                detail: format!("{}×{} · {}", info.width, info.height, info.slots.len()).into(),
-                poster: info
-                    .has_poster
-                    .then(|| {
-                        crate::host::image_at(&std::path::Path::new(&info.path).join("poster.jpg"))
-                    })
-                    .flatten()
-                    .unwrap_or_default(),
-            })
-            .collect();
+        let listed = templates::list(&self.host.dirs.config);
+        let packs: Vec<TemplateCardData> = listed.iter().map(template_card).collect();
         sync(&models.project_templates, packs);
+        self.publish_template_pick(&editor, &listed);
 
         // The bin.
         // The Media shelves count the imports; what the editor made is
@@ -1821,7 +1809,7 @@ impl Studio {
         let folder: SharedString = self
             .session
             .as_ref()
-            .map(|session| session.path().to_owned())
+            .map(|session| crate::format::home_short(session.path()))
             .unwrap_or_else(|| "—".to_owned())
             .into();
         let timeline_name: SharedString = self.timeline().name.as_str().into();
@@ -2761,5 +2749,183 @@ impl Studio {
         let timeline_id = self.project().active_timeline_id.clone();
         self.apply(Command::SetTimelineVideo { timeline_id, video });
         self.request_preview();
+    }
+}
+
+/// A frame's shape as people say it: 16:9, 9:16, 1:1, or the pixels.
+pub(crate) fn aspect_words(width: u32, height: u32) -> String {
+    let gcd = |mut a: u32, mut b: u32| {
+        while b != 0 {
+            (a, b) = (b, a % b);
+        }
+        a.max(1)
+    };
+    let d = gcd(width, height);
+    let (w, h) = (width / d, height / d);
+    if w <= 21 && h <= 21 {
+        format!("{w}:{h}")
+    } else {
+        format!("{width}×{height}")
+    }
+}
+
+/// Seconds as a pack card says them: whole, or to a tenth.
+fn seconds_words(seconds: f64) -> String {
+    let tenth = (seconds * 10.0).round() / 10.0;
+    if tenth.fract() == 0.0 {
+        format!("{tenth:.0}")
+    } else {
+        format!("{tenth:.1}")
+    }
+}
+
+/// One 智能包装 card: the poster, the name, and the shape, the shots it
+/// needs and how long it runs - not a bare slot count.
+fn template_card(info: &templates::TemplateInfo) -> TemplateCardData {
+    let shots = info
+        .slots
+        .iter()
+        .filter(|slot| slot.kind != model::MediaKind::Audio)
+        .count();
+    let music = info.slots.iter().any(|slot| slot.kind == model::MediaKind::Audio);
+    TemplateCardData {
+        path: info.path.clone().into(),
+        name: info.name.clone().into(),
+        detail: tf(
+            "templates.cardDetail",
+            &[
+                &aspect_words(info.width, info.height),
+                &shots,
+                &seconds_words(info.seconds),
+            ],
+        )
+        .into(),
+        needs: if music {
+            tf("templates.needsWithMusic", &[&shots])
+        } else {
+            tf("templates.needs", &[&shots])
+        }
+        .into(),
+        category: info.category.clone().into(),
+        note: info.note.clone().into(),
+        tall: info.height > info.width,
+        poster: info
+            .has_poster
+            .then(|| crate::host::image_at(&std::path::Path::new(&info.path).join("poster.jpg")))
+            .flatten()
+            .unwrap_or_default(),
+    }
+}
+
+/// What one slot wants, in a line: 视频或照片 · 横拍 · 4 秒.
+fn slot_need(slot: &templates::SlotInfo) -> String {
+    let mut parts = vec![if slot.kind == model::MediaKind::Audio {
+        t("templates.sound")
+    } else {
+        t("templates.picture")
+    }];
+    if let Some(shape) = slot.orientation {
+        parts.push(t(match shape {
+            templates::Orientation::Landscape => "templates.landscape",
+            templates::Orientation::Portrait => "templates.portrait",
+            templates::Orientation::Square => "templates.square",
+        }));
+    }
+    parts.push(tf("templates.seconds", &[&seconds_words(slot.seconds)]));
+    if slot.optional {
+        parts.push(t("templates.optional"));
+    }
+    parts.join(" · ")
+}
+
+impl Studio {
+    /// The 智能包装 detail view: the pack, each slot with what it wants
+    /// and the 素材 chosen for it, and what is still to choose.
+    fn publish_template_pick(&self, editor: &Editor<'_>, listed: &[templates::TemplateInfo]) {
+        let open = self
+            .template_pick
+            .as_ref()
+            .and_then(|pick| Some((pick, listed.iter().find(|info| info.path == pick.path)?)));
+        let Some((pick, info)) = open else {
+            if editor.get_template_open() {
+                editor.set_template_open(false);
+            }
+            return;
+        };
+        let candidates = self.template_candidates();
+        let slots: Vec<TemplateSlotData> = info
+            .slots
+            .iter()
+            .enumerate()
+            .map(|(index, slot)| {
+                let fitting: Vec<usize> = (0..candidates.len())
+                    .filter(|n| speech_slot_takes(slot.kind, candidates[*n].0))
+                    .collect();
+                let none = if slot.kind == model::MediaKind::Audio {
+                    t("templates.noMusic")
+                } else {
+                    t("templates.notChosen")
+                };
+                let options: Vec<SharedString> = std::iter::once(none.into())
+                    .chain(fitting.iter().map(|n| candidates[*n].2.clone().into()))
+                    .collect();
+                let chosen = pick.choices.get(index).copied().flatten();
+                let choice = chosen
+                    .and_then(|file| fitting.iter().position(|n| *n == file))
+                    .map(|position| position as i32 + 1)
+                    .unwrap_or(0);
+                TemplateSlotData {
+                    label: slot.label.clone().into(),
+                    hint: slot.hint.clone().into(),
+                    need: slot_need(slot).into(),
+                    optional: slot.optional,
+                    music: slot.kind == model::MediaKind::Audio,
+                    empty: choice == 0 && !slot.optional,
+                    choice,
+                    options: ModelRc::new(VecModel::from(options)),
+                }
+            })
+            .collect();
+        let missing: Vec<&str> = info
+            .slots
+            .iter()
+            .zip(&pick.choices)
+            .filter(|(slot, choice)| choice.is_none() && !slot.optional)
+            .map(|(slot, _)| slot.label.as_str())
+            .collect();
+        editor.set_template_open(true);
+        editor.set_template_detail(template_card(info));
+        editor.set_template_slots(ModelRc::new(VecModel::from(slots)));
+        editor.set_template_status(
+            if candidates.is_empty() {
+                t("templates.noMedia")
+            } else if missing.is_empty() {
+                t("templates.ready")
+            } else {
+                tf("templates.missing", &[&missing.join("、")])
+            }
+            .into(),
+        );
+        editor.set_template_ready(missing.is_empty());
+    }
+}
+
+fn speech_slot_takes(slot: model::MediaKind, file: model::MediaKind) -> bool {
+    super::speech::slot_takes(slot, file)
+}
+
+#[cfg(test)]
+mod template_card_tests {
+    use super::{aspect_words, seconds_words};
+
+    #[test]
+    fn a_pack_card_names_its_shape_and_length() {
+        assert_eq!(aspect_words(1920, 1080), "16:9");
+        assert_eq!(aspect_words(1080, 1920), "9:16");
+        assert_eq!(aspect_words(1080, 1080), "1:1");
+        assert_eq!(aspect_words(1000, 777), "1000×777");
+        assert_eq!(seconds_words(7.0), "7");
+        assert_eq!(seconds_words(9.04), "9");
+        assert_eq!(seconds_words(3.25), "3.3");
     }
 }

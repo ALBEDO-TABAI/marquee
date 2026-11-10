@@ -62,6 +62,7 @@ mod placing;
 mod project_files;
 mod publish;
 mod speech;
+pub(crate) use speech::TemplatePick;
 mod stage;
 mod text;
 mod vision;
@@ -758,9 +759,9 @@ pub struct Models {
     pub audio_params: Rc<VecModel<AppliedParamData>>,
     /// The colour panel's knobs.
     pub adjust_params: Rc<VecModel<AppliedParamData>>,
-    /// The colour panel's wheels and curves, and the picture's chain's by
     /// The colour panel's HSL knobs, three a band.
     pub adjust_hsl: Rc<VecModel<AppliedParamData>>,
+    /// The colour panel's wheels and curves, and the picture's chain's by
     /// link.
     pub adjust_wheels: Rc<VecModel<WheelData>>,
     pub adjust_curves: Rc<VecModel<CurveData>>,
@@ -1206,6 +1207,9 @@ pub struct Studio {
     preset_art: std::cell::RefCell<HashMap<String, slint::Image>>,
     /// Hover previews for the library. Off the project: it only paints.
     gallery: crate::gallery::Gallery,
+    /// The 智能包装 pack open in its detail view, and the 素材 chosen for
+    /// each of its slots; see `template_open`.
+    pub(crate) template_pick: Option<TemplatePick>,
     /// The watch on the user's effects folder: a poll every couple of
     /// seconds of what is in it, cheaper than a file-system watcher and
     /// one dependency fewer, at a cost nobody will notice.
@@ -2899,6 +2903,7 @@ impl Studio {
             cards_again: false,
             preset_art: std::cell::RefCell::new(HashMap::new()),
             gallery: crate::gallery::Gallery::new(),
+            template_pick: None,
             packages_watch: slint::Timer::default(),
             packages_seen: 0,
             packages_pending: None,
@@ -3052,6 +3057,7 @@ impl Studio {
             "text" => crate::gallery::Kind::Text,
             "shape" => crate::gallery::Kind::Shape,
             "package" => crate::gallery::Kind::Package,
+            "template" => crate::gallery::Kind::Template,
             _ => return,
         };
         let (style, sample) = if kind == crate::gallery::Kind::Text {
@@ -3074,6 +3080,8 @@ impl Studio {
             // A sticker's frames are its own motion, sampled finely.
             crate::gallery::Kind::Package if sticker => 90,
             crate::gallery::Kind::Package => 140,
+            // A pack's 16 frames run its whole edit in about three seconds.
+            crate::gallery::Kind::Template => 190,
             _ => crate::gallery::LOOP_STEP_MS as i64,
         });
         if let Some(hit) = hit {

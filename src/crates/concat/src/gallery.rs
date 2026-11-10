@@ -29,6 +29,9 @@ use concat_project::model::TextStyle;
 /// small frames; past this the oldest is dropped.
 const CACHE: usize = 24;
 
+/// How many frames a 智能包装 hover plays its edit in.
+pub const TEMPLATE_FRAMES: usize = 16;
+
 /// The square a text or shape hover is painted at.
 const TEXT_SIDE: u32 = 144;
 
@@ -166,6 +169,9 @@ pub enum Kind {
     Shape,
     /// An effect, filter, transition, sticker or text animation package.
     Package,
+    /// A 智能包装 pack, by its bundle path: its own edit, played through
+    /// with the neutral still in its slots.
+    Template,
 }
 
 /// What the thread should paint for one hover.
@@ -350,6 +356,7 @@ fn key_of(kind: Kind, id: &str) -> String {
         Kind::Text => "text",
         Kind::Shape => "shape",
         Kind::Package => "package",
+        Kind::Template => "template",
     };
     format!("{prefix}:{id}")
 }
@@ -363,6 +370,7 @@ fn spawn_worker(generation: Arc<AtomicU64>, slot: Arc<Slot>) -> JoinHandle<()> {
 
 fn worker(generation: Arc<AtomicU64>, slot: Arc<Slot>) {
     let mut painter: Option<concat_host::cards::Painter> = None;
+    let pool = concat_media::ReaderPool::new(64 * 1024 * 1024, 2);
     loop {
         let next = {
             let mut queue = slot.queue.lock().unwrap_or_else(|e| e.into_inner());
@@ -385,7 +393,7 @@ fn worker(generation: Arc<AtomicU64>, slot: Arc<Slot>) {
                     let expected = job.generation;
                     move || generation.load(Ordering::Acquire) != expected
                 };
-                match render_hover(&job, &stop, &mut painter) {
+                match render_hover(&job, &stop, &mut painter, &pool) {
                     Ok((frames, looped)) => {
                         if stop() {
                             continue;
@@ -452,6 +460,7 @@ fn render_hover(
     job: &HoverJob,
     stop: &dyn Fn() -> bool,
     painter: &mut Option<concat_host::cards::Painter>,
+    pool: &concat_media::ReaderPool,
 ) -> Result<(Vec<CardPixels>, bool), String> {
     if stop() {
         return Err("cancelled".to_owned());
@@ -467,6 +476,19 @@ fn render_hover(
         Kind::Shape => {
             let card = concat_host::titles::shape_card(&job.id, TEXT_SIDE)?;
             Ok((card_loop(None, &card), true))
+        }
+        Kind::Template => {
+            let frames =
+                concat_host::templates::hover_frames(&job.id, TEMPLATE_FRAMES, pool, stop)?;
+            let frames = frames
+                .into_iter()
+                .map(|frame| CardPixels {
+                    width: frame.width(),
+                    height: frame.height(),
+                    rgba: frame.pixels().to_vec(),
+                })
+                .collect();
+            Ok((frames, true))
         }
         Kind::Package => {
             let painter = painter_of(painter)?;
