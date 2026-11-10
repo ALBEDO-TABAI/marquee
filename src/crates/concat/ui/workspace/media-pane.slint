@@ -3492,6 +3492,7 @@ export component MediaPane inherits Rectangle {
                         color: Theme.fg;
                         font-size: Theme.fs;
                         font-weight: 500;
+                        wrap: word-wrap;
                     }
 
                     for slot[i] in root.template-slots: Rectangle {
@@ -3523,22 +3524,25 @@ export component MediaPane inherits Rectangle {
                                         }
                                     }
                                 }
+                                // The pane can be narrow: the label wraps
+                                // rather than eliding to "…", and what the
+                                // shot takes sits on its own line below.
                                 Text {
                                     text: slot.label;
                                     color: Theme.fg;
                                     font-size: Theme.fs;
                                     font-weight: 500;
                                     vertical-alignment: center;
-                                    overflow: elide;
+                                    wrap: word-wrap;
+                                    horizontal-stretch: 1;
                                 }
-                                Rectangle { horizontal-stretch: 1; }
-                                Text {
-                                    text: slot.need;
-                                    color: Theme.fg-muted;
-                                    font-size: Theme.fs-sm;
-                                    vertical-alignment: center;
-                                    overflow: elide;
-                                }
+                            }
+
+                            Text {
+                                text: slot.need;
+                                color: Theme.fg-muted;
+                                font-size: Theme.fs-sm;
+                                wrap: word-wrap;
                             }
 
                             if slot.hint != "": Text {
