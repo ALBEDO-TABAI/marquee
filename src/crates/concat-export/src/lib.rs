@@ -4157,7 +4157,7 @@ mod tests {
         graded.params.insert("exposure".into(), 1.0);
         editor
             .apply(Command::UpdateClip {
-                clip_id: layer_id,
+                clip_id: layer_id.clone(),
                 patch: ClipPatch {
                     video_effects: Some(vec![graded]),
                     ..ClipPatch::default()
@@ -4177,6 +4177,40 @@ mod tests {
         assert!(
             furthest(&monitor, &export) <= 1,
             "the monitor and the export disagree by {}",
+            furthest(&monitor, &export)
+        );
+
+        // The 调节 panel's newer knobs - light, the HSL bands, sharpen
+        // and grain - the same on both too: grain is laid on a grid of the
+        // frame's own height, not the window's pixels.
+        let mut panel = AppliedFilter::new("concat.adjust");
+        for (key, value) in [
+            ("light", 40.0),
+            ("hue_red", 30.0),
+            ("sat_blue", -40.0),
+            ("lum_green", 20.0),
+            ("sharpen", 30.0),
+            ("grain", 60.0),
+        ] {
+            panel.params.insert(key.into(), value);
+        }
+        editor
+            .apply(Command::UpdateClip {
+                clip_id: layer_id,
+                patch: ClipPatch {
+                    video_effects: Some(vec![panel]),
+                    ..ClipPatch::default()
+                },
+            })
+            .expect("sets the panel");
+        let (monitor, export) = both(flatten::flatten_timeline(editor.project(), None));
+        assert!(
+            furthest(&before, &monitor) > 10,
+            "the panel must show on the monitor"
+        );
+        assert!(
+            furthest(&monitor, &export) <= 1,
+            "with the panel's knobs the monitor and the export disagree by {}",
             furthest(&monitor, &export)
         );
         let _ = std::fs::remove_file(&path);

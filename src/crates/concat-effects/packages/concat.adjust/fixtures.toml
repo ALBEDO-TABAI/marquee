@@ -15,7 +15,7 @@ expect = [0.3, 0.2, 0.12, 1]
 name = "minimum"
 at = "min"
 input = [6.0, 5.0, 4.0, 1]
-expect = [1.58091e-05, 1.58091e-05, 1.58091e-05, 1]
+expect = [-0.000194311, -0.000194311, -0.000194311, 1]
 
 # Every knob up: three true stops, brightness, contrast twice the stops,
 # three times the saturation, the wheels all the way up. Far past white, as
@@ -24,7 +24,7 @@ expect = [1.58091e-05, 1.58091e-05, 1.58091e-05, 1]
 name = "maximum"
 at = "max"
 input = [0.08, 0.07, 0.06, 1]
-expect = [2362.76, 2.67506, 1636.4, 1]
+expect = [25552, -1.70508, 136.625, 1]
 
 # A moderate grade: a stop up, a little contrast and colour, a warm light.
 [[probe]]
@@ -53,3 +53,45 @@ name = "wheels and a curve"
 params = { "lift.y" = 0.5, "gain.m" = 0.2, "luma.0.x" = 0, "luma.0.y" = 0, "luma.1.x" = 0.5, "luma.1.y" = 0.6, "luma.2.x" = 1, "luma.2.y" = 1 }
 input = [0.18, 0.18, 0.18, 1]
 expect = [0.493822, 0.337644, 0.337644, 1]
+
+# Light bends the midtones up and leaves black and white where they were.
+[[probe]]
+name = "light, midtones up"
+params = { light = 50 }
+input = [0.18, 0.18, 0.18, 1]
+expect = [0.260254, 0.260254, 0.260254, 1]
+
+[[probe]]
+name = "light, white held"
+params = { light = 100 }
+input = [1.0, 1.0, 1.0, 1]
+expect = [1, 1, 1, 1]
+
+# The red band turned towards orange and greyed by half; a grey takes none
+# of it.
+[[probe]]
+name = "HSL, the red band"
+params = { hue_red = 50, sat_red = -50 }
+input = [0.5, 0.05, 0.05, 1]
+expect = [0.247437, 0.0892334, 0.0434875, 1]
+
+[[probe]]
+name = "HSL, a grey untouched"
+params = { hue_red = 100, sat_red = 100, lum_red = 100, hue_blue = -100, lum_blue = -100 }
+input = [0.18, 0.18, 0.18, 1]
+expect = [0.180054, 0.180054, 0.180054, 1]
+
+# The blue band darkened, a sky's way.
+[[probe]]
+name = "HSL, a darker blue"
+params = { lum_blue = -60 }
+input = [0.05, 0.15, 0.6, 1]
+expect = [0.0289001, 0.0866089, 0.347412, 1]
+
+# Grain moves a pixel by a little, the same on every GPU for the same
+# frame.
+[[probe]]
+name = "grain"
+params = { grain = 100 }
+input = [0.18, 0.18, 0.18, 1]
+expect = [0.127808, 0.127808, 0.127808, 1]

@@ -15,7 +15,12 @@ description = "The manual colour panel every picture clip carries: exposure, ton
 # brightness, contrast, highlights, shadows, whites and blacks as signed
 # percents; the last four lift or crush their end of the curve, highlights
 # and shadows the broad upper and lower halves, whites and blacks the
-# narrow extremes. Effects: sharpen, fade and vignette add from zero.
+# narrow extremes; light (光感) bends the midtones up or down and leaves
+# black and white where they were. Effects: sharpen, fade, vignette and
+# grain add from zero. HSL: eight bands of hue - red, orange, yellow,
+# green, cyan, blue, purple, magenta - each with its hue turned, its
+# saturation and its luminance, read between neighbouring bands so a
+# colour between two takes a share of each, and greys none.
 # Wheels: lift, gamma and gain, each a hue to push towards and a master.
 # Curves: luma, then red, green and blue.
 #
@@ -63,6 +68,16 @@ max = 3
 default = 0
 step = 0.05
 unit = "EV"
+
+[[param]]
+key = "light"
+group = "Lightness"
+label = "Light"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
 
 [[param]]
 key = "brightness"
@@ -149,6 +164,256 @@ key = "vignette"
 group = "Effects"
 label = "Vignette"
 min = 0
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "grain"
+group = "Effects"
+label = "Grain"
+min = 0
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_red"
+group = "HSL"
+label = "Red Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_red"
+group = "HSL"
+label = "Red Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_red"
+group = "HSL"
+label = "Red Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_orange"
+group = "HSL"
+label = "Orange Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_orange"
+group = "HSL"
+label = "Orange Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_orange"
+group = "HSL"
+label = "Orange Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_yellow"
+group = "HSL"
+label = "Yellow Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_yellow"
+group = "HSL"
+label = "Yellow Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_yellow"
+group = "HSL"
+label = "Yellow Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_green"
+group = "HSL"
+label = "Green Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_green"
+group = "HSL"
+label = "Green Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_green"
+group = "HSL"
+label = "Green Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_cyan"
+group = "HSL"
+label = "Cyan Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_cyan"
+group = "HSL"
+label = "Cyan Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_cyan"
+group = "HSL"
+label = "Cyan Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_blue"
+group = "HSL"
+label = "Blue Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_blue"
+group = "HSL"
+label = "Blue Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_blue"
+group = "HSL"
+label = "Blue Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_purple"
+group = "HSL"
+label = "Purple Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_purple"
+group = "HSL"
+label = "Purple Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_purple"
+group = "HSL"
+label = "Purple Luminance"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "hue_magenta"
+group = "HSL"
+label = "Magenta Hue"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "sat_magenta"
+group = "HSL"
+label = "Magenta Saturation"
+min = -100
+max = 100
+default = 0
+step = 1
+unit = "%"
+
+[[param]]
+key = "lum_magenta"
+group = "HSL"
+label = "Magenta Luminance"
+min = -100
 max = 100
 default = 0
 step = 1
