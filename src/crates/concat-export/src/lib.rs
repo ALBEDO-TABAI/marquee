@@ -2483,6 +2483,7 @@ fn live_treatments(treatments: &[Treatment], time: Rational) -> Vec<PlannedTreat
             track: treatment.track,
             effects: treatment.passes_at(time),
             strength: treatment.strength_at(time),
+            place: treatment.place,
         })
         .collect()
 }
@@ -3052,6 +3053,7 @@ pub fn preview_sources_of(
             track: treatment.track,
             effects: treatment.passes_at(time),
             strength: treatment.strength_at(time),
+            place: treatment.place,
         })
         .collect();
     frame_plan
@@ -3221,6 +3223,56 @@ pub fn preview_moments(
 
 #[cfg(test)]
 mod tests {
+    /// A sticker on a layer sits where its clip puts it, at its size: the
+    /// art is drawn on a clear frame and that frame set over the picture,
+    /// rather than the art painted over the middle of the whole frame.
+    #[test]
+    fn a_sticker_layer_is_drawn_at_its_place_and_size() {
+        let mut red = Frame::black(64, 64);
+        for pixel in red.pixels_mut().chunks_exact_mut(4) {
+            pixel.copy_from_slice(&[200, 30, 30, 255]);
+        }
+        let plan = FramePlan {
+            time: Rational::from_int(1),
+            width: 64,
+            height: 64,
+            canvas: [0, 0, 0, 255],
+            layers: vec![ground_layer(red)],
+            treatments: Vec::new(),
+            output: concat_core::frame::Signal::Sdr,
+        };
+        let sticker = |place: Option<[f32; 3]>| Treatment {
+            start: Rational::ZERO,
+            end: Rational::from_int(10),
+            track: 1,
+            effects: vec![AppliedFilter::new("marquee.sk370")],
+            strength: 1.0,
+            ramp_in: 0.0,
+            ramp_out: 0.0,
+            place,
+        };
+        let Some(mut compositor) = WgpuCompositor::new() else {
+            return; // no renderer here
+        };
+        let at_of = |frame: &Frame, x: usize, y: usize| -> [u8; 3] {
+            let p = &frame.pixels()[(y * 64 + x) * 4..(y * 64 + x) * 4 + 3];
+            [p[0], p[1], p[2]]
+        };
+        let white = |pixel: [u8; 3]| pixel.iter().all(|&channel| channel > 220);
+        let red = |pixel: [u8; 3]| pixel[0] > 150 && pixel[1] < 80;
+
+        // Unplaced, the triangle sits in the middle of the frame.
+        let whole = composite_treated(&mut compositor, &plan, &[sticker(None)], &[]);
+        assert!(white(at_of(&whole, 32, 34)), "{:?}", at_of(&whole, 32, 34));
+
+        // Half size, a quarter right and down: in the lower right, and the
+        // middle is the picture again.
+        let placed = composite_treated(&mut compositor, &plan, &[sticker(Some([0.5, 0.25, 0.25]))], &[]);
+        assert!(white(at_of(&placed, 48, 49)), "{:?}", at_of(&placed, 48, 49));
+        assert!(red(at_of(&placed, 32, 34)), "{:?}", at_of(&placed, 32, 34));
+        assert!(red(at_of(&placed, 8, 8)), "{:?}", at_of(&placed, 8, 8));
+    }
+
     /// A treatment on track 1 runs over what track 0 drew and not over what
     /// track 2 draws on top of it, and its strength blends the result back.
     #[test]
@@ -3268,6 +3320,7 @@ mod tests {
             strength: 1.0,
             ramp_in: 0.0,
             ramp_out: 0.0,
+            place: None,
         };
         let Some(mut compositor) = WgpuCompositor::new() else {
             return; // no renderer here
@@ -3383,6 +3436,7 @@ mod tests {
             strength: 1.0,
             ramp_in: 0.0,
             ramp_out: 0.0,
+            place: None,
         };
         let Some(mut gpu) = WgpuCompositor::new() else {
             return; // no renderer here

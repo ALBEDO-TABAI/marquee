@@ -390,6 +390,7 @@ fn a_treatment_treats_the_stack_beneath_its_track_only() {
             track: 1,
             effects: vec![package("concat.invert", INVERT, "", &[], 1.0)],
             strength,
+            place: None,
         }],
         ..plan(8, 8, vec![ground.clone(), blue.clone()])
     };

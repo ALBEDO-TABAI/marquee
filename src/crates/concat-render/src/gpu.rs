@@ -1709,6 +1709,29 @@ impl WgpuCompositor {
             // whatever stack sits beneath it - so `clip_time` falls back
             // to the timeline's own clock, exactly what a package read
             // before this existed.
+            if let Some([scale, offset_x, offset_y]) = treatment.place {
+                // A sticker placed like a picture: drawn on a clear frame,
+                // where its passes lay the art over nothing, and that frame
+                // set over the stack at the sticker's size and place.
+                let clear = self.render_pooled(width, height, &[], &[], wgpu::Color::TRANSPARENT);
+                let art = self.run_passes(width, height, clear, &treatment.effects, seconds, 0.0, 0.0);
+                let (cx, cy) = (2.0 * offset_x, -2.0 * offset_y);
+                let half = scale.max(0.0);
+                let mut draws = Vec::new();
+                let mut vertices = Vec::new();
+                self.push_pooled(&mut draws, &mut vertices, width, height, below, 1.0);
+                self.push_pooled_at(
+                    &mut draws,
+                    &mut vertices,
+                    width,
+                    height,
+                    art,
+                    strength,
+                    [cx - half, cy + half, cx + half, cy - half],
+                );
+                ground = Some(self.render_pooled(width, height, &draws, &vertices, clear_of(plan.canvas)));
+                continue;
+            }
             let treated = self.run_passes(width, height, below, &treatment.effects, seconds, 0.0, 0.0);
             ground = Some(if strength >= 1.0 {
                 treated
@@ -1892,6 +1915,22 @@ impl WgpuCompositor {
         index: usize,
         opacity: f32,
     ) {
+        self.push_pooled_at(draws, vertices, width, height, index, opacity, [-1.0, 1.0, 1.0, -1.0]);
+    }
+
+    /// A pooled frame's quad over `[left, top, right, bottom]` of the
+    /// target, in clip space: the whole frame is `[-1, 1, 1, -1]`.
+    #[allow(clippy::too_many_arguments)]
+    fn push_pooled_at(
+        &mut self,
+        draws: &mut Vec<Draw>,
+        vertices: &mut Vec<Vertex>,
+        width: u32,
+        height: u32,
+        index: usize,
+        opacity: f32,
+        [left, top, right, bottom]: [f32; 4],
+    ) {
         let mask = self.mask_of(None);
         draws.push(Draw {
             size: (width, height),
@@ -1913,12 +1952,12 @@ impl WgpuCompositor {
             shape_c: MaskUniform::NONE.c,
         };
         vertices.extend_from_slice(&[
-            corner(-1.0, 1.0, 0.0, 0.0),
-            corner(1.0, 1.0, 1.0, 0.0),
-            corner(-1.0, -1.0, 0.0, 1.0),
-            corner(1.0, 1.0, 1.0, 0.0),
-            corner(1.0, -1.0, 1.0, 1.0),
-            corner(-1.0, -1.0, 0.0, 1.0),
+            corner(left, top, 0.0, 0.0),
+            corner(right, top, 1.0, 0.0),
+            corner(left, bottom, 0.0, 1.0),
+            corner(right, top, 1.0, 0.0),
+            corner(right, bottom, 1.0, 1.0),
+            corner(left, bottom, 0.0, 1.0),
         ]);
     }
 

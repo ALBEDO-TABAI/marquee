@@ -743,6 +743,12 @@ pub struct PlannedTreatment {
     pub effects: Vec<ShaderPass>,
     /// How much of the treated stack to keep over the untreated, `0..=1`.
     pub strength: f32,
+    /// A sticker's place: its passes draw on a clear frame, which is then
+    /// laid over the stack scaled by `[0]` about the middle and moved by
+    /// `[1]`, `[2]` of the frame's width and height (down is positive), as
+    /// a picture clip's scale and offset place it. None runs the passes
+    /// over the stack itself, as every other layer does.
+    pub place: Option<[f32; 3]>,
 }
 
 /// Everything needed to draw one output frame.

@@ -228,6 +228,8 @@ pub(crate) struct Treatment {
     pub(crate) strength: f32,
     pub(crate) ramp_in: f64,
     pub(crate) ramp_out: f64,
+    /// See `PlannedTreatment::place`: set for a layer of stickers only.
+    pub(crate) place: Option<[f32; 3]>,
 }
 
 impl Treatment {
@@ -306,6 +308,7 @@ pub(crate) fn build_timeline(
         if clip.kind == ClipKind::Layer {
             let effects = shaded(&clip.effects);
             if !effects.is_empty() {
+                let place = sticker_place(&effects, clip);
                 treatments.push(Treatment {
                     start,
                     end: start + duration,
@@ -314,6 +317,7 @@ pub(crate) fn build_timeline(
                     strength: clip.opacity.clamp(0.0, 1.0) as f32,
                     ramp_in: clip.fade_in.max(0.0),
                     ramp_out: clip.fade_out.max(0.0),
+                    place,
                 });
             }
             continue;
@@ -466,6 +470,22 @@ pub(crate) fn planned_geometry(clip: &ExportClip) -> Option<PlannedGeometry> {
 /// The enabled entries of a chain whose package has a shader: the ones
 /// resolved to passes each frame. A link to a package not installed here
 /// draws nothing.
+/// Where a layer of stickers sits: its clip's scale and offset, as a
+/// picture's place it. A sticker is art over the picture, not a treatment
+/// of it, so its layer has a size and a place; a layer of looks, or a
+/// sticker left at the whole frame, runs over the stack as before.
+pub(crate) fn sticker_place(effects: &[AppliedFilter], clip: &ExportClip) -> Option<[f32; 3]> {
+    let catalogue = Catalogue::builtin();
+    let stickers = !effects.is_empty()
+        && effects.iter().all(|applied| {
+            catalogue
+                .get(&applied.id)
+                .is_some_and(|package| package.kind() == concat_effects::Kind::Sticker)
+        });
+    let whole = (clip.scale - 1.0).abs() < 1e-6 && clip.offset_x == 0.0 && clip.offset_y == 0.0;
+    (stickers && !whole).then(|| [clip.scale as f32, clip.offset_x as f32, clip.offset_y as f32])
+}
+
 pub(crate) fn shaded(effects: &[AppliedFilter]) -> Vec<AppliedFilter> {
     let catalogue = Catalogue::builtin();
     effects

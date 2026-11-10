@@ -72,6 +72,10 @@ pub fn flatten_timeline_in(
                     effects: clip.video_effects.clone(),
                     opacity: clip.opacity,
                     has_audio: Some(false),
+                    // A sticker's size and place; a treatment ignores them.
+                    scale: export_base(clip, KeyProperty::Scale),
+                    offset_x: export_base(clip, KeyProperty::OffsetX),
+                    offset_y: export_base(clip, KeyProperty::OffsetY),
                     ..ExportClip::blank(ClipKind::Layer, clip.start, clip.duration, index)
                 });
             }
