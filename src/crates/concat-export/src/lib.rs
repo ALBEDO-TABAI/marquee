@@ -4213,6 +4213,14 @@ mod tests {
             "with the panel's knobs the monitor and the export disagree by {}",
             furthest(&monitor, &export)
         );
+        // For a person to look at: the raw RGBA of the three pictures.
+        if let Some(dir) = std::env::var_os("CONCAT_PARITY_DUMP") {
+            let dir = std::path::PathBuf::from(dir);
+            for (name, frame) in [("before", &before), ("monitor", &monitor), ("export", &export)] {
+                let file = dir.join(format!("{name}-{width}x{height}.rgba"));
+                std::fs::write(file, frame.pixels()).expect("dumps a frame");
+            }
+        }
         let _ = std::fs::remove_file(&path);
     }
 
