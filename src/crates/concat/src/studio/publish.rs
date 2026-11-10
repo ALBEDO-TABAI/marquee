@@ -522,15 +522,20 @@ impl Studio {
         );
         sync(&models.applied_audio, sound);
         sync(&models.audio_params, sound_params);
-        sync(
-            &models.adjust_params,
+        // The sliders and the eight hue bands are two models: the bands
+        // show three rows at a time, and a model of their own keeps them
+        // out of the run of sliders.
+        let (sliders, bands): (Vec<_>, Vec<_>) =
             match self.sole_selection().and_then(|id| self.clip(&id)) {
                 Some(clip) if graded(clip.kind) => {
                     adjust_rows(&clip.video_effects, self.key_point().map(|(_, at)| at))
                 }
                 _ => Vec::new(),
-            },
-        );
+            }
+            .into_iter()
+            .partition(|row| row.group.as_str() != HSL_GROUP);
+        sync(&models.adjust_params, sliders);
+        sync(&models.adjust_hsl, bands);
 
         // The wheels and curves: the chain's by link, the colour panel's
         // keyable at the playhead. Each curve's points go into the model

@@ -2125,6 +2125,37 @@ mod tests {
         );
     }
 
+    /// The 调节 panel over the API: light, an HSL band and grain set on a
+    /// clip's concat.adjust link are kept with the project and read back
+    /// after a close and reopen.
+    #[test]
+    fn the_colour_panel_knobs_are_set_and_saved_through_the_api() {
+        let (mut api, _scratch, path, clip) = one_clip();
+        let mut link = concat_project::model::AppliedFilter::new("concat.adjust");
+        for (key, value) in [("light", 35.0), ("hue_red", 20.0), ("lum_blue", -40.0), ("grain", 25.0)] {
+            link.params.insert(key.into(), value);
+        }
+        view(ok(api.dispatch(Request::EditApply {
+            path: path.clone(),
+            command: Box::new(Command::UpdateClip {
+                clip_id: clip.clone(),
+                patch: concat_project::commands::ClipPatch {
+                    video_effects: Some(vec![link]),
+                    ..Default::default()
+                },
+            }),
+        })));
+        ok(api.dispatch(Request::ProjectClose { path: path.clone(), save: true }));
+        let reopened = view(ok(api.dispatch(Request::ProjectOpen { path: path.clone() })));
+        let placed = reopened.project.active().clip(&clip).expect("the clip");
+        let graded = &placed.video_effects[0];
+        assert_eq!(graded.id, "concat.adjust");
+        assert_eq!(graded.params.get("light"), Some(&35.0));
+        assert_eq!(graded.params.get("hue_red"), Some(&20.0));
+        assert_eq!(graded.params.get("lum_blue"), Some(&-40.0));
+        assert_eq!(graded.params.get("grain"), Some(&25.0));
+    }
+
     /// The other way too, inside a batch: a sound filter put in
     /// `videoEffects` goes to `filters`, and the batch's own earlier
     /// patch of the same clip is what it is appended to.

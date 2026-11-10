@@ -759,6 +759,8 @@ pub struct Models {
     /// The colour panel's knobs.
     pub adjust_params: Rc<VecModel<AppliedParamData>>,
     /// The colour panel's wheels and curves, and the picture's chain's by
+    /// The colour panel's HSL knobs, three a band.
+    pub adjust_hsl: Rc<VecModel<AppliedParamData>>,
     /// link.
     pub adjust_wheels: Rc<VecModel<WheelData>>,
     pub adjust_curves: Rc<VecModel<CurveData>>,
@@ -865,6 +867,7 @@ impl Models {
             audio_params: Rc::new(VecModel::default()),
             adjust_params: Rc::new(VecModel::default()),
             adjust_wheels: Rc::new(VecModel::default()),
+            adjust_hsl: Rc::new(VecModel::default()),
             adjust_curves: Rc::new(VecModel::default()),
             visual_wheels: Rc::new(VecModel::default()),
             visual_colours: Rc::new(VecModel::default()),
@@ -2101,7 +2104,17 @@ fn key_commands(clip_id: &str, before: &Clip, after: &Clip) -> Vec<Command> {
 }
 
 fn localized_adjust_label(key: &str, fallback: &str) -> slint::SharedString {
-    let named = format!("adjust.{key}");
+    // An HSL knob is named for what it turns; the band is the row of dots
+    // above it.
+    let named = if key.starts_with("hue_") {
+        "adjust.hue".to_owned()
+    } else if key.starts_with("sat_") {
+        "adjust.hslSaturation".to_owned()
+    } else if key.starts_with("lum_") {
+        "adjust.luminance".to_owned()
+    } else {
+        format!("adjust.{key}")
+    };
     let translated = crate::i18n::t(&named);
     if translated == named {
         fallback.into()
@@ -2114,6 +2127,10 @@ fn localized_adjust_group(group: &str) -> slint::SharedString {
     let key = match group {
         "Color" => "adjust.group.color",
         "Lightness" => "adjust.group.lightness",
+/// The colour panel's group of hue bands, as the manifest names it and as
+/// the inspector shows it: the same word in every language.
+pub(crate) const HSL_GROUP: &str = "HSL";
+
         "Effects" => "adjust.group.effects",
         "Wheels" => "adjust.group.wheels",
         "Curves" => "adjust.group.curves",

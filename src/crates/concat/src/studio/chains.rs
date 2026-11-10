@@ -193,6 +193,26 @@ impl Studio {
         });
     }
 
+    /// The colour panel's reset, on the echo: every knob of `part` back at
+    /// its default and off its keys - 0 the sliders, 1 the HSL bands, 2
+    /// the wheels and curves, -1 the lot. A wheel's puck and master and a
+    /// curve's points are stored under the knob's key and a dot, and go
+    /// with it.
+    pub fn adjust_reset(&mut self, part: i32) {
+        let keys = adjust_part_keys(part);
+        if keys.is_empty() {
+            return;
+        }
+        self.edit_adjust_link(|link, _| {
+            let owned = |name: &str| {
+                keys.iter()
+                    .any(|key| name == key || name.starts_with(&format!("{key}.")))
+            };
+            link.params.retain(|name, _| !owned(name));
+            link.keys.retain(|name, _| !owned(name));
+        });
+    }
+
     /// The Speed tab's Constant | Curve, on the echo. A curve starts flat
     /// at the clip's rate and a constant rate is the curve's mean, so the
     /// clip keeps its length either way until something is shaped.
@@ -690,5 +710,62 @@ impl Studio {
             return;
         }
         self.prefs.save(&self.host.dirs);
+    }
+}
+
+/// The colour package's knobs that make up one part of the panel; see
+/// [`Studio::adjust_reset`].
+pub(crate) fn adjust_part_keys(part: i32) -> Vec<String> {
+    let Some(package) = concat_effects::Catalogue::builtin().get(ADJUST_ID) else {
+        return Vec::new();
+    };
+    package
+        .manifest
+        .params
+        .iter()
+        .filter(|param| match part {
+            -1 => true,
+            0 => !param.kind.is_compound() && param.group != crate::studio::HSL_GROUP,
+            1 => param.group == crate::studio::HSL_GROUP,
+            2 => param.kind.is_compound(),
+            _ => false,
+        })
+        .map(|param| param.key.clone())
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::adjust_part_keys;
+
+    /// The three parts of the colour panel share the package's knobs out
+    /// between them, each knob in exactly one, and the lot is all of them.
+    #[test]
+    fn the_colour_panel_parts_share_every_knob_once() {
+        let all = adjust_part_keys(-1);
+        let mut parts: Vec<String> = (0..3).flat_map(adjust_part_keys).collect();
+        assert_eq!(parts.len(), all.len());
+        parts.sort();
+        let mut sorted = all.clone();
+        sorted.sort();
+        assert_eq!(parts, sorted);
+        assert_eq!(adjust_part_keys(1).len(), 24);
+        assert!(adjust_part_keys(7).is_empty());
+    }
+
+    /// The basic part is the list a Jianying user reaches for.
+    #[test]
+    fn the_basic_part_has_the_everyday_knobs() {
+        let basic = adjust_part_keys(0);
+        for key in [
+            "temperature", "tint", "saturation", "brightness", "contrast", "highlights",
+            "shadows", "whites", "blacks", "light", "sharpen", "grain", "vignette",
+        ] {
+            assert!(basic.iter().any(|k| k == key), "{key} missing from {basic:?}");
+        }
+        let curves = adjust_part_keys(2);
+        for key in ["lift", "gamma", "gain", "luma"] {
+            assert!(curves.iter().any(|k| k == key), "{key} missing from {curves:?}");
+        }
     }
 }

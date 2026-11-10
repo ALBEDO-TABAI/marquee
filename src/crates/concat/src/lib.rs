@@ -483,6 +483,7 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         editor.set_transition_choices(ModelRc::from(models.transition_choices.clone()));
         editor.set_audio_params(ModelRc::from(models.audio_params.clone()));
         editor.set_adjust_params(ModelRc::from(models.adjust_params.clone()));
+        editor.set_adjust_hsl(ModelRc::from(models.adjust_hsl.clone()));
         editor.set_adjust_wheels(ModelRc::from(models.adjust_wheels.clone()));
         editor.set_adjust_curves(ModelRc::from(models.adjust_curves.clone()));
         editor.set_visual_wheels(ModelRc::from(models.visual_wheels.clone()));
@@ -1517,6 +1518,9 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         if entry < 0 {
             state.adjust_curve_point(key.as_str(), point, x, y);
         } else {
+    editor.on_adjust_reset(on_lanes!(|state, part: i32| {
+        state.adjust_reset(part);
+    }));
             state.chain_curve_point(entry, key.as_str(), point, x, y);
         }
     }));

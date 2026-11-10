@@ -158,6 +158,10 @@ export component Rail inherits Rectangle {
     /// restored on double-click
     in property <float> default-value: root.minimum;
     in property <bool> enabled: true;
+    /// Where the accent fill starts: the low end for a level, the middle
+    /// for a knob that goes either way from nothing - a temperature, a
+    /// contrast - so the fill says which way and how far.
+    in property <float> centre: root.minimum;
 
     callback changed(value: float);
 
@@ -170,6 +174,8 @@ export component Rail inherits Rectangle {
     property <length> inset: 5.5px;
     property <length> usable: Math.max(1px, root.width - 2 * root.inset);
     property <float> percent: Fmt.clamp((root.value - root.minimum) / root.span, 0, 1);
+    property <float> origin: Fmt.clamp((root.centre - root.minimum) / root.span, 0, 1);
+    property <bool> from-low: root.centre <= root.minimum;
     property <bool> live: (touch.has-hover || touch.pressed) && root.enabled;
 
     function settle(raw: float) {
@@ -199,12 +205,22 @@ export component Rail inherits Rectangle {
         // fill and the chip meet instead of leaving a gap that grows with
         // the dragger's width.
         Rectangle {
-            x: 0;
+            x: root.from-low ? 0 : root.inset + root.usable * Math.min(root.origin, root.percent);
             y: 0;
-            width: root.inset + root.usable * root.percent;
+            width: root.from-low ? root.inset + root.usable * root.percent
+                : root.usable * Math.abs(root.percent - root.origin);
             height: parent.height;
             border-radius: parent.border-radius;
             background: Theme.accent;
+        }
+
+        // The middle, marked, on a knob that goes either way.
+        if !root.from-low: Rectangle {
+            x: root.inset + root.usable * root.origin - 0.5px;
+            y: -2px;
+            width: 1px;
+            height: parent.height + 4px;
+            background: Theme.line-strong;
         }
     }
 
@@ -393,6 +409,38 @@ export component HelpButton inherits Rectangle {
     }
 }
 
+// Put a section back the way it was found.
+//
+// Sits in a SectionHeader's action slot beside the help disclosure, and is
+// dimmed rather than hidden when there is nothing to undo: a control that
+// appears only once you have made a mess is one you cannot learn is there.
+export component ResetButton inherits Rectangle {
+    /// Something in the section is off its default. False greys it.
+    in property <bool> dirty: true;
+
+    callback reset();
+
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background: touch.has-hover && root.dirty ? Theme.field-hover : Theme.field;
+    opacity: root.dirty ? 1.0 : 0.4;
+
+    animate background { duration: 100ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+
+    Icon {
+        glyph: Glyph.reset;
+        size: 10px;
+        tint: touch.has-hover && root.dirty ? Theme.fg : Theme.fg-muted;
+    }
+
+    touch := TouchArea {
+        enabled: root.dirty;
+        mouse-cursor: pointer;
+        clicked => { root.reset(); }
+    }
+}
+
 // The inspector's repeating unit, on one line: label, a formatted readout
 // (the value in a unit you reason about — "none", "auto", "1.00x"), keys
 // and a raw number field, which scrubs on a drag. Keeping readout and field
@@ -434,6 +482,10 @@ export component Param inherits VerticalLayout {
     /// A sentence or two behind a "?" beside the label, on hover, for a
     /// knob whose meaning is not in its name.
     in property <string> help;
+    /// A reset beside the label, lit while the value is off its default.
+    in property <bool> resettable: false;
+    /// See Rail: where a rail's fill starts.
+    in property <float> centre: root.minimum;
 
     callback changed(value: float);
 
@@ -461,6 +513,18 @@ export component Param inherits VerticalLayout {
 
         if root.help != "": Rectangle { width: 6px; }
         if root.help != "": HelpButton { text: root.help; }
+
+        if root.resettable: Rectangle { width: 6px; }
+        if root.resettable: VerticalLayout {
+            alignment: center;
+            ResetButton {
+                dirty: Math.abs(root.value - root.default-value) > root.step / 2;
+                reset => {
+                    root.value = root.default-value;
+                    root.changed(root.default-value);
+                }
+            }
+        }
 
         Rectangle { horizontal-stretch: 1; }
 
@@ -526,6 +590,7 @@ export component Param inherits VerticalLayout {
             maximum: root.maximum;
             step: root.step;
             default-value: root.default-value;
+            centre: root.centre;
             enabled: root.enabled;
             changed(v) => { root.changed(v); }
         }
@@ -675,38 +740,6 @@ export component SwitchRow inherits HorizontalLayout {
             checked <=> root.checked;
             toggled(on) => { root.toggled(on); }
         }
-    }
-}
-
-// Put a section back the way it was found.
-//
-// Sits in a SectionHeader's action slot beside the help disclosure, and is
-// dimmed rather than hidden when there is nothing to undo: a control that
-// appears only once you have made a mess is one you cannot learn is there.
-export component ResetButton inherits Rectangle {
-    /// Something in the section is off its default. False greys it.
-    in property <bool> dirty: true;
-
-    callback reset();
-
-    width: 16px;
-    height: 16px;
-    border-radius: 8px;
-    background: touch.has-hover && root.dirty ? Theme.field-hover : Theme.field;
-    opacity: root.dirty ? 1.0 : 0.4;
-
-    animate background { duration: 100ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
-
-    Icon {
-        glyph: Glyph.reset;
-        size: 10px;
-        tint: touch.has-hover && root.dirty ? Theme.fg : Theme.fg-muted;
-    }
-
-    touch := TouchArea {
-        enabled: root.dirty;
-        mouse-cursor: pointer;
-        clicked => { root.reset(); }
     }
 }
 

@@ -223,7 +223,12 @@ export global Editor {
     in-out property <[CurveData]> adjust-curves;
     in-out property <[WheelGroupData]> visual-wheels;
     in-out property <[CurveGroupData]> visual-curves;
+    /// The colour panel's HSL knobs, three a band, in band order.
+    in-out property <[AppliedParamData]> adjust-hsl;
     /// The picture chain's colour knobs, and one of them picked: RGBA
+    /// The colour panel's reset: -1 every knob, 0 the sliders, 1 the HSL
+    /// bands, 2 the wheels and curves.
+    callback adjust-reset(part: int);
     /// packed into the knob's number, see `Studio::chain_set_colour`.
     in-out property <[ColourKnobData]> visual-colours;
     callback chain-set-colour(index: int, key: string, value: color);

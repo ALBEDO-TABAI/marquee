@@ -201,7 +201,12 @@ export component ConfigPane inherits Rectangle {
     /// The colour panel's knobs: the adjust package's parameters, at the
     /// selected clip's values or the defaults.
     in property <[AppliedParamData]> adjust-params;
+    /// The HSL panel's knobs, three a band; see AdjustPanel.
+    in property <[AppliedParamData]> adjust-hsl;
     callback adjust-set(key: string, value: float);
+    /// The colour panel's reset: -1 every knob, else the part's own - 0
+    /// the sliders, 1 the HSL bands, 2 the wheels and curves.
+    callback adjust-reset(part: int);
     /// The colour panel's wheels and curves, and the picture chain's by link.
     in property <[WheelData]> adjust-wheels;
     in property <[CurveData]> adjust-curves;
@@ -314,9 +319,9 @@ export component ConfigPane inherits Rectangle {
         : root.is-layer ? ["Filter"]
         : root.is-sound-layer ? ["Audio"]
         : root.is-shape ? ["Video"]
-        : root.is-image ? (root.has-chain ? ["Video", "Effects"] : ["Video"])
+        : root.is-image ? (root.has-chain ? ["Video", "Adjust", "Effects"] : ["Video", "Adjust"])
         : root.is-audio ? ["Audio"]
-        : root.has-chain ? ["Video", "Audio", "Effects"] : ["Video", "Audio"];
+        : root.has-chain ? ["Video", "Adjust", "Audio", "Effects"] : ["Video", "Adjust", "Audio"];
     /// The same tabs in the interface's language. `tabs` stays English,
     /// because the panels are picked by comparing against it.
     ///
@@ -335,15 +340,16 @@ export component ConfigPane inherits Rectangle {
         : root.is-layer ? [I18n.t("configPane.filter")]
         : root.is-sound-layer ? [I18n.t("common.audio")]
         : root.is-shape ? [I18n.t("configPane.vectorImage")]
-        : root.is-image ? (root.has-chain ? [I18n.t("common.video"), I18n.t("common.effects")]
-            : [I18n.t("common.video")])
+        : root.is-image ? (root.has-chain ? [I18n.t("common.video"), I18n.t("common.adjust"), I18n.t("common.effects")]
+            : [I18n.t("common.video"), I18n.t("common.adjust")])
         : root.is-audio ? [I18n.t("common.audio")]
-        : root.has-chain ? [I18n.t("common.video"), I18n.t("common.audio"), I18n.t("common.effects")]
-            : [I18n.t("common.video"), I18n.t("common.audio")];
+        : root.has-chain ? [I18n.t("common.video"), I18n.t("common.adjust"), I18n.t("common.audio"), I18n.t("common.effects")]
+            : [I18n.t("common.video"), I18n.t("common.adjust"), I18n.t("common.audio")];
     }
     property <string> strip-key: root.tabs.length + ":" + root.tabs[0] + ":"
         + (root.tabs.length > 1 ? root.tabs[1] : "") + ":"
         + (root.tabs.length > 2 ? root.tabs[2] : "") + ":"
+        + (root.tabs.length > 3 ? root.tabs[3] : "") + ":"
         + (root.is-shape ? "shape" : "") + ":" + I18n.t("common.video");
     changed strip-key => { root.tabs-shown = root.strip-labels(); }
     /// A one-segment segmented control is a label wearing a costume, so a lone
@@ -375,7 +381,10 @@ export component ConfigPane inherits Rectangle {
 
     /// The sections of the current tab, as the dropdown lists them.
     property <[string]> sections: root.heading == "Video"
-            ? (root.is-shape ? ["Shape", "Basic"] : ["Basic", "Mask", "Adjust", "Animation", "Speed", "Enhance"])
+            ? (root.is-shape ? ["Shape", "Basic"] : ["Basic", "Mask", "Animation", "Speed", "Enhance"])
+        // The colour panel is a tab of its own, the way an editor's 调节
+        // is: the knobs, the eight hue bands, the wheels and curves.
+        : root.heading == "Adjust" ? ["Adjust", "HSL", "Curves"]
         // Audio's chain library is a page of its own, beside the level,
         // fades and treatments rather than under them, the way Video's
         // Adjust sits beside its Basic. Named apart from Video's "Basic"
@@ -392,7 +401,8 @@ export component ConfigPane inherits Rectangle {
     /// what makes it better, its colour's knobs; its level and its sound's
     /// chain; a layer's own strength, then its colour and its chain.
     property <[Glyph]> section-icons: root.heading == "Video"
-            ? (root.is-shape ? [Glyph.shapes, Glyph.move] : [Glyph.move, Glyph.filter, Glyph.sliders, Glyph.sparkle, Glyph.film, Glyph.wand])
+            ? (root.is-shape ? [Glyph.shapes, Glyph.move] : [Glyph.move, Glyph.filter, Glyph.sparkle, Glyph.film, Glyph.wand])
+        : root.heading == "Adjust" ? [Glyph.sliders, Glyph.pipette, Glyph.curves]
         : root.heading == "Audio"
             ? (root.selected.batch-volume ? [Glyph.volume]
                 : root.is-sound-layer ? [Glyph.filter, Glyph.waveform]
@@ -403,7 +413,8 @@ export component ConfigPane inherits Rectangle {
     /// The sections as the dropdown shows them; see `tabs-shown`.
     property <[string]> sections-shown: root.heading == "Video"
             ? (root.is-shape ? [I18n.t("shapePanel.shape"), I18n.t("configPane.basic")]
-                : [I18n.t("configPane.basic"), I18n.t("mask.title"), I18n.t("common.adjust"), I18n.t("configPane.animation"), I18n.t("common.speed"), I18n.t("common.enhance")])
+                : [I18n.t("configPane.basic"), I18n.t("mask.title"), I18n.t("configPane.animation"), I18n.t("common.speed"), I18n.t("common.enhance")])
+        : root.heading == "Adjust" ? [I18n.t("adjust.basic"), I18n.t("adjust.hsl"), I18n.t("adjust.curvesAndWheels")]
         : root.heading == "Audio"
             ? (root.selected.batch-volume ? [I18n.t("configPane.basic")]
                 : root.is-sound-layer ? [I18n.t("common.layer"), I18n.t("configPane.audioEffects")]
@@ -420,7 +431,9 @@ export component ConfigPane inherits Rectangle {
     property <int> section-effects;
     property <int> section-text;
     property <int> section-layer;
+    property <int> section-adjust;
     property <int> section: root.heading == "Video" ? root.section-video
+        : root.heading == "Adjust" ? root.section-adjust
         : root.heading == "Audio" ? root.section-audio
         : root.heading == "Effects" ? root.section-effects
         : root.heading == "Text" ? root.section-text
@@ -428,6 +441,7 @@ export component ConfigPane inherits Rectangle {
         : 0;
     function pick-section(index: int) {
         if (root.heading == "Video") { root.section-video = index; }
+        else if (root.heading == "Adjust") { root.section-adjust = index; }
         else if (root.heading == "Audio") { root.section-audio = index; }
         else if (root.heading == "Effects") { root.section-effects = index; }
         else if (root.heading == "Text") { root.section-text = index; }
@@ -452,17 +466,27 @@ export component ConfigPane inherits Rectangle {
                 : root.jump-section == "Effects" ? 2 : 0;
             return;
         }
+        // The colour panel is its own tab now: asked for as a section of
+        // Video, or as a tab, it opens there.
+        if (root.jump-tab == "Adjust" || (root.jump-tab == "Video" && root.jump-section == "Adjust")) {
+            root.tab = root.tabs.length > 1 && root.tabs[1] == "Adjust" ? 1 : 0;
+            root.section-adjust = root.jump-section == "HSL" ? 1
+                : root.jump-section == "Curves" ? 2 : 0;
+            return;
+        }
         if (root.jump-tab == "Video") { root.tab = 0; }
-        else if (root.jump-tab == "Audio") { root.tab = root.is-audio || root.is-sound-layer ? 0 : 1; }
+        else if (root.jump-tab == "Audio") {
+            root.tab = root.is-audio || root.is-sound-layer ? 0
+                : root.tabs.length > 2 && root.tabs[2] == "Audio" ? 2 : 1;
+        }
         else if (root.jump-tab == "Effects") { root.tab = root.tabs.length - 1; }
-        // Enhance sits second in the Video tab for a video and a still
+        // Enhance sits last in the Video tab for a video and a still
         // alike, and Audio effects second in the Audio tab.
         root.pick-section(root.jump-section == "AudioEffects" ? 1
-            : root.jump-section == "Enhance" ? 5
-            : root.jump-section == "Adjust" ? 2
+            : root.jump-section == "Enhance" ? 4
             : root.jump-section == "Mask" ? 1
-            : root.jump-section == "Animation" ? 3
-            : root.jump-section == "Speed" ? 4
+            : root.jump-section == "Animation" ? 2
+            : root.jump-section == "Speed" ? 3
             : 0);
     }
     changed jump-token => { root.jump(); }
@@ -929,11 +953,16 @@ export component ConfigPane inherits Rectangle {
                     enhance-run => { root.clip-enhance-run(); }
                 }
 
-                if root.showing == "Adjust": AdjustPanel {
+                if root.showing == "Adjust" || root.showing == "HSL" || root.showing == "Curves": AdjustPanel {
+                    part: root.heading == "Filter" ? -1
+                        : root.showing == "HSL" ? 1
+                        : root.showing == "Curves" ? 2 : 0;
                     params: root.adjust-params;
+                    hsl: root.adjust-hsl;
                     wheels: root.adjust-wheels;
                     curves: root.adjust-curves;
                     set(key, value) => { root.adjust-set(key, value); }
+                    reset(part) => { root.adjust-reset(part); }
                     curve-point(key, point, x, y) => { root.curve-point(-1, key, point, x, y); }
                     curve-remove(key, point) => { root.curve-remove(-1, key, point); }
                     commit => { root.clip-commit(); }

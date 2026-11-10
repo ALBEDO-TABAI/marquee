@@ -3075,30 +3075,56 @@ export component AudioPanel inherits VerticalLayout {
 /// package's defaults, which are the picture as shot. The rows come from the
 /// manifest, so a knob added there appears here without a line of UI.
 export component AdjustPanel inherits VerticalLayout {
+    /// Which of the panel's parts shows: 0 the sliders, 1 the eight hue
+    /// bands, 2 the wheels and curves, -1 all of them one after another
+    /// (an adjustment layer's Adjust section).
+    in property <int> part: -1;
     in property <[AppliedParamData]> params;
+    /// The HSL panel's knobs, three a band - hue, saturation, luminance -
+    /// in band order: red, orange, yellow, green, cyan, blue, purple,
+    /// magenta.
+    in property <[AppliedParamData]> hsl;
     in property <[WheelData]> wheels;
     in property <[CurveData]> curves;
 
     callback set(key: string, value: float);
+    /// Every knob of a part back at its default; see `part`.
+    callback reset(part: int);
     /// A curve's point moved, or put down when `point` is -1, or taken off.
     callback curve-point(key: string, point: int, x: float, y: float);
     callback curve-remove(key: string, point: int);
     callback commit();
 
-    Section {
+    /// The band the HSL sliders are showing. Kept here: which band is open
+    /// is a matter of the moment, not of the clip.
+    property <int> band;
+    property <[color]> band-colours: [
+        #e5484d, #f0882e, #e7c13a, #4cb15f, #38bfc6, #3d7be0, #8b5cd6, #d24fa6,
+    ];
+    property <[string]> band-names: [
+        I18n.t("adjust.bandRed"), I18n.t("adjust.bandOrange"), I18n.t("adjust.bandYellow"),
+        I18n.t("adjust.bandGreen"), I18n.t("adjust.bandCyan"), I18n.t("adjust.bandBlue"),
+        I18n.t("adjust.bandPurple"), I18n.t("adjust.bandMagenta"),
+    ];
+
+    // ── the sliders ─────────────────────────────────────────────────────
+    if root.part == 0 || root.part == -1: Section {
         first: true;
         SectionHeader {
-            title: I18n.t("common.adjust");
+            title: I18n.t("adjust.basic");
+            ResetButton {
+                reset => { root.reset(0); root.commit(); }
+            }
             HelpButton {
                 text: I18n.t("clipInspector.exposureStopsRestSigned");
             }
         }
 
-        // The knobs first, the wheels and curves after, at the very
-        // bottom: the knobs are what most edits want, and the two big
-        // tools below them would push every knob out of sight. See
-        // PresetStack for why each knob's row re-seeds it; a subhead opens
-        // each run of rows that share a group.
+        // Each knob is a rail under its name, the way an editor's colour
+        // panel reads: the name and the number on one line, the rail - its
+        // fill running from the knob's resting place - under them. A
+        // double-click on the name or the rail, or the reset beside the
+        // name, puts one knob back; the reset in the header, all of them.
         SectionBody {
             for p[i] in root.params: VerticalLayout {
                 spacing: Theme.gap;
@@ -3113,14 +3139,17 @@ export component AdjustPanel inherits VerticalLayout {
                     changed data => { knob.value = self.data.value; }
 
                     knob := Param {
-                        unit: p.unit;
+                        rail: true;
+                        resettable: true;
+                        centre: p.default-value;
+                        unit: p.unit == "%" ? "" : p.unit;
                         label: p.label;
                         value: p.value;
                         minimum: p.min;
                         maximum: p.max;
                         step: p.step;
                         default-value: p.default-value;
-                        fmt: p.fmt;
+                        fmt: ParamFormat.plain;
                         keyable: p.keyable;
                         key-name: p.key;
                         key-state: {
@@ -3134,7 +3163,119 @@ export component AdjustPanel inherits VerticalLayout {
                     }
                 }
             }
+        }
+    }
 
+    // ── HSL ─────────────────────────────────────────────────────────────
+    if (root.part == 1 || root.part == -1) && root.hsl.length > 0: Section {
+        first: root.part == 1;
+        SectionHeader {
+            title: I18n.t("adjust.hsl");
+            ResetButton {
+                reset => { root.reset(1); root.commit(); }
+            }
+            HelpButton {
+                text: I18n.t("adjust.hslHelp");
+            }
+        }
+
+        SectionBody {
+            // The eight bands as dots of their colour; the one open wears a
+            // ring, and its name sits at the end of the row.
+            HorizontalLayout {
+                padding-left: Theme.pad;
+                padding-right: Theme.pad;
+                spacing: 6px;
+                height: 28px;
+
+                for c[b] in root.band-colours: Rectangle {
+                    width: 22px;
+                    height: 22px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 11px;
+                    border-width: 2px;
+                    border-color: root.band == b ? Theme.fg
+                        : dot-touch.has-hover ? Theme.line-strong : Colors.transparent;
+                    accessible-role: button;
+                    accessible-label: root.band-names[b];
+
+                    Rectangle {
+                        width: 14px;
+                        height: 14px;
+                        border-radius: 7px;
+                        background: c;
+                    }
+
+                    dot-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.band = b; }
+                    }
+                }
+
+                Rectangle { horizontal-stretch: 1; }
+
+                Text {
+                    text: root.band-names[root.band];
+                    color: Theme.fg-muted;
+                    font-size: Theme.fs-sm;
+                    vertical-alignment: center;
+                }
+            }
+
+            // The open band's three knobs. A row of another band is an
+            // empty layout, and the column puts no gap between them.
+            VerticalLayout {
+                spacing: 0;
+
+                for p[i] in root.hsl: VerticalLayout {
+                    if Math.floor(i / 3) == root.band: VerticalLayout {
+                        padding-bottom: Theme.gap;
+
+                        Rectangle {
+                            property <AppliedParamData> data: p;
+                            height: hsl-knob.preferred-height;
+                            changed data => { hsl-knob.value = self.data.value; }
+
+                            hsl-knob := Param {
+                                rail: true;
+                                resettable: true;
+                                centre: 0;
+                                label: p.label;
+                                value: p.value;
+                                minimum: p.min;
+                                maximum: p.max;
+                                step: p.step;
+                                default-value: p.default-value;
+                                fmt: ParamFormat.plain;
+                                keyable: p.keyable;
+                                key-name: p.key;
+                                key-state: {
+                                    field: ClipField.scale,
+                                    keyed: p.keyed,
+                                    here: p.here,
+                                    prev: p.prev,
+                                    next: p.next,
+                                };
+                                changed(v) => { root.set(p.key, v); root.commit(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── wheels and curves ───────────────────────────────────────────────
+    if (root.part == 2 || root.part == -1) && (root.wheels.length > 0 || root.curves.length > 0): Section {
+        first: root.part == 2;
+        SectionHeader {
+            title: I18n.t("adjust.curvesAndWheels");
+            ResetButton {
+                reset => { root.reset(2); root.commit(); }
+            }
+        }
+
+        SectionBody {
             // The wheels, three in a row: a puck is two knobs of the panel,
             // `<key>.x` and `<key>.y`, and the master a third.
             if root.wheels.length > 0: VerticalLayout {
@@ -3185,7 +3326,6 @@ export component AdjustPanel inherits VerticalLayout {
                     }
                 }
             }
-
         }
     }
 }
