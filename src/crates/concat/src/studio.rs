@@ -866,8 +866,8 @@ impl Models {
             transition_choices: Rc::new(VecModel::default()),
             audio_params: Rc::new(VecModel::default()),
             adjust_params: Rc::new(VecModel::default()),
-            adjust_wheels: Rc::new(VecModel::default()),
             adjust_hsl: Rc::new(VecModel::default()),
+            adjust_wheels: Rc::new(VecModel::default()),
             adjust_curves: Rc::new(VecModel::default()),
             visual_wheels: Rc::new(VecModel::default()),
             visual_colours: Rc::new(VecModel::default()),
@@ -2123,14 +2123,14 @@ fn localized_adjust_label(key: &str, fallback: &str) -> slint::SharedString {
     }
 }
 
-fn localized_adjust_group(group: &str) -> slint::SharedString {
-    let key = match group {
-        "Color" => "adjust.group.color",
-        "Lightness" => "adjust.group.lightness",
 /// The colour panel's group of hue bands, as the manifest names it and as
 /// the inspector shows it: the same word in every language.
 pub(crate) const HSL_GROUP: &str = "HSL";
 
+fn localized_adjust_group(group: &str) -> slint::SharedString {
+    let key = match group {
+        "Color" => "adjust.group.color",
+        "Lightness" => "adjust.group.lightness",
         "Effects" => "adjust.group.effects",
         "Wheels" => "adjust.group.wheels",
         "Curves" => "adjust.group.curves",

@@ -1509,6 +1509,9 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
     editor.on_adjust_set(on_lanes!(|state, key: SharedString, value: f32| {
         state.adjust_set(key.as_str(), value);
     }));
+    editor.on_adjust_reset(on_lanes!(|state, part: i32| {
+        state.adjust_reset(part);
+    }));
     editor.on_curve_point(on_lanes!(|state,
                                      entry: i32,
                                      key: SharedString,
@@ -1518,9 +1521,6 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         if entry < 0 {
             state.adjust_curve_point(key.as_str(), point, x, y);
         } else {
-    editor.on_adjust_reset(on_lanes!(|state, part: i32| {
-        state.adjust_reset(part);
-    }));
             state.chain_curve_point(entry, key.as_str(), point, x, y);
         }
     }));
