@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Обране",
+  "sounds.recent": "Нещодавні",
+  "sounds.musicLibrary": "Музика",
+  "sounds.sfxLibrary": "Звукові ефекти",
+  "sounds.searchMusic": "Пошук пісень або виконавців",
+  "sounds.searchSfx": "Пошук звукових ефектів",
+  "sounds.moreMatches": "Ще {0} — уточніть пошук, щоб побачити їх",
+  "sounds.noLibrary": "На цьому комп'ютері ще немає музичної бібліотеки. Покладіть її в {0}.",
+  "sounds.noMatch": "Нічого не знайдено.",
+  "sounds.noFavorites": "Позначте пісню чи ефект зірочкою, і вони з'являться тут.",
+  "sounds.noRecent": "Тут з'являться пісні й ефекти, додані на таймлайн.",
+  "sounds.starred": "{0} додано до обраного",
+  "sounds.unstarred": "{0} видалено з обраного",
+  "sounds.notInLibrary": "{0} є у списку, але його файлу немає в теці бібліотеки."
 }

@@ -35,6 +35,14 @@ export struct SoundCardData {
     ready: bool,
     /// How far a fetch has got, `0..=1`, or below zero when none runs.
     progress: float,
+    /// A song's or an effect's picture, in place of the audio well, when
+    /// `has-cover`.
+    cover: image,
+    has-cover: bool,
+    /// The star is offered: a sound of the music or effects library.
+    favoritable: bool,
+    /// Starred, so on the Favourites shelf.
+    favorite: bool,
 }
 
 /// One voice on the Voices shelf: a built-in speaker, a saved clone, or
@@ -82,6 +90,32 @@ export global Sounds {
     callback load-concat();
     callback concat-category-changed(index: int);
 
+    /// The music and effects library (音乐库, 音效库): read from a folder
+    /// on this machine. 0 none found, 1 listed.
+    in property <int> library-state;
+    /// Where the library is looked for, for the empty page to say.
+    in property <string> library-path;
+    /// The sidebar's rows of each shelf.
+    in property <[string]> music-categories;
+    in property <[string]> sfx-categories;
+    /// What the page lists: the shelf and category picked, narrowed by
+    /// the search; at most a few hundred rows.
+    in property <[SoundCardData]> library;
+    /// How many match, past what is listed.
+    in property <int> library-total;
+    /// The search as Rust holds it, so picking a category clears the box.
+    in property <string> library-query;
+    /// The Audio page's shelf as the sidebar has it - 0 Mine, 10 Voices,
+    /// 11 Styles, and the library's codes below - held here so the shot
+    /// socket can turn to one.
+    in-out property <int> audio-view;
+    /// The sidebar's pick: 20 Favourites, 21 Recently used, 100 + n a
+    /// music category, 300 + n an effects category.
+    callback library-view(code: int);
+    callback library-search(text: string);
+    /// A row's star.
+    callback favorite(id: string);
+
     /// The Import button: the system's picker, for sound files.
     callback import();
     /// A row clicked: play it, or pause it when it is the one playing.
@@ -122,6 +156,38 @@ component RowButton inherits Rectangle {
     }
 }
 
+// The star on a library row: hollow under the pointer, filled once the
+// sound is a favourite.
+component StarButton inherits Rectangle {
+    in property <bool> on;
+    in property <length> size: 22px;
+    callback clicked();
+
+    width: root.size;
+    height: root.size;
+    border-radius: Theme.r-xs;
+    background: touch.has-hover ? Theme.field : Colors.transparent;
+
+    property <brush> ink: root.on ? Theme.accent : touch.has-hover ? Theme.fg : Theme.fg-muted;
+    Path {
+        width: root.size * 0.6;
+        height: self.width;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        viewbox-width: 24;
+        viewbox-height: 24;
+        commands: "M12 2.5 L14.9 8.6 L21.5 9.4 L16.6 13.9 L17.9 20.5 L12 17.2 L6.1 20.5 L7.4 13.9 L2.5 9.4 L9.1 8.6 Z";
+        fill: root.on ? root.ink : Colors.transparent;
+        stroke: root.ink;
+        stroke-width: 1.6px;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
 // One sound: a play button on the audio colour, the name and the length,
 // the envelope, and the plus. A click anywhere plays it; a drag lays it on
 // the lanes; the plus lays it at the playhead. A sound of the user's own
@@ -135,6 +201,7 @@ export component SoundRow inherits Rectangle {
     callback preview();
     callback add();
     callback remove();
+    callback favorite();
 
     property <bool> playing-row: SourcePreview.card == root.item.id && root.item.id != "";
     property <bool> playing: root.playing-row && SourcePreview.playing;
@@ -173,7 +240,19 @@ export component SoundRow inherits Rectangle {
                         height: self.width;
                         border-radius: Theme.r-sm;
                         background: Theme.kind-audio-well;
+                        clip: true;
 
+                        if root.item.has-cover: Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.item.cover;
+                            image-fit: cover;
+                        }
+                        // The cover dims under the pointer so the play
+                        // mark on it reads.
+                        if root.item.has-cover && (card.has-hover || root.playing-row): Rectangle {
+                            background: #00000073;
+                        }
                         Icon {
                             x: (parent.width - self.width) / 2;
                             y: (parent.height - self.height) / 2;
@@ -182,7 +261,9 @@ export component SoundRow inherits Rectangle {
                                 : (card.has-hover || root.touch-sized) ? Glyph.play
                                 : Glyph.music;
                             size: parent.width * 0.42;
-                            tint: Theme.kind-audio;
+                            tint: root.item.has-cover ? #ffffff : Theme.kind-audio;
+                            visible: !root.item.has-cover || card.has-hover || root.playing-row
+                                || (!root.item.ready && root.item.progress < 0);
                         }
                     }
                 }
@@ -215,6 +296,15 @@ export component SoundRow inherits Rectangle {
                         height: 22px;
                         commands: root.item.wave;
                         tint: root.playing-row ? Theme.kind-audio : Theme.kind-audio.with-alpha(0.6);
+                    }
+                }
+
+                if root.item.favoritable && (card.has-hover || root.item.favorite || root.touch-sized): VerticalLayout {
+                    alignment: center;
+                    StarButton {
+                        on: root.item.favorite;
+                        size: root.touch-sized ? 32px : 22px;
+                        clicked => { root.favorite(); }
                     }
                 }
 
@@ -282,6 +372,7 @@ export component SoundList inherits VerticalLayout {
             root.added(entry.id);
         }
         remove => { Sounds.remove(entry.id); }
+        favorite => { Sounds.favorite(entry.id); }
     }
 }
 

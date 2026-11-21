@@ -1904,6 +1904,26 @@ impl Studio {
         sync(&models.sounds_mine, self.sounds.mine());
         sync(&models.sounds_concat, self.sounds.concat_rows());
         {
+            use concat_host::audio_library::Kind;
+            let (rows, total) = self.sounds.library_rows();
+            sync(&models.sounds_library, rows);
+            sync(
+                &models.music_categories,
+                self.sounds.library_categories(Kind::Music),
+            );
+            sync(
+                &models.sfx_categories,
+                self.sounds.library_categories(Kind::Sfx),
+            );
+            let page = app.global::<crate::ui::Sounds>();
+            page.set_library_total(total as i32);
+            page.set_library_state(i32::from(self.sounds.audio_library.is_some()));
+            page.set_library_query(self.sounds.library_query.as_str().into());
+            page.set_library_path(
+                crate::format::home_short(&self.sounds.audio_library_path.to_string_lossy()).into(),
+            );
+        }
+        {
             use crate::panes::sounds::ConcatState;
             let page = app.global::<crate::ui::Sounds>();
             page.set_concat_state(match self.sounds.concat {
@@ -2787,7 +2807,10 @@ fn template_card(info: &templates::TemplateInfo) -> TemplateCardData {
         .iter()
         .filter(|slot| slot.kind != model::MediaKind::Audio)
         .count();
-    let music = info.slots.iter().any(|slot| slot.kind == model::MediaKind::Audio);
+    let music = info
+        .slots
+        .iter()
+        .any(|slot| slot.kind == model::MediaKind::Audio);
     TemplateCardData {
         path: info.path.clone().into(),
         name: info.name.clone().into(),

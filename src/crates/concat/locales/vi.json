@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Yêu thích",
+  "sounds.recent": "Dùng gần đây",
+  "sounds.musicLibrary": "Âm nhạc",
+  "sounds.sfxLibrary": "Hiệu ứng âm thanh",
+  "sounds.searchMusic": "Tìm bài hát hoặc nghệ sĩ",
+  "sounds.searchSfx": "Tìm hiệu ứng âm thanh",
+  "sounds.moreMatches": "Còn {0} mục nữa - thu hẹp tìm kiếm để xem",
+  "sounds.noLibrary": "Máy tính này chưa có thư viện nhạc. Hãy đặt một thư viện tại {0}.",
+  "sounds.noMatch": "Không có kết quả phù hợp.",
+  "sounds.noFavorites": "Gắn sao cho bài hát hoặc hiệu ứng để thấy chúng ở đây.",
+  "sounds.noRecent": "Bài hát và hiệu ứng bạn thêm vào dòng thời gian sẽ xuất hiện ở đây.",
+  "sounds.starred": "Đã thêm {0} vào yêu thích",
+  "sounds.unstarred": "Đã bỏ {0} khỏi yêu thích",
+  "sounds.notInLibrary": "{0} có trong danh sách nhưng tệp của nó không có trong thư mục thư viện."
 }

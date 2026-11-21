@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "Mehr"
+  "mediaPane.morePages": "Mehr",
+  "sounds.favorites": "Favoriten",
+  "sounds.recent": "Zuletzt verwendet",
+  "sounds.musicLibrary": "Musik",
+  "sounds.sfxLibrary": "Soundeffekte",
+  "sounds.searchMusic": "Songs oder Künstler suchen",
+  "sounds.searchSfx": "Soundeffekte suchen",
+  "sounds.moreMatches": "{0} weitere – grenze die Suche ein, um sie zu sehen",
+  "sounds.noLibrary": "Auf diesem Computer gibt es noch keine Musikbibliothek. Lege eine unter {0} ab.",
+  "sounds.noMatch": "Nichts passt dazu.",
+  "sounds.noFavorites": "Markiere einen Song oder Soundeffekt mit einem Stern, dann erscheint er hier.",
+  "sounds.noRecent": "Songs und Effekte, die du zur Timeline hinzufügst, erscheinen hier.",
+  "sounds.starred": "{0} zu Favoriten hinzugefügt",
+  "sounds.unstarred": "{0} aus Favoriten entfernt",
+  "sounds.notInLibrary": "{0} ist aufgeführt, aber die Datei fehlt im Bibliotheksordner."
 }

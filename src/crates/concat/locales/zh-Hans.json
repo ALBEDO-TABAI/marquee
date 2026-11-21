@@ -1133,5 +1133,19 @@
   "anim.outro": "出场",
   "anim.combo": "组合",
   "anim.duration": "时长",
-  "mediaPane.morePages": "更多"
+  "mediaPane.morePages": "更多",
+  "sounds.favorites": "收藏",
+  "sounds.recent": "最近使用",
+  "sounds.musicLibrary": "音乐库",
+  "sounds.sfxLibrary": "音效库",
+  "sounds.searchMusic": "搜索歌曲名称/歌手",
+  "sounds.searchSfx": "搜索音效",
+  "sounds.moreMatches": "还有 {0} 个，缩小搜索范围即可看到",
+  "sounds.noLibrary": "这台电脑上还没有音乐库，请放在 {0}。",
+  "sounds.noMatch": "没有找到相关结果。",
+  "sounds.noFavorites": "点击歌曲或音效旁的星标，就会收藏到这里。",
+  "sounds.noRecent": "添加到时间线的歌曲和音效会出现在这里。",
+  "sounds.starred": "已收藏 {0}",
+  "sounds.unstarred": "已取消收藏 {0}",
+  "sounds.notInLibrary": "{0} 在列表里，但音乐库文件夹中没有它的文件。"
 }

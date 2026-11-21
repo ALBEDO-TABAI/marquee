@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "প্রিয়",
+  "sounds.recent": "সম্প্রতি ব্যবহৃত",
+  "sounds.musicLibrary": "সঙ্গীত",
+  "sounds.sfxLibrary": "সাউন্ড ইফেক্ট",
+  "sounds.searchMusic": "গান বা শিল্পী খুঁজুন",
+  "sounds.searchSfx": "সাউন্ড ইফেক্ট খুঁজুন",
+  "sounds.moreMatches": "আরও {0}টি - দেখতে খোঁজ সংকীর্ণ করুন",
+  "sounds.noLibrary": "এই কম্পিউটারে এখনও কোনো সঙ্গীত লাইব্রেরি নেই। একটি {0}-এ রাখুন।",
+  "sounds.noMatch": "কিছু মেলেনি।",
+  "sounds.noFavorites": "কোনো গান বা ইফেক্টে তারা দিন, সেটি এখানে দেখা যাবে।",
+  "sounds.noRecent": "টাইমলাইনে যোগ করা গান ও ইফেক্ট এখানে দেখা যায়।",
+  "sounds.starred": "{0} প্রিয়তে যোগ হয়েছে",
+  "sounds.unstarred": "{0} প্রিয় থেকে সরানো হয়েছে",
+  "sounds.notInLibrary": "{0} তালিকায় আছে, কিন্তু এর ফাইল লাইব্রেরি ফোল্ডারে নেই।"
 }

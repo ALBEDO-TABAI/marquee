@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Favoriler",
+  "sounds.recent": "Son kullanılanlar",
+  "sounds.musicLibrary": "Müzik",
+  "sounds.sfxLibrary": "Ses efektleri",
+  "sounds.searchMusic": "Şarkı veya sanatçı ara",
+  "sounds.searchSfx": "Ses efekti ara",
+  "sounds.moreMatches": "{0} tane daha - görmek için aramayı daralt",
+  "sounds.noLibrary": "Bu bilgisayarda henüz müzik kitaplığı yok. {0} konumuna bir tane koy.",
+  "sounds.noMatch": "Eşleşen bir şey yok.",
+  "sounds.noFavorites": "Bir şarkıyı veya efekti yıldızla, burada görünsün.",
+  "sounds.noRecent": "Zaman çizelgesine eklediğin şarkılar ve efektler burada görünür.",
+  "sounds.starred": "{0} favorilere eklendi",
+  "sounds.unstarred": "{0} favorilerden çıkarıldı",
+  "sounds.notInLibrary": "{0} listede var ama dosyası kitaplık klasöründe değil."
 }

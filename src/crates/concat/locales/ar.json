@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "المفضلة",
+  "sounds.recent": "المستخدمة مؤخرًا",
+  "sounds.musicLibrary": "الموسيقى",
+  "sounds.sfxLibrary": "المؤثرات الصوتية",
+  "sounds.searchMusic": "ابحث عن أغانٍ أو فنانين",
+  "sounds.searchSfx": "ابحث عن مؤثرات صوتية",
+  "sounds.moreMatches": "{0} أخرى - ضيّق البحث لرؤيتها",
+  "sounds.noLibrary": "لا توجد مكتبة موسيقى على هذا الكمبيوتر بعد. ضع واحدة في {0}.",
+  "sounds.noMatch": "لا توجد نتائج مطابقة.",
+  "sounds.noFavorites": "ضع نجمة على أغنية أو مؤثر لتظهر هنا.",
+  "sounds.noRecent": "تظهر هنا الأغاني والمؤثرات التي تضيفها إلى المخطط الزمني.",
+  "sounds.starred": "تمت إضافة {0} إلى المفضلة",
+  "sounds.unstarred": "تمت إزالة {0} من المفضلة",
+  "sounds.notInLibrary": "{0} مدرج، لكن ملفه غير موجود في مجلد المكتبة."
 }

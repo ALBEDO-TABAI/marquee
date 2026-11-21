@@ -520,6 +520,12 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         app.global::<Sounds>()
             .set_concat(ModelRc::from(models.sounds_concat.clone()));
         app.global::<Sounds>()
+            .set_library(ModelRc::from(models.sounds_library.clone()));
+        app.global::<Sounds>()
+            .set_music_categories(ModelRc::from(models.music_categories.clone()));
+        app.global::<Sounds>()
+            .set_sfx_categories(ModelRc::from(models.sfx_categories.clone()));
+        app.global::<Sounds>()
             .set_voices_builtin(ModelRc::from(models.voices_builtin.clone()));
         app.global::<Sounds>()
             .set_styles(ModelRc::from(models.voice_styles.clone()));
@@ -1615,6 +1621,17 @@ fn start(project: Option<std::path::PathBuf>, smoke: bool) -> Result<(), slint::
         }));
         sounds.on_concat_category_changed(on_window!(|state, index: i32| {
             state.handle(Msg::Sounds(SoundsMsg::ConcatCategory(index)));
+        }));
+        // The music and effects library: the sidebar's pick, the search,
+        // a row's star.
+        sounds.on_library_view(on_window!(|state, code: i32| {
+            state.handle(Msg::Sounds(SoundsMsg::LibraryView(code)));
+        }));
+        sounds.on_library_search(on_window!(|state, text: SharedString| {
+            state.handle(Msg::Sounds(SoundsMsg::LibrarySearch(text.to_string())));
+        }));
+        sounds.on_favorite(on_window!(|state, id: SharedString| {
+            state.handle(Msg::Sounds(SoundsMsg::Favorite(id.to_string())));
         }));
         sounds.on_voice_open(on_window!(|state, id: SharedString| {
             state.open_voice(id.as_str());

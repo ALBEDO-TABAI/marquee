@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "علاقه‌مندی‌ها",
+  "sounds.recent": "استفاده‌شده اخیر",
+  "sounds.musicLibrary": "موسیقی",
+  "sounds.sfxLibrary": "جلوه‌های صوتی",
+  "sounds.searchMusic": "جستجوی آهنگ یا هنرمند",
+  "sounds.searchSfx": "جستجوی جلوه صوتی",
+  "sounds.moreMatches": "{0} مورد دیگر - برای دیدن، جستجو را محدود کنید",
+  "sounds.noLibrary": "هنوز کتابخانه موسیقی روی این رایانه نیست. یکی را در {0} بگذارید.",
+  "sounds.noMatch": "موردی پیدا نشد.",
+  "sounds.noFavorites": "به آهنگ یا جلوه‌ای ستاره بدهید تا اینجا نمایش داده شود.",
+  "sounds.noRecent": "آهنگ‌ها و جلوه‌هایی که به خط زمانی اضافه می‌کنید اینجا نمایش داده می‌شوند.",
+  "sounds.starred": "{0} به علاقه‌مندی‌ها اضافه شد",
+  "sounds.unstarred": "{0} از علاقه‌مندی‌ها حذف شد",
+  "sounds.notInLibrary": "{0} در فهرست هست، اما پرونده‌اش در پوشه کتابخانه نیست."
 }

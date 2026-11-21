@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Favorit",
+  "sounds.recent": "Baru digunakan",
+  "sounds.musicLibrary": "Musik",
+  "sounds.sfxLibrary": "Efek suara",
+  "sounds.searchMusic": "Cari lagu atau artis",
+  "sounds.searchSfx": "Cari efek suara",
+  "sounds.moreMatches": "{0} lagi - persempit pencarian untuk melihatnya",
+  "sounds.noLibrary": "Belum ada pustaka musik di komputer ini. Letakkan di {0}.",
+  "sounds.noMatch": "Tidak ada yang cocok.",
+  "sounds.noFavorites": "Beri bintang pada lagu atau efek suara agar muncul di sini.",
+  "sounds.noRecent": "Lagu dan efek yang kamu tambahkan ke timeline muncul di sini.",
+  "sounds.starred": "{0} ditambahkan ke favorit",
+  "sounds.unstarred": "{0} dihapus dari favorit",
+  "sounds.notInLibrary": "{0} ada di daftar, tetapi berkasnya tidak ada di folder pustaka."
 }

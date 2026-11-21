@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "รายการโปรด",
+  "sounds.recent": "ใช้ล่าสุด",
+  "sounds.musicLibrary": "คลังเพลง",
+  "sounds.sfxLibrary": "คลังเอฟเฟกต์เสียง",
+  "sounds.searchMusic": "ค้นหาชื่อเพลงหรือศิลปิน",
+  "sounds.searchSfx": "ค้นหาเอฟเฟกต์เสียง",
+  "sounds.moreMatches": "อีก {0} รายการ - จำกัดการค้นหาเพื่อดู",
+  "sounds.noLibrary": "คอมพิวเตอร์เครื่องนี้ยังไม่มีคลังเพลง วางไว้ที่ {0}",
+  "sounds.noMatch": "ไม่พบผลลัพธ์",
+  "sounds.noFavorites": "ติดดาวเพลงหรือเอฟเฟกต์เสียงแล้วจะแสดงที่นี่",
+  "sounds.noRecent": "เพลงและเอฟเฟกต์ที่เพิ่มลงไทม์ไลน์จะแสดงที่นี่",
+  "sounds.starred": "เพิ่ม {0} ในรายการโปรดแล้ว",
+  "sounds.unstarred": "นำ {0} ออกจากรายการโปรดแล้ว",
+  "sounds.notInLibrary": "{0} อยู่ในรายการ แต่ไม่มีไฟล์ในโฟลเดอร์คลัง"
 }

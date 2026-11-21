@@ -2111,9 +2111,12 @@ export component MediaPane inherits Rectangle {
     changed tab => { Sounds.shown(root.tab == 8); }
     /// The Audio page's shelf: 0 = Mine, 10 = Voices, 11 = Styles. 1 was
     /// Concat's own sounds, off the page until their list is published (#60).
-    property <int> audio-category;
+    property <int> audio-category <=> Sounds.audio-view;
     property <bool> sounds-open: true;
     property <bool> voices-open: true;
+    property <bool> music-open: true;
+    property <bool> sfx-open: true;
+    changed audio-category => { Sounds.library-view(root.audio-category); }
     /// How far left the page strip can be pushed: nothing, while its chips
     /// fit. See `strip`.
     property <length> strip-floor: Math.min(0px, strip.width - strip.content-width);
@@ -2660,43 +2663,6 @@ export component MediaPane inherits Rectangle {
                         }
                     }
 
-                    // Audio: the user's own sounds.
-                    if root.tab == 8: VerticalLayout {
-                        spacing: 1px;
-                        CategoryHeading {
-                            height: 26px;
-                            title: I18n.t("sounds.sounds");
-                            open: root.sounds-open;
-                            toggled => { root.sounds-open = !root.sounds-open; }
-                        }
-                        if root.sounds-open: CategoryRow {
-                            height: 24px;
-                            label: I18n.t("sounds.mine");
-                            count: Sounds.mine.length;
-                            current: root.audio-category == 0;
-                            clicked => { root.audio-category = 0; }
-                        }
-                        CategoryHeading {
-                            height: 26px;
-                            title: I18n.t("voices.voices");
-                            open: root.voices-open;
-                            toggled => { root.voices-open = !root.voices-open; }
-                        }
-                        if root.voices-open: CategoryRow {
-                            height: 24px;
-                            label: I18n.t("voices.voices");
-                            count: Sounds.voices-saved.length;
-                            current: root.audio-category == 10;
-                            clicked => { root.audio-category = 10; }
-                        }
-                        if root.voices-open: CategoryRow {
-                            height: 24px;
-                            label: I18n.t("voices.styles");
-                            current: root.audio-category == 11;
-                            clicked => { root.audio-category = 11; }
-                        }
-                    }
-
                     if root.tab == 1: VerticalLayout {
                         spacing: 1px;
                         CategoryHeading {
@@ -2931,6 +2897,96 @@ export component MediaPane inherits Rectangle {
                         }
                     }
                 }
+
+                // Audio: the user's own sounds, the music and effects
+                // libraries (音乐库, 音效库) with a row per category, and
+                // the voices. Jianying's own column is longer than a pane,
+                // so this one scrolls.
+                if root.tab == 8: PaneScroll {
+                    x: 0;
+                    y: 0;
+                    width: parent.width;
+                    height: parent.height;
+
+                    VerticalLayout {
+                        padding: 4px;
+                        spacing: 1px;
+                        CategoryHeading {
+                            height: 26px;
+                            title: I18n.t("sounds.sounds");
+                            open: root.sounds-open;
+                            toggled => { root.sounds-open = !root.sounds-open; }
+                        }
+                        if root.sounds-open: CategoryRow {
+                            height: 24px;
+                            label: I18n.t("sounds.mine");
+                            count: Sounds.mine.length;
+                            current: root.audio-category == 0;
+                            clicked => { root.audio-category = 0; }
+                        }
+                        if root.sounds-open: CategoryRow {
+                            height: 24px;
+                            label: I18n.t("sounds.favorites");
+                            current: root.audio-category == 20;
+                            clicked => { root.audio-category = 20; }
+                        }
+                        if root.sounds-open: CategoryRow {
+                            height: 24px;
+                            label: I18n.t("sounds.recent");
+                            current: root.audio-category == 21;
+                            clicked => { root.audio-category = 21; }
+                        }
+                        CategoryHeading {
+                            height: 26px;
+                            title: I18n.t("sounds.musicLibrary");
+                            open: root.music-open;
+                            toggled => { root.music-open = !root.music-open; }
+                        }
+                        if root.music-open: VerticalLayout {
+                            spacing: 1px;
+                            for name[n] in Sounds.music-categories: CategoryRow {
+                                height: 24px;
+                                label: name;
+                                current: root.audio-category == 100 + n;
+                                clicked => { root.audio-category = 100 + n; }
+                            }
+                        }
+                        CategoryHeading {
+                            height: 26px;
+                            title: I18n.t("sounds.sfxLibrary");
+                            open: root.sfx-open;
+                            toggled => { root.sfx-open = !root.sfx-open; }
+                        }
+                        if root.sfx-open: VerticalLayout {
+                            spacing: 1px;
+                            for name[n] in Sounds.sfx-categories: CategoryRow {
+                                height: 24px;
+                                label: name;
+                                current: root.audio-category == 300 + n;
+                                clicked => { root.audio-category = 300 + n; }
+                            }
+                        }
+                        CategoryHeading {
+                            height: 26px;
+                            title: I18n.t("voices.voices");
+                            open: root.voices-open;
+                            toggled => { root.voices-open = !root.voices-open; }
+                        }
+                        if root.voices-open: CategoryRow {
+                            height: 24px;
+                            label: I18n.t("voices.voices");
+                            count: Sounds.voices-saved.length;
+                            current: root.audio-category == 10;
+                            clicked => { root.audio-category = 10; }
+                        }
+                        if root.voices-open: CategoryRow {
+                            height: 24px;
+                            label: I18n.t("voices.styles");
+                            current: root.audio-category == 11;
+                            clicked => { root.audio-category = 11; }
+                        }
+                    }
+                }
             }
 
             pages := PaneScroll {
@@ -3101,7 +3157,7 @@ export component MediaPane inherits Rectangle {
                 // Voices: the user's saved clones and the models' own
                 // speakers, or the styles; a click opens Text to speech
                 // on one.
-                if root.tab == 8 && root.audio-category >= 10: VerticalLayout {
+                if root.tab == 8 && root.audio-category >= 10 && root.audio-category < 20: VerticalLayout {
                     padding: 8px;
                     spacing: 8px;
 
@@ -3125,6 +3181,49 @@ export component MediaPane inherits Rectangle {
                             }
                         }
                     }
+                }
+
+                // The music and effects libraries, Favourites and Recently
+                // used: a search over the shelf, then its rows - a cover,
+                // the title, the artist and the length, a star and a plus.
+                if root.tab == 8 && root.audio-category >= 20: VerticalLayout {
+                    padding: 8px;
+                    spacing: 6px;
+
+                    if Sounds.library-state == 1 && root.audio-category >= 100: SearchField {
+                        height: Theme.h + 6px;
+                        text: Sounds.library-query;
+                        placeholder: root.audio-category >= 300 ? I18n.t("sounds.searchSfx") : I18n.t("sounds.searchMusic");
+                        edited(text) => { Sounds.library-search(text); }
+                        property <string> held: Sounds.library-query;
+                        changed held => { self.text = self.held; }
+                    }
+                    SoundList {
+                        items: Sounds.library;
+                    }
+                    if Sounds.library-total > Sounds.library.length: Text {
+                        text: I18n.t1("sounds.moreMatches", Sounds.library-total - Sounds.library.length);
+                        color: Theme.fg-dim;
+                        font-size: Theme.fs-xs;
+                        horizontal-alignment: center;
+                    }
+                }
+
+                if root.tab == 8 && root.audio-category >= 100 && Sounds.library-state != 1: Empty {
+                    glyph: Glyph.music;
+                    text: I18n.t1("sounds.noLibrary", Sounds.library-path);
+                }
+                if root.tab == 8 && root.audio-category >= 100 && Sounds.library-state == 1 && Sounds.library.length == 0: Empty {
+                    glyph: Glyph.music;
+                    text: I18n.t("sounds.noMatch");
+                }
+                if root.tab == 8 && root.audio-category == 20 && Sounds.library.length == 0: Empty {
+                    glyph: Glyph.music;
+                    text: I18n.t("sounds.noFavorites");
+                }
+                if root.tab == 8 && root.audio-category == 21 && Sounds.library.length == 0: Empty {
+                    glyph: Glyph.music;
+                    text: I18n.t("sounds.noRecent");
                 }
 
                 if root.tab == 8 && root.audio-category == 0 && Sounds.mine.length == 0: Empty {

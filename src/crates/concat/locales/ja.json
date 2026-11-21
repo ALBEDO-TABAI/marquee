@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "その他"
+  "mediaPane.morePages": "その他",
+  "sounds.favorites": "お気に入り",
+  "sounds.recent": "最近使用",
+  "sounds.musicLibrary": "音楽ライブラリ",
+  "sounds.sfxLibrary": "効果音ライブラリ",
+  "sounds.searchMusic": "曲名・アーティストを検索",
+  "sounds.searchSfx": "効果音を検索",
+  "sounds.moreMatches": "ほかに {0} 件 - 検索を絞り込むと表示されます",
+  "sounds.noLibrary": "このコンピュータにはまだ音楽ライブラリがありません。{0} に置いてください。",
+  "sounds.noMatch": "一致するものはありません。",
+  "sounds.noFavorites": "曲や効果音に星を付けると、ここに表示されます。",
+  "sounds.noRecent": "タイムラインに追加した曲や効果音がここに表示されます。",
+  "sounds.starred": "{0} をお気に入りに追加しました",
+  "sounds.unstarred": "{0} をお気に入りから外しました",
+  "sounds.notInLibrary": "{0} は一覧にありますが、ライブラリのフォルダにファイルがありません。"
 }

@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "Ещё"
+  "mediaPane.morePages": "Ещё",
+  "sounds.favorites": "Избранное",
+  "sounds.recent": "Недавние",
+  "sounds.musicLibrary": "Музыка",
+  "sounds.sfxLibrary": "Звуковые эффекты",
+  "sounds.searchMusic": "Поиск песен или исполнителей",
+  "sounds.searchSfx": "Поиск звуковых эффектов",
+  "sounds.moreMatches": "Ещё {0} — уточните поиск, чтобы увидеть их",
+  "sounds.noLibrary": "На этом компьютере пока нет музыкальной библиотеки. Поместите её в {0}.",
+  "sounds.noMatch": "Ничего не найдено.",
+  "sounds.noFavorites": "Отметьте песню или эффект звёздочкой, и они появятся здесь.",
+  "sounds.noRecent": "Здесь появятся песни и эффекты, добавленные на таймлайн.",
+  "sounds.starred": "{0} добавлено в избранное",
+  "sounds.unstarred": "{0} удалено из избранного",
+  "sounds.notInLibrary": "{0} есть в списке, но его файла нет в папке библиотеки."
 }

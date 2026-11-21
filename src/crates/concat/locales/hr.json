@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Favoriti",
+  "sounds.recent": "Nedavno korišteno",
+  "sounds.musicLibrary": "Glazba",
+  "sounds.sfxLibrary": "Zvučni efekti",
+  "sounds.searchMusic": "Traži pjesme ili izvođače",
+  "sounds.searchSfx": "Traži zvučne efekte",
+  "sounds.moreMatches": "Još {0} – suzi pretragu da ih vidiš",
+  "sounds.noLibrary": "Na ovom računalu još nema glazbene biblioteke. Stavi je u {0}.",
+  "sounds.noMatch": "Ništa ne odgovara.",
+  "sounds.noFavorites": "Označi pjesmu ili efekt zvjezdicom i pojavit će se ovdje.",
+  "sounds.noRecent": "Pjesme i efekti koje dodaš na vremensku traku pojavljuju se ovdje.",
+  "sounds.starred": "{0} dodano u favorite",
+  "sounds.unstarred": "{0} uklonjeno iz favorita",
+  "sounds.notInLibrary": "{0} je na popisu, ali njegove datoteke nema u mapi biblioteke."
 }

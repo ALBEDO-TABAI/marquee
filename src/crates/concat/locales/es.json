@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "Más"
+  "mediaPane.morePages": "Más",
+  "sounds.favorites": "Favoritos",
+  "sounds.recent": "Usados recientemente",
+  "sounds.musicLibrary": "Música",
+  "sounds.sfxLibrary": "Efectos de sonido",
+  "sounds.searchMusic": "Buscar canciones o artistas",
+  "sounds.searchSfx": "Buscar efectos de sonido",
+  "sounds.moreMatches": "{0} más: acota la búsqueda para verlos",
+  "sounds.noLibrary": "Aún no hay una biblioteca de música en este equipo. Ponla en {0}.",
+  "sounds.noMatch": "No hay coincidencias.",
+  "sounds.noFavorites": "Marca con una estrella una canción o un efecto y aparecerá aquí.",
+  "sounds.noRecent": "Las canciones y efectos que añadas a la línea de tiempo aparecen aquí.",
+  "sounds.starred": "{0} añadido a favoritos",
+  "sounds.unstarred": "{0} quitado de favoritos",
+  "sounds.notInLibrary": "{0} aparece en la lista, pero su archivo no está en la carpeta de la biblioteca."
 }

@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
+use concat_host::audio_library::{AudioLibrary, Kind, Mine};
 use concat_host::sounds::{self, Catalogue, Library, Sound};
 use concat_project::Command;
 use slint::SharedString;
@@ -90,7 +91,45 @@ pub enum SoundsMsg {
     Fetching(String, f32),
     /// A Concat sound's download is done.
     Fetched(String, Result<PathBuf, String>),
+    /// The sidebar's pick on the music and effects library: see
+    /// [`LibraryView`].
+    LibraryView(i32),
+    /// The library's search box.
+    LibrarySearch(String),
+    /// A row's star.
+    Favorite(String),
 }
+
+/// What the library half of the page lists, as the sidebar codes it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum LibraryView {
+    /// Not a library shelf: Mine, the voices.
+    #[default]
+    Off,
+    /// 20: the starred, both shelves.
+    Favorites,
+    /// 21: what was laid down last.
+    Recent,
+    /// 100 + n: a music category; 300 + n: an effects category.
+    Category(Kind, usize),
+}
+
+impl LibraryView {
+    /// The sidebar's code as a view.
+    pub fn from_code(code: i32) -> LibraryView {
+        match code {
+            20 => LibraryView::Favorites,
+            21 => LibraryView::Recent,
+            100..=299 => LibraryView::Category(Kind::Music, (code - 100) as usize),
+            300..=499 => LibraryView::Category(Kind::Sfx, (code - 300) as usize),
+            _ => LibraryView::Off,
+        }
+    }
+}
+
+/// The most rows a library shelf publishes at once: a category holds a
+/// hundred, a search over a shelf can hold thousands.
+pub const LIBRARY_ROWS: usize = 200;
 
 /// The page's state.
 #[derive(Default)]
@@ -117,6 +156,17 @@ pub struct SoundsPane {
     /// published on every frame of playback, and the path is the one
     /// expensive line of one.
     waves: RefCell<HashMap<String, SharedString>>,
+    /// The music and effects library on this machine, when there is one,
+    /// and where it was looked for.
+    pub audio_library: Option<AudioLibrary>,
+    pub audio_library_path: PathBuf,
+    /// Favourites and recently used, kept beside the settings.
+    pub audio_mine: Mine,
+    /// What the library half lists, and its search.
+    pub library_view: LibraryView,
+    pub library_query: String,
+    /// Each cover decoded once, by its file.
+    covers: RefCell<HashMap<PathBuf, Option<slint::Image>>>,
 }
 
 impl SoundsPane {
@@ -134,6 +184,11 @@ impl SoundsPane {
             },
             catalogue: catalogue.unwrap_or_default(),
             dirs: Some(dirs.clone()),
+            audio_library_path: AudioLibrary::locate(dirs),
+            audio_library: AudioLibrary::open(&AudioLibrary::locate(dirs))
+                .inspect_err(|error| log::info!("sounds: no audio library: {error}"))
+                .ok(),
+            audio_mine: Mine::open(dirs),
             ..SoundsPane::default()
         }
     }
@@ -143,6 +198,38 @@ impl SoundsPane {
     pub fn update(&mut self, msg: SoundsMsg, studio: &mut Studio) {
         match msg {
             SoundsMsg::Shown(on) => self.shown = on,
+            SoundsMsg::LibraryView(code) => {
+                let view = LibraryView::from_code(code);
+                if view != self.library_view {
+                    self.library_view = view;
+                    self.library_query.clear();
+                }
+            }
+            SoundsMsg::LibrarySearch(text) => self.library_query = text,
+            SoundsMsg::Favorite(card) => {
+                if self
+                    .audio_library
+                    .as_ref()
+                    .is_some_and(|lib| lib.entry(&card).is_some())
+                {
+                    let on = self.audio_mine.toggle_favorite(&card);
+                    let name = self
+                        .summary(&card)
+                        .map(|(name, _)| name)
+                        .unwrap_or_default();
+                    studio.notify(
+                        &tf(
+                            if on {
+                                "sounds.starred"
+                            } else {
+                                "sounds.unstarred"
+                            },
+                            &[&name],
+                        ),
+                        false,
+                    );
+                }
+            }
             SoundsMsg::LoadConcat => {
                 let Some(dirs) = self.dirs.clone() else {
                     return;
@@ -252,15 +339,16 @@ impl SoundsPane {
             SoundsMsg::Preview(card) => {
                 if let Some((name, path)) = self.file_of(&card) {
                     studio.preview_file(&card, &name, &path);
-                } else {
+                } else if !self.missing(&card, studio) {
                     self.fetch(&card, Then::Preview);
                 }
             }
             SoundsMsg::Add(card) => {
+                self.used(&card);
                 let start = f64::from(studio.playhead.max(0.0));
                 if let Some((name, path)) = self.file_of(&card) {
                     studio.place_sound(&name, &path, None, start);
-                } else {
+                } else if !self.missing(&card, studio) {
                     self.fetch(&card, Then::Place(None, start));
                 }
             }
@@ -295,6 +383,13 @@ impl SoundsPane {
     /// The name and the file a card stands for, when it is on disk: a
     /// sound of the user's own, or one of Concat's already downloaded.
     pub fn file_of(&self, card: &str) -> Option<(String, PathBuf)> {
+        if let Some(library) = &self.audio_library
+            && let Some((_, entry)) = library.entry(card)
+        {
+            return library
+                .audio_of(entry)
+                .map(|path| (entry.title.clone(), path));
+        }
         if let Some(sound) = self.listed(card) {
             let path = sounds::cached_file(self.dirs.as_ref()?, sound);
             return path.is_file().then(|| (sound.name.clone(), path));
@@ -306,6 +401,9 @@ impl SoundsPane {
 
     /// A card as a payload names it, for a drop: its name and its length.
     pub fn summary(&self, card: &str) -> Option<(String, f64)> {
+        if let Some((_, entry)) = self.audio_library.as_ref().and_then(|lib| lib.entry(card)) {
+            return Some((entry.title.clone(), entry.duration));
+        }
         if let Some(sound) = self.listed(card) {
             return Some((sound.name.clone(), sound.duration));
         }
@@ -317,6 +415,16 @@ impl SoundsPane {
     /// The Concat sound a card names.
     fn listed(&self, card: &str) -> Option<&sounds::Listed> {
         self.catalogue.get(card.strip_prefix(CONCAT)?)
+    }
+
+    /// A library card listed without its file: nothing to fetch it from,
+    /// so the notice says so. Whether the card was one.
+    fn missing(&self, card: &str, studio: &mut Studio) -> bool {
+        let Some((_, entry)) = self.audio_library.as_ref().and_then(|lib| lib.entry(card)) else {
+            return false;
+        };
+        studio.notify(&tf("sounds.notInLibrary", &[&entry.title]), true);
+        true
     }
 
     /// Downloads a Concat sound on a worker, then does `then` with it. A
@@ -377,6 +485,7 @@ impl SoundsPane {
                     detail: category_label(&sound.category).into(),
                     removable: false,
                     progress,
+                    ..SoundCardData::default()
                 }
             })
             .collect()
@@ -398,9 +507,101 @@ impl SoundsPane {
                     removable: true,
                     ready: true,
                     progress: -1.0,
+                    ..SoundCardData::default()
                 }
             })
             .collect()
+    }
+
+    /// A library card was laid down: to the head of Recently used.
+    pub fn used(&mut self, card: &str) {
+        if self
+            .audio_library
+            .as_ref()
+            .is_some_and(|lib| lib.entry(card).is_some())
+        {
+            self.audio_mine.used(card);
+        }
+    }
+
+    /// The library half's cards, as the view and the search narrow them,
+    /// at most [`LIBRARY_ROWS`]; and how many there are in all.
+    pub fn library_rows(&self) -> (Vec<SoundCardData>, usize) {
+        let Some(library) = &self.audio_library else {
+            return (Vec::new(), 0);
+        };
+        let cards: Vec<String> = match self.library_view {
+            LibraryView::Off => Vec::new(),
+            LibraryView::Favorites => self.audio_mine.favorites.clone(),
+            LibraryView::Recent => self.audio_mine.recent.clone(),
+            LibraryView::Category(kind, row) => {
+                let entries = if self.library_query.trim().is_empty() {
+                    library.listed(kind, Some(row))
+                } else {
+                    library.search(kind, &self.library_query)
+                };
+                entries
+                    .iter()
+                    .map(|entry| format!("{}{}", kind.prefix(), entry.id))
+                    .collect()
+            }
+        };
+        let cards: Vec<&String> = cards
+            .iter()
+            .filter(|card| library.entry(card).is_some())
+            .collect();
+        let total = cards.len();
+        let rows = cards
+            .into_iter()
+            .take(LIBRARY_ROWS)
+            .filter_map(|card| {
+                let (kind, entry) = library.entry(card)?;
+                let cover = library.cover_of(entry).and_then(|path| self.cover(&path));
+                let detail = match kind {
+                    Kind::Music => entry.artist.clone(),
+                    Kind::Sfx => entry.tags.first().cloned().unwrap_or_default(),
+                };
+                Some(SoundCardData {
+                    id: card.as_str().into(),
+                    name: entry.title.as_str().into(),
+                    duration: entry.duration as f32,
+                    wave: SharedString::new(),
+                    detail: detail.into(),
+                    removable: false,
+                    ready: library.audio_of(entry).is_some(),
+                    progress: -1.0,
+                    has_cover: cover.is_some(),
+                    cover: cover.unwrap_or_default(),
+                    favoritable: true,
+                    favorite: self.audio_mine.is_favorite(card),
+                })
+            })
+            .collect();
+        (rows, total)
+    }
+
+    /// The sidebar's rows of a shelf.
+    pub fn library_categories(&self, kind: Kind) -> Vec<SharedString> {
+        self.audio_library
+            .as_ref()
+            .map(|library| {
+                library
+                    .shelf(kind)
+                    .categories
+                    .iter()
+                    .map(|category| category.name.as_str().into())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// A cover, decoded once.
+    fn cover(&self, path: &Path) -> Option<slint::Image> {
+        self.covers
+            .borrow_mut()
+            .entry(path.to_owned())
+            .or_insert_with(|| slint::Image::load_from_path(path).ok())
+            .clone()
     }
 
     /// The envelope of a card, drawn once.
@@ -640,5 +841,134 @@ impl Studio {
                     .map(|item| item.id.clone())
             })
             .ok_or_else(|| tf("sounds.couldNotCopy", &[&name, &"?"]))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn library(name: &str) -> (PathBuf, AudioLibrary) {
+        let root =
+            std::env::temp_dir().join(format!("concat-sounds-lib-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("music")).unwrap();
+        std::fs::write(root.join("music/a.mp3"), b"ID3").unwrap();
+        let manifest = r#"{"schema":"marquee.audio-library/1",
+          "music":{"categories":[{"id":"1","name":"卡点","items":["a","b"]},{"id":"2","name":"国风","items":["b"]}],
+                   "items":{"a":{"id":"a","title":"Drink Shop","artist":"Kiprov","duration":130,"audio":"music/a.mp3"},
+                            "b":{"id":"b","title":"青花","artist":"周","duration":61,"tags":["国风"]}}},
+          "sfx":{"categories":[{"id":"9","name":"笑声","items":["s"]}],
+                 "items":{"s":{"id":"s","title":"嘿嘿","duration":0.8,"tags":["场景音"]}}}}"#;
+        std::fs::write(root.join("manifest.json"), manifest).unwrap();
+        let lib = AudioLibrary::open(&root).unwrap();
+        (root, lib)
+    }
+
+    fn pane(name: &str) -> SoundsPane {
+        let (root, lib) = library(name);
+        SoundsPane {
+            audio_library: Some(lib),
+            audio_mine: Mine::at(root.join("mine.json")),
+            ..SoundsPane::default()
+        }
+    }
+
+    #[test]
+    fn the_sidebar_codes_name_the_shelves() {
+        assert_eq!(LibraryView::from_code(0), LibraryView::Off);
+        assert_eq!(LibraryView::from_code(11), LibraryView::Off);
+        assert_eq!(LibraryView::from_code(20), LibraryView::Favorites);
+        assert_eq!(LibraryView::from_code(21), LibraryView::Recent);
+        assert_eq!(
+            LibraryView::from_code(103),
+            LibraryView::Category(Kind::Music, 3)
+        );
+        assert_eq!(
+            LibraryView::from_code(300),
+            LibraryView::Category(Kind::Sfx, 0)
+        );
+    }
+
+    #[test]
+    fn a_category_lists_its_rows_and_the_search_narrows_the_shelf() {
+        let mut pane = pane("rows");
+        pane.library_view = LibraryView::Category(Kind::Music, 0);
+        let (rows, total) = pane.library_rows();
+        assert_eq!(total, 2);
+        assert_eq!(rows[0].id, "music-a");
+        assert_eq!(
+            rows[0].detail, "Kiprov",
+            "a song's second line is its artist"
+        );
+        assert!(rows[0].ready, "its file is in the folder");
+        assert!(
+            !rows[1].ready,
+            "a song without its file is listed, not playable"
+        );
+        assert!(rows.iter().all(|row| row.favoritable && !row.removable));
+        pane.library_query = "国风".into();
+        let (rows, _) = pane.library_rows();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].id, "music-b");
+        pane.library_view = LibraryView::Category(Kind::Sfx, 0);
+        pane.library_query.clear();
+        let (rows, _) = pane.library_rows();
+        assert_eq!(rows[0].id, "sfx-s");
+        assert_eq!(
+            rows[0].detail, "场景音",
+            "an effect's second line is its first tag"
+        );
+        assert_eq!(pane.library_categories(Kind::Music), ["卡点", "国风"]);
+    }
+
+    #[test]
+    fn a_library_card_plays_from_its_file_and_names_itself() {
+        let pane = pane("file");
+        let (name, path) = pane.file_of("music-a").unwrap();
+        assert_eq!(name, "Drink Shop");
+        assert!(path.ends_with("music/a.mp3"));
+        assert!(pane.file_of("music-b").is_none());
+        assert_eq!(pane.summary("sfx-s"), Some(("嘿嘿".into(), 0.8)));
+    }
+
+    #[test]
+    fn favourites_and_recent_list_across_both_shelves() {
+        let mut pane = pane("mine");
+        pane.audio_mine.toggle_favorite("sfx-s");
+        pane.audio_mine.toggle_favorite("music-b");
+        pane.used("music-a");
+        pane.used("concat-whoosh");
+        pane.library_view = LibraryView::Favorites;
+        let ids: Vec<String> = pane
+            .library_rows()
+            .0
+            .iter()
+            .map(|row| row.id.to_string())
+            .collect();
+        assert_eq!(ids, ["music-b", "sfx-s"]);
+        assert!(pane.library_rows().0.iter().all(|row| row.favorite));
+        pane.library_view = LibraryView::Recent;
+        let ids: Vec<String> = pane
+            .library_rows()
+            .0
+            .iter()
+            .map(|row| row.id.to_string())
+            .collect();
+        assert_eq!(
+            ids,
+            ["music-a"],
+            "only the library's own sounds are remembered"
+        );
+    }
+
+    #[test]
+    fn no_library_lists_nothing() {
+        let pane = SoundsPane {
+            library_view: LibraryView::Category(Kind::Music, 0),
+            ..SoundsPane::default()
+        };
+        assert_eq!(pane.library_rows().1, 0);
+        assert!(pane.library_categories(Kind::Sfx).is_empty());
     }
 }

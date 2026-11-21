@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Favorieten",
+  "sounds.recent": "Recent gebruikt",
+  "sounds.musicLibrary": "Muziek",
+  "sounds.sfxLibrary": "Geluidseffecten",
+  "sounds.searchMusic": "Zoek nummers of artiesten",
+  "sounds.searchSfx": "Zoek geluidseffecten",
+  "sounds.moreMatches": "Nog {0} – verfijn de zoekopdracht om ze te zien",
+  "sounds.noLibrary": "Er is nog geen muziekbibliotheek op deze computer. Zet er een in {0}.",
+  "sounds.noMatch": "Niets gevonden.",
+  "sounds.noFavorites": "Geef een nummer of effect een ster en het verschijnt hier.",
+  "sounds.noRecent": "Nummers en effecten die je aan de tijdlijn toevoegt, verschijnen hier.",
+  "sounds.starred": "{0} toegevoegd aan favorieten",
+  "sounds.unstarred": "{0} verwijderd uit favorieten",
+  "sounds.notInLibrary": "{0} staat in de lijst, maar het bestand staat niet in de bibliotheekmap."
 }

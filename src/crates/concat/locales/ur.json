@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "پسندیدہ",
+  "sounds.recent": "حال ہی میں استعمال شدہ",
+  "sounds.musicLibrary": "موسیقی",
+  "sounds.sfxLibrary": "صوتی اثرات",
+  "sounds.searchMusic": "گانے یا فنکار تلاش کریں",
+  "sounds.searchSfx": "صوتی اثرات تلاش کریں",
+  "sounds.moreMatches": "مزید {0} - دیکھنے کے لیے تلاش محدود کریں",
+  "sounds.noLibrary": "اس کمپیوٹر پر ابھی کوئی موسیقی لائبریری نہیں ہے۔ اسے {0} میں رکھیں۔",
+  "sounds.noMatch": "کچھ نہیں ملا۔",
+  "sounds.noFavorites": "کسی گانے یا اثر کو ستارہ دیں، وہ یہاں نظر آئے گا۔",
+  "sounds.noRecent": "ٹائم لائن میں شامل کیے گئے گانے اور اثرات یہاں نظر آتے ہیں۔",
+  "sounds.starred": "{0} پسندیدہ میں شامل کیا گیا",
+  "sounds.unstarred": "{0} پسندیدہ سے ہٹا دیا گیا",
+  "sounds.notInLibrary": "{0} فہرست میں ہے، لیکن اس کی فائل لائبریری فولڈر میں نہیں ہے۔"
 }

@@ -109,6 +109,43 @@ fn apply(line: &str) -> String {
             });
             "ok".into()
         }
+        // The Audio page: a shelf turned to, a search typed, a row's star,
+        // plus or play, as the sidebar and the rows do.
+        "audio" => {
+            let view = value.get("view").and_then(|v| v.as_i64()).map(|v| v as i32);
+            let query = value
+                .get("query")
+                .and_then(|v| v.as_str())
+                .map(str::to_owned);
+            let verb = value
+                .get("verb")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned();
+            let card = value
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned();
+            Shell::with(move |_, app| {
+                let sounds = app.global::<crate::ui::Sounds>();
+                if let Some(view) = view {
+                    sounds.set_audio_view(view);
+                    sounds.invoke_library_view(view);
+                }
+                if let Some(query) = query {
+                    sounds.invoke_library_search(query.into());
+                }
+                let card = SharedString::from(card);
+                match verb.as_str() {
+                    "add" => sounds.invoke_add(card),
+                    "favorite" => sounds.invoke_favorite(card),
+                    "preview" => sounds.invoke_preview(card),
+                    _ => {}
+                }
+            });
+            "ok".into()
+        }
         "select_clip" => {
             let kind = value
                 .get("kind")

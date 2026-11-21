@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "מועדפים",
+  "sounds.recent": "בשימוש לאחרונה",
+  "sounds.musicLibrary": "מוזיקה",
+  "sounds.sfxLibrary": "אפקטים קוליים",
+  "sounds.searchMusic": "חיפוש שירים או אמנים",
+  "sounds.searchSfx": "חיפוש אפקטים קוליים",
+  "sounds.moreMatches": "עוד {0} - צמצמו את החיפוש כדי לראות אותם",
+  "sounds.noLibrary": "עדיין אין ספריית מוזיקה במחשב הזה. שימו אחת ב-{0}.",
+  "sounds.noMatch": "לא נמצאו התאמות.",
+  "sounds.noFavorites": "סמנו שיר או אפקט בכוכב והוא יופיע כאן.",
+  "sounds.noRecent": "שירים ואפקטים שהוספתם לציר הזמן מופיעים כאן.",
+  "sounds.starred": "{0} נוסף למועדפים",
+  "sounds.unstarred": "{0} הוסר מהמועדפים",
+  "sounds.notInLibrary": "{0} מופיע ברשימה, אבל הקובץ שלו לא נמצא בתיקיית הספרייה."
 }

@@ -1133,5 +1133,19 @@
   "mediaPane.text": "文字",
   "mediaPane.captionsTab": "字幕",
   "mediaPane.textAnim": "文字動畫",
-  "mediaPane.morePages": "更多"
+  "mediaPane.morePages": "更多",
+  "sounds.favorites": "收藏",
+  "sounds.recent": "最近使用",
+  "sounds.musicLibrary": "音樂庫",
+  "sounds.sfxLibrary": "音效庫",
+  "sounds.searchMusic": "搜尋歌曲名稱/歌手",
+  "sounds.searchSfx": "搜尋音效",
+  "sounds.moreMatches": "還有 {0} 個，縮小搜尋範圍即可看到",
+  "sounds.noLibrary": "這台電腦上還沒有音樂庫，請放在 {0}。",
+  "sounds.noMatch": "沒有找到相關結果。",
+  "sounds.noFavorites": "點選歌曲或音效旁的星號，就會收藏到這裡。",
+  "sounds.noRecent": "加入時間軸的歌曲和音效會出現在這裡。",
+  "sounds.starred": "已收藏 {0}",
+  "sounds.unstarred": "已取消收藏 {0}",
+  "sounds.notInLibrary": "{0} 在清單裡，但音樂庫資料夾中沒有它的檔案。"
 }

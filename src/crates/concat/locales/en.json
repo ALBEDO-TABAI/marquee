@@ -1133,5 +1133,19 @@
   "anim.outro": "Out",
   "anim.combo": "Loop",
   "anim.duration": "Duration",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Favourites",
+  "sounds.recent": "Recently used",
+  "sounds.musicLibrary": "Music",
+  "sounds.sfxLibrary": "Sound effects",
+  "sounds.searchMusic": "Search songs or artists",
+  "sounds.searchSfx": "Search sound effects",
+  "sounds.moreMatches": "{0} more - narrow the search to see them",
+  "sounds.noLibrary": "No music library on this computer yet. Put one at {0}.",
+  "sounds.noMatch": "Nothing matches that.",
+  "sounds.noFavorites": "Star a song or a sound effect and it shows up here.",
+  "sounds.noRecent": "Songs and effects you add to the timeline show up here.",
+  "sounds.starred": "Added {0} to favourites",
+  "sounds.unstarred": "Removed {0} from favourites",
+  "sounds.notInLibrary": "{0} is listed, but its file is not in the library folder."
 }

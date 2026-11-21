@@ -1133,5 +1133,19 @@
   "mediaPane.text": "Text",
   "mediaPane.captionsTab": "Captions",
   "mediaPane.textAnim": "Text Motion",
-  "mediaPane.morePages": "More"
+  "mediaPane.morePages": "More",
+  "sounds.favorites": "Seçilmişlər",
+  "sounds.recent": "Son istifadə edilənlər",
+  "sounds.musicLibrary": "Musiqi",
+  "sounds.sfxLibrary": "Səs effektləri",
+  "sounds.searchMusic": "Mahnı və ya ifaçı axtar",
+  "sounds.searchSfx": "Səs effekti axtar",
+  "sounds.moreMatches": "Daha {0} - görmək üçün axtarışı daralt",
+  "sounds.noLibrary": "Bu kompüterdə hələ musiqi kitabxanası yoxdur. Onu {0} ünvanına qoy.",
+  "sounds.noMatch": "Uyğun nəticə yoxdur.",
+  "sounds.noFavorites": "Mahnını və ya effekti ulduzla, burada görünəcək.",
+  "sounds.noRecent": "Zaman xəttinə əlavə etdiyin mahnı və effektlər burada görünür.",
+  "sounds.starred": "{0} seçilmişlərə əlavə edildi",
+  "sounds.unstarred": "{0} seçilmişlərdən çıxarıldı",
+  "sounds.notInLibrary": "{0} siyahıdadır, lakin faylı kitabxana qovluğunda yoxdur."
 }
