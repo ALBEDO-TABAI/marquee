@@ -488,3 +488,163 @@ impl Studio {
         (built, placed.0, placed.1)
     }
 }
+
+/// Where a sound's beats are kept: beside the file, `song.beats.json`, a
+/// JSON list of seconds. The Audio page writes it when it copies a song
+/// of the library into a project.
+pub fn beats_file(media: &std::path::Path) -> std::path::PathBuf {
+    media.with_extension("beats.json")
+}
+
+/// A clip's beats in timeline seconds, from the media's in source seconds:
+/// those inside what the clip plays, at its speed.
+pub fn beat_times(beats: &[f64], source_start: f64, speed: f64, duration: f64) -> Vec<f32> {
+    if speed <= 0.0 || duration <= 0.0 {
+        return Vec::new();
+    }
+    beats
+        .iter()
+        .map(|beat| (beat - source_start) / speed)
+        .filter(|at| *at >= 0.0 && *at <= duration)
+        .map(|at| at as f32)
+        .collect()
+}
+
+/// The beats as a path of one-pixel bars in a 1x1 box, the clip's whole
+/// length across: bars closer than `gap` seconds to the one before are
+/// left out, so a zoomed-out clip is not a solid colour.
+pub fn beats_commands(times: &[f32], duration: f32, seconds_per_pixel: f32) -> String {
+    use std::fmt::Write;
+    if duration <= 0.0 {
+        return String::new();
+    }
+    let gap = seconds_per_pixel * 4.0;
+    let width = seconds_per_pixel / duration;
+    let mut out = String::new();
+    let mut last = f32::NEG_INFINITY;
+    for &at in times {
+        if at - last < gap {
+            continue;
+        }
+        last = at;
+        let x = at / duration;
+        let _ = write!(out, "M{x:.6} 0 H{:.6} V1 H{x:.6} Z ", x + width);
+    }
+    out
+}
+
+impl Studio {
+    /// A media's beats, in its own seconds: read once from the file beside
+    /// it, and none when there is not one.
+    pub fn media_beats(&self, media_id: &str) -> Arc<Vec<f64>> {
+        let Some(item) = self.project().media.iter().find(|item| item.id == media_id) else {
+            return Arc::default();
+        };
+        if let Some(held) = self.beat_cache.borrow().get(&item.path) {
+            return held.clone();
+        }
+        let beats: Vec<f64> = std::fs::read(beats_file(std::path::Path::new(&item.path)))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .unwrap_or_default();
+        let beats = Arc::new(beats);
+        self.beat_cache
+            .borrow_mut()
+            .insert(item.path.clone(), beats.clone());
+        beats
+    }
+
+    /// Writes a sound's beats beside its copy in the project, unless they
+    /// are there, so the lane can draw them and a drag snap to them.
+    pub fn keep_beats(&self, media: &std::path::Path, beats: &[f64]) {
+        let side = beats_file(media);
+        if beats.is_empty() || side.exists() {
+            return;
+        }
+        if let Ok(text) = serde_json::to_vec(beats) {
+            let partial = side.with_extension("partial");
+            if std::fs::write(&partial, text).is_ok() {
+                let _ = std::fs::rename(&partial, &side);
+            }
+        }
+        self.forget_beats(&media.to_string_lossy());
+    }
+
+    /// Forgets what was read of a media's beats: its file was written.
+    pub fn forget_beats(&self, path: &str) {
+        self.beat_cache.borrow_mut().remove(path);
+    }
+
+    /// A clip's beats on the timeline, in seconds.
+    pub fn clip_beats(&self, clip: &Clip) -> Vec<f32> {
+        if clip.media_id.is_empty() {
+            return Vec::new();
+        }
+        let beats = self.media_beats(&clip.media_id);
+        if beats.is_empty() {
+            return Vec::new();
+        }
+        beat_times(&beats, clip.source_start, clip.speed, clip.duration)
+            .into_iter()
+            .map(|at| at + clip.start as f32)
+            .collect()
+    }
+
+    /// A clip's beats as the lane draws them.
+    pub fn beats_path(&self, clip: &Clip) -> SharedString {
+        let mut times = self.clip_beats(clip);
+        if times.is_empty() {
+            return SharedString::new();
+        }
+        for at in &mut times {
+            *at -= clip.start as f32;
+        }
+        beats_commands(&times, clip.duration as f32, self.lanes.seconds_per_pixel).into()
+    }
+
+    /// Every beat of every clip not in `skip`: what a drag snaps to
+    /// besides edges.
+    pub fn beat_targets(&self, skip: impl Fn(&str) -> bool) -> Vec<f32> {
+        self.timeline()
+            .clips
+            .iter()
+            .filter(|clip| !skip(&clip.id))
+            .flat_map(|clip| self.clip_beats(clip))
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod beat_tests {
+    use super::*;
+
+    #[test]
+    fn beats_land_on_the_timeline_by_the_clips_in_point_and_speed() {
+        let beats = [0.5, 1.0, 1.5, 2.0, 2.5];
+        // From 1.0 in, at normal speed, 1.2s long: 1.0 -> 0, 1.5 -> 0.5, 2.0 -> 1.0.
+        assert_eq!(beat_times(&beats, 1.0, 1.0, 1.2), [0.0, 0.5, 1.0]);
+        // At double speed the beats come twice as close.
+        assert_eq!(beat_times(&beats, 0.0, 2.0, 1.0), [0.25, 0.5, 0.75, 1.0]);
+        assert!(beat_times(&beats, 0.0, 0.0, 1.0).is_empty());
+        assert!(beat_times(&beats, 9.0, 1.0, 1.0).is_empty());
+    }
+
+    #[test]
+    fn the_beat_path_thins_to_a_bar_every_few_pixels() {
+        let times: Vec<f32> = (0..100).map(|n| n as f32 * 0.01).collect();
+        // A pixel just over a hundredth of a second: bars at least four
+        // pixels (0.042s) apart, so every fifth beat.
+        let path = beats_commands(&times, 1.0, 0.0105);
+        assert_eq!(path.matches('M').count(), 20);
+        assert!(path.starts_with("M0.000000 0 H0.010500 V1 H0.000000 Z "));
+        assert!(beats_commands(&times, 0.0, 0.01).is_empty());
+    }
+
+    #[test]
+    fn the_sidecar_sits_beside_the_sound() {
+        assert_eq!(
+            beats_file(std::path::Path::new("/p/audio/song.mp3")),
+            std::path::PathBuf::from("/p/audio/song.beats.json")
+        );
+    }
+}

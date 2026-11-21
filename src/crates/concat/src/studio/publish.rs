@@ -284,6 +284,7 @@ impl Studio {
                         wave: wave.0,
                         wave_from: wave.1,
                         wave_span: wave.2,
+                        beats: self.beats_path(clip),
                         has_audio: self.clip_has_sound(clip),
                         strip: self.strip_of(clip),
                     }

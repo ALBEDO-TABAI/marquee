@@ -298,6 +298,21 @@ component Clip inherits Rectangle {
             tint: Theme.wave;
         }
 
+        // The song's beats: a hairline across the body at each, in the
+        // accent, drawn from the clip's own beat grid. They are snap
+        // points, so a cut can be put on one by eye.
+        if root.item.beats != "" && !root.banded: Path {
+            x: 0;
+            y: 0;
+            width: parent.width;
+            height: parent.height;
+            commands: root.item.beats;
+            viewbox-width: 1;
+            viewbox-height: 1;
+            fit: fill;
+            fill: Theme.accent.with-alpha(0.55);
+        }
+
         // The floor the bars stand on.
         if root.item.wave != "" && !root.banded: Rectangle {
             x: 0;

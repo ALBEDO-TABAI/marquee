@@ -505,6 +505,11 @@ mod tests {
             [0.5, 1.0, 1.5]
         );
         assert_eq!(beats_from(br#"{"beats":{"times":[0.5,1.0]}}"#), [0.5, 1.0]);
+        // The catalogue's own shape: a bar position, the times, an energy.
+        assert_eq!(
+            beats_from(br#"{"value":[4,1,2],"time":[350,1100,1840],"energy":[1,2,3]}"#),
+            [0.35, 1.1, 1.84]
+        );
         assert!(beats_from(b"x").is_empty());
     }
 

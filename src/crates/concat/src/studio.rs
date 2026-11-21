@@ -1041,6 +1041,9 @@ pub struct Studio {
     pub media: crate::panes::media_bin::MediaBin,
     /// Decoded art by media id, and the ids a worker is decoding for.
     pub peaks: HashMap<String, Arc<Pyramid>>,
+    /// A sound's beats in source seconds, by the media's path: read once
+    /// from the file beside it (see [`beats_file`]), empty when it has none.
+    beat_cache: std::cell::RefCell<HashMap<String, Arc<Vec<f64>>>>,
     /// Filmstrips by media id: the picture, how many frames are in it, one
     /// frame's width and the strip's height, in the picture's own pixels.
     pub strips: HashMap<String, Strip>,
@@ -2845,6 +2848,7 @@ impl Studio {
             autosave: slint::Timer::default(),
             media: crate::panes::media_bin::MediaBin::default(),
             peaks: HashMap::new(),
+            beat_cache: Default::default(),
             strips: HashMap::new(),
             windows: HashMap::new(),
             art_pending: HashSet::new(),

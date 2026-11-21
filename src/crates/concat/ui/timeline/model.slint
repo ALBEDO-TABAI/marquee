@@ -126,6 +126,10 @@ export struct ClipData {
     /// of the clip's, since only the window on screen is built.
     wave-from: float,
     wave-span: float,
+    /// The beats of a song that has them, one pixel-wide bar each, as path
+    /// commands in a 1x1 viewbox like `wave`, or empty. They sit over the
+    /// whole clip, and are the points a drag snaps to.
+    beats: string,
     /// Whether the clip has sound: a sound clip, or a video whose file
     /// carries an audio stream. A silent video draws no sound band.
     has-audio: bool,

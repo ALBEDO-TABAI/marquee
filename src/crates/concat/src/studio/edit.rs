@@ -270,6 +270,8 @@ impl Studio {
             targets.push(clip.start as f32);
             targets.push((clip.start + clip.duration) as f32);
         }
+        // The beats of the songs that are not moving pull as well.
+        targets.extend(self.beat_targets(|id| moving.contains(&id)));
         let mut best = 0.0;
         let mut best_distance = threshold;
         for &edge in edges {
@@ -288,25 +290,17 @@ impl Studio {
         if !self.lanes.snap {
             return time;
         }
-        let mut best = time;
-        let mut best_distance = threshold;
-        let mut consider = |target: f32| {
-            let distance = (target - time).abs();
-            if distance < best_distance {
-                best = target;
-                best_distance = distance;
-            }
-        };
-        consider(0.0);
-        consider(self.playhead);
+        let mut targets = vec![0.0, self.playhead];
         for clip in &self.timeline().clips {
             if clip.id == exclude {
                 continue;
             }
-            consider(clip.start as f32);
-            consider((clip.start + clip.duration) as f32);
+            targets.push(clip.start as f32);
+            targets.push((clip.start + clip.duration) as f32);
         }
-        best
+        // The beats of the songs on the timeline pull as well.
+        targets.extend(self.beat_targets(|id| id == exclude));
+        nearest_within(time, threshold, &targets)
     }
 
     // ── changing the edit ──
@@ -538,5 +532,35 @@ impl Studio {
         self.host
             .playback
             .set_clips(std::path::PathBuf::from(session.path()), specs);
+    }
+}
+
+/// The target nearest `time` if one is inside `threshold`, else `time`.
+pub fn nearest_within(time: f32, threshold: f32, targets: &[f32]) -> f32 {
+    let mut best = time;
+    let mut best_distance = threshold;
+    for &target in targets {
+        let distance = (target - time).abs();
+        if distance < best_distance {
+            best = target;
+            best_distance = distance;
+        }
+    }
+    best
+}
+
+#[cfg(test)]
+mod snap_tests {
+    use super::nearest_within;
+
+    #[test]
+    fn a_beat_pulls_like_an_edge_and_the_nearest_wins() {
+        // Edges at 0 and 4; a song's beats at 1.0, 1.5, 2.0.
+        let targets = [0.0, 4.0, 1.0, 1.5, 2.0];
+        assert_eq!(nearest_within(1.46, 0.1, &targets), 1.5);
+        assert_eq!(nearest_within(1.26, 0.1, &targets), 1.26, "out of reach");
+        assert_eq!(nearest_within(1.94, 0.1, &targets), 2.0);
+        assert_eq!(nearest_within(3.95, 0.1, &targets), 4.0);
+        assert_eq!(nearest_within(1.0, 0.1, &[]), 1.0);
     }
 }
