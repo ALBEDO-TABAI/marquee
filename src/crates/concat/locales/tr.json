@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Zaman çizelgesine eklediğin şarkılar ve efektler burada görünür.",
   "sounds.starred": "{0} favorilere eklendi",
   "sounds.unstarred": "{0} favorilerden çıkarıldı",
-  "sounds.notInLibrary": "{0} listede var ama dosyası kitaplık klasöründe değil."
+  "sounds.notInLibrary": "{0} listede var ama dosyası kitaplık klasöründe değil.",
+  "sounds.noFetchTool": "Bu sesin dosyası henüz kitaplıkta değil ve bir indirme aracı ayarlanmamış."
 }

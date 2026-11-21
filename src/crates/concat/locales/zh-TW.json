@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "加入時間軸的歌曲和音效會出現在這裡。",
   "sounds.starred": "已收藏 {0}",
   "sounds.unstarred": "已取消收藏 {0}",
-  "sounds.notInLibrary": "{0} 在清單裡，但音樂庫資料夾中沒有它的檔案。"
+  "sounds.notInLibrary": "{0} 在清單裡，但音樂庫資料夾中沒有它的檔案。",
+  "sounds.noFetchTool": "這個聲音的檔案還不在庫裡，也沒有設定取得工具。"
 }

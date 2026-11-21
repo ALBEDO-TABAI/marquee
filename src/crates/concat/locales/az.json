@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Zaman xəttinə əlavə etdiyin mahnı və effektlər burada görünür.",
   "sounds.starred": "{0} seçilmişlərə əlavə edildi",
   "sounds.unstarred": "{0} seçilmişlərdən çıxarıldı",
-  "sounds.notInLibrary": "{0} siyahıdadır, lakin faylı kitabxana qovluğunda yoxdur."
+  "sounds.notInLibrary": "{0} siyahıdadır, lakin faylı kitabxana qovluğunda yoxdur.",
+  "sounds.noFetchTool": "Bu səsin faylı hələ kitabxanada yoxdur və yükləmə aləti qurulmayıb."
 }

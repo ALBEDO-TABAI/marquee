@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Les titres et effets ajoutés à la timeline apparaissent ici.",
   "sounds.starred": "{0} ajouté aux favoris",
   "sounds.unstarred": "{0} retiré des favoris",
-  "sounds.notInLibrary": "{0} est listé, mais son fichier n'est pas dans le dossier de la bibliothèque."
+  "sounds.notInLibrary": "{0} est listé, mais son fichier n'est pas dans le dossier de la bibliothèque.",
+  "sounds.noFetchTool": "Le fichier de ce son n'est pas encore dans la bibliothèque et aucun outil de récupération n'est configuré."
 }

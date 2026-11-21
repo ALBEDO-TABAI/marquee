@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "添加到时间线的歌曲和音效会出现在这里。",
   "sounds.starred": "已收藏 {0}",
   "sounds.unstarred": "已取消收藏 {0}",
-  "sounds.notInLibrary": "{0} 在列表里，但音乐库文件夹中没有它的文件。"
+  "sounds.notInLibrary": "{0} 在列表里，但音乐库文件夹中没有它的文件。",
+  "sounds.noFetchTool": "这个声音的文件还不在库里，也没有设置获取工具。"
 }

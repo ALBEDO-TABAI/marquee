@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Utwory i efekty dodane do osi czasu pojawiają się tutaj.",
   "sounds.starred": "Dodano {0} do ulubionych",
   "sounds.unstarred": "Usunięto {0} z ulubionych",
-  "sounds.notInLibrary": "{0} jest na liście, ale jego pliku nie ma w folderze biblioteki."
+  "sounds.notInLibrary": "{0} jest na liście, ale jego pliku nie ma w folderze biblioteki.",
+  "sounds.noFetchTool": "Pliku tego dźwięku nie ma jeszcze w bibliotece i nie skonfigurowano narzędzia do pobierania."
 }

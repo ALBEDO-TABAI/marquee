@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "타임라인에 추가한 곡과 효과음이 여기에 표시됩니다.",
   "sounds.starred": "{0}을(를) 즐겨찾기에 추가했습니다",
   "sounds.unstarred": "{0}을(를) 즐겨찾기에서 뺐습니다",
-  "sounds.notInLibrary": "{0}은(는) 목록에 있지만 라이브러리 폴더에 파일이 없습니다."
+  "sounds.notInLibrary": "{0}은(는) 목록에 있지만 라이브러리 폴더에 파일이 없습니다.",
+  "sounds.noFetchTool": "이 소리의 파일이 아직 라이브러리에 없고 가져오기 도구도 설정되어 있지 않습니다."
 }

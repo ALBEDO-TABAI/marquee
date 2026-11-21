@@ -83,3 +83,32 @@ MARQUEE_AUDIO_LIBRARY=$PWD/my-sounds cargo dev
 It reads lengths with `ffprobe` when it is on the PATH, and takes a
 `cover.png`/`cover.jpg` beside a file of the same stem, or in its category
 folder, as the cover.
+
+## Beats on the timeline
+
+A song with a `beats` file brings its beats along. When you lay it on the
+timeline, the app writes `<song>.beats.json` (a list of seconds) beside the
+project's copy of the audio. The clip then draws a thin tick for every beat
+(thinned so ticks stay at least a few pixels apart), and the beats of clips
+that are not being moved are snap points, like clip edges. Snapping off
+(the magnet) turns them off too. Clips placed before this existed have no
+sidecar and show no ticks.
+
+## Getting a sound that is not on disk
+
+An entry may be listed without its audio file. If you set
+`MARQUEE_AUDIO_FETCH` to a program, the app runs it for such an entry on a
+worker thread (180 s limit):
+
+```
+<program> <music|sfx> <id> <library-folder>
+```
+
+The program puts the audio at `<library-folder>/<kind>/<id>.<ext>`, adds the
+`audio` (and, if it can, `cover` and `beats`) paths to that entry in
+`manifest.json`, and exits 0. The app then re-reads the library and lays the
+sound down. The row shows a progress line meanwhile. A failure is shown as a
+notice; with the variable unset the notice says there is no fetch tool.
+
+The app ships no catalogue client. Programs that talk to a particular
+service live outside this repository.

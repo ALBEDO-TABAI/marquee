@@ -276,9 +276,16 @@ impl SoundsPane {
                 let Some((_, then)) = self.fetching.remove(&card) else {
                     return;
                 };
+                if result.is_ok()
+                    && Kind::of_card(&card).is_some()
+                    && let Ok(library) = AudioLibrary::open(&self.audio_library_path)
+                {
+                    self.audio_library = Some(library);
+                }
                 let name = self
                     .listed(&card)
                     .map(|sound| sound.name.clone())
+                    .or_else(|| self.summary(&card).map(|(name, _)| name))
                     .unwrap_or_default();
                 match result {
                     Ok(path) => match then {
@@ -430,6 +437,14 @@ impl SoundsPane {
     /// Downloads a Concat sound on a worker, then does `then` with it. A
     /// second ask while it comes only changes what is done with it.
     pub fn fetch(&mut self, card: &str, then: Then) {
+        if self
+            .audio_library
+            .as_ref()
+            .is_some_and(|lib| lib.entry(card).is_some())
+        {
+            self.fetch_library(card, then);
+            return;
+        }
         let (Some(sound), Some(dirs)) = (self.listed(card).cloned(), self.dirs.clone()) else {
             return;
         };
@@ -452,6 +467,38 @@ impl SoundsPane {
                     }
                 })
             },
+            move |studio, _, _, result| {
+                studio.handle(Msg::Sounds(SoundsMsg::Fetched(done, result)));
+            },
+        );
+    }
+
+    /// Fetches a library sound whose file is not in the folder, by the
+    /// program `MARQUEE_AUDIO_FETCH` names - the app knows no catalogue of
+    /// its own to ask. It is run as `<program> <music|sfx> <id> <folder>`
+    /// on a worker, and is to put the file where the manifest says and
+    /// update the manifest; the library is read again once it is done.
+    /// Without the variable the sound is only listed, and says so.
+    fn fetch_library(&mut self, card: &str, then: Then) {
+        let Some(tool) = std::env::var_os("MARQUEE_AUDIO_FETCH").filter(|tool| !tool.is_empty())
+        else {
+            crate::host::on_ui(|studio, _, _| studio.notify(&t("sounds.noFetchTool"), true));
+            return;
+        };
+        let Some((kind, id)) = Kind::of_card(card).map(|(kind, id)| (kind, id.to_owned())) else {
+            return;
+        };
+        if let Some((_, held)) = self.fetching.get_mut(card) {
+            *held = then;
+            return;
+        }
+        // A line along the row's foot while it comes; the tool says nothing
+        // of how far it has got.
+        self.fetching.insert(card.to_owned(), (0.1, then));
+        let root = self.audio_library_path.clone();
+        let done = card.to_owned();
+        crate::host::spawn(
+            move || run_fetch_tool(&tool, kind, &id, &root),
             move |studio, _, _, result| {
                 studio.handle(Msg::Sounds(SoundsMsg::Fetched(done, result)));
             },
@@ -513,6 +560,34 @@ impl SoundsPane {
             .collect()
     }
 
+    /// The beats, in seconds, of a library song at `path`: none for any
+    /// other file.
+    pub fn beats_for(&self, path: &Path) -> Vec<f64> {
+        let Some(library) = &self.audio_library else {
+            return Vec::new();
+        };
+        let Some(kind) = path
+            .parent()
+            .filter(|parent| parent.parent() == Some(library.root.as_path()))
+            .and_then(|parent| parent.file_name())
+            .and_then(|name| match name.to_str()? {
+                "music" => Some(Kind::Music),
+                "sfx" => Some(Kind::Sfx),
+                _ => None,
+            })
+        else {
+            return Vec::new();
+        };
+        let Some(entry) = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .and_then(|id| library.shelf(kind).items.get(id))
+        else {
+            return Vec::new();
+        };
+        library.beats_of(entry)
+    }
+
     /// A library card was laid down: to the head of Recently used.
     pub fn used(&mut self, card: &str) {
         if self
@@ -569,7 +644,10 @@ impl SoundsPane {
                     detail: detail.into(),
                     removable: false,
                     ready: library.audio_of(entry).is_some(),
-                    progress: -1.0,
+                    progress: self
+                        .fetching
+                        .get(card.as_str())
+                        .map_or(-1.0, |(done, _)| *done),
                     has_cover: cover.is_some(),
                     cover: cover.unwrap_or_default(),
                     favoritable: true,
@@ -615,6 +693,56 @@ impl SoundsPane {
             .or_insert_with(|| crate::format::bars_path(bars, 0.7).into())
             .clone()
     }
+}
+
+/// Runs the fetch tool for one library sound, waiting for it at most three
+/// minutes, and says where the file is when it is there afterwards.
+fn run_fetch_tool(
+    tool: &std::ffi::OsStr,
+    kind: Kind,
+    id: &str,
+    root: &Path,
+) -> Result<PathBuf, String> {
+    use std::process::{Command, Stdio};
+    let shelf = kind.prefix().trim_end_matches('-');
+    let mut child = Command::new(tool)
+        .args([shelf, id])
+        .arg(root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("{}: {error}", Path::new(tool).display()))?;
+    let started = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if started.elapsed() > std::time::Duration::from_secs(180) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("the fetch tool took too long".into());
+            }
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(200)),
+            Err(error) => return Err(error.to_string()),
+        }
+    };
+    if !status.success() {
+        let mut said = String::new();
+        if let Some(mut err) = child.stderr.take() {
+            use std::io::Read;
+            let _ = err.by_ref().take(2000).read_to_string(&mut said);
+        }
+        let said = said.lines().last().unwrap_or("").trim().to_owned();
+        return Err(if said.is_empty() {
+            status.to_string()
+        } else {
+            said
+        });
+    }
+    let file = root.join(shelf).join(format!("{id}.mp3"));
+    file.is_file()
+        .then_some(file)
+        .ok_or_else(|| "the fetch tool left no file".into())
 }
 
 /// A category as the interface says it: one of the five in its language,
@@ -815,6 +943,12 @@ impl Studio {
             n += 1;
         }
         let target_text = target.to_string_lossy().into_owned();
+        // A song with a beat grid brings it along.
+        let beats = self.sounds.beats_for(path);
+        if !beats.is_empty() {
+            std::fs::create_dir_all(&folder).ok();
+        }
+        self.keep_beats(&target, &beats);
         if let Some(item) = self
             .project()
             .media
@@ -854,9 +988,15 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(root.join("music")).unwrap();
         std::fs::write(root.join("music/a.mp3"), b"ID3").unwrap();
+        std::fs::create_dir_all(root.join("beats")).unwrap();
+        std::fs::write(
+            root.join("beats/a.json"),
+            br#"{"value":[1,2],"time":[500,1000]}"#,
+        )
+        .unwrap();
         let manifest = r#"{"schema":"marquee.audio-library/1",
           "music":{"categories":[{"id":"1","name":"卡点","items":["a","b"]},{"id":"2","name":"国风","items":["b"]}],
-                   "items":{"a":{"id":"a","title":"Drink Shop","artist":"Kiprov","duration":130,"audio":"music/a.mp3"},
+                   "items":{"a":{"id":"a","title":"Drink Shop","artist":"Kiprov","duration":130,"audio":"music/a.mp3","beats":"beats/a.json"},
                             "b":{"id":"b","title":"青花","artist":"周","duration":61,"tags":["国风"]}}},
           "sfx":{"categories":[{"id":"9","name":"笑声","items":["s"]}],
                  "items":{"s":{"id":"s","title":"嘿嘿","duration":0.8,"tags":["场景音"]}}}}"#;
@@ -933,6 +1073,19 @@ mod tests {
     }
 
     #[test]
+    fn a_library_song_brings_its_beats_and_no_other_file_does() {
+        let pane = pane("beats");
+        let root = pane.audio_library.as_ref().unwrap().root.clone();
+        assert_eq!(pane.beats_for(&root.join("music/a.mp3")), [0.5, 1.0]);
+        assert!(
+            pane.beats_for(&root.join("music/b.mp3")).is_empty(),
+            "b has none"
+        );
+        assert!(pane.beats_for(&root.join("elsewhere/a.mp3")).is_empty());
+        assert!(pane.beats_for(Path::new("/tmp/a.mp3")).is_empty());
+    }
+
+    #[test]
     fn favourites_and_recent_list_across_both_shelves() {
         let mut pane = pane("mine");
         pane.audio_mine.toggle_favorite("sfx-s");
@@ -960,6 +1113,26 @@ mod tests {
             ["music-a"],
             "only the library's own sounds are remembered"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_fetch_tool_is_run_for_a_sound_and_its_failure_is_told() {
+        use std::os::unix::fs::PermissionsExt;
+        let (root, _) = library("tool");
+        let tool = root.join("tool.sh");
+        std::fs::write(
+            &tool,
+            "#!/bin/sh\nif [ \"$2\" = bad ]; then echo 'not offered any more' >&2; exit 3; fi\nmkdir -p \"$3/$1\" && echo ID3 > \"$3/$1/$2.mp3\"\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&tool, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let got = run_fetch_tool(tool.as_os_str(), Kind::Sfx, "s", &root).unwrap();
+        assert_eq!(got, root.join("sfx/s.mp3"));
+        assert!(got.is_file());
+        let failed = run_fetch_tool(tool.as_os_str(), Kind::Music, "bad", &root);
+        assert_eq!(failed, Err("not offered any more".to_owned()));
+        assert!(run_fetch_tool(root.join("missing").as_os_str(), Kind::Music, "x", &root).is_err());
     }
 
     #[test]

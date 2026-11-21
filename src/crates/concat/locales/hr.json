@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Pjesme i efekti koje dodaš na vremensku traku pojavljuju se ovdje.",
   "sounds.starred": "{0} dodano u favorite",
   "sounds.unstarred": "{0} uklonjeno iz favorita",
-  "sounds.notInLibrary": "{0} je na popisu, ali njegove datoteke nema u mapi biblioteke."
+  "sounds.notInLibrary": "{0} je na popisu, ali njegove datoteke nema u mapi biblioteke.",
+  "sounds.noFetchTool": "Datoteke ovog zvuka još nema u biblioteci, a alat za dohvat nije postavljen."
 }

@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Songs and effects you add to the timeline show up here.",
   "sounds.starred": "Added {0} to favourites",
   "sounds.unstarred": "Removed {0} from favourites",
-  "sounds.notInLibrary": "{0} is listed, but its file is not in the library folder."
+  "sounds.notInLibrary": "{0} is listed, but its file is not in the library folder.",
+  "sounds.noFetchTool": "This sound's file is not in the library yet, and no fetch tool is set up for it."
 }

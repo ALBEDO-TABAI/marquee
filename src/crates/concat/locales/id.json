@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Lagu dan efek yang kamu tambahkan ke timeline muncul di sini.",
   "sounds.starred": "{0} ditambahkan ke favorit",
   "sounds.unstarred": "{0} dihapus dari favorit",
-  "sounds.notInLibrary": "{0} ada di daftar, tetapi berkasnya tidak ada di folder pustaka."
+  "sounds.notInLibrary": "{0} ada di daftar, tetapi berkasnya tidak ada di folder pustaka.",
+  "sounds.noFetchTool": "File suara ini belum ada di pustaka dan belum ada alat pengambil yang disiapkan."
 }

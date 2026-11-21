@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Nummers en effecten die je aan de tijdlijn toevoegt, verschijnen hier.",
   "sounds.starred": "{0} toegevoegd aan favorieten",
   "sounds.unstarred": "{0} verwijderd uit favorieten",
-  "sounds.notInLibrary": "{0} staat in de lijst, maar het bestand staat niet in de bibliotheekmap."
+  "sounds.notInLibrary": "{0} staat in de lijst, maar het bestand staat niet in de bibliotheekmap.",
+  "sounds.noFetchTool": "Het bestand van dit geluid staat nog niet in de bibliotheek en er is geen ophaaltool ingesteld."
 }

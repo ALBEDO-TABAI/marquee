@@ -1147,5 +1147,6 @@
   "sounds.noRecent": "Bài hát và hiệu ứng bạn thêm vào dòng thời gian sẽ xuất hiện ở đây.",
   "sounds.starred": "Đã thêm {0} vào yêu thích",
   "sounds.unstarred": "Đã bỏ {0} khỏi yêu thích",
-  "sounds.notInLibrary": "{0} có trong danh sách nhưng tệp của nó không có trong thư mục thư viện."
+  "sounds.notInLibrary": "{0} có trong danh sách nhưng tệp của nó không có trong thư mục thư viện.",
+  "sounds.noFetchTool": "Tệp của âm thanh này chưa có trong thư viện và chưa thiết lập công cụ tải về."
 }
