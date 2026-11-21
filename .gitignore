@@ -75,3 +75,9 @@ docs/parity/**/concat.lock
 # Downloaded speech models (hundreds of MiB)
 **/whisper-models/
 ggml-*.bin
+
+# A local music / sound-effect library (docs/AUDIO_LIBRARY_LOCAL.md) is
+# somebody else's licensed catalogue: it never goes into the repository.
+audio-library/
+**/audio-library/
+*.audio-library/
